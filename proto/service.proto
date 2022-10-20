@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
+
+import "request.proto";
+import "session.proto";
+import "party.proto";
+import "google/protobuf/any.proto";
+
+service Saver {
+  rpc AllSessionsInfo(MsgAllSessionInfoRequest) returns (MsgAllSessionInfoResponse);
+  rpc SessionInfo(MsgSessionInfoRequest) returns (MsgSessionInfoResponse);
+  rpc Submit(MsgSubmitRequest) returns (MsgSubmitResponse);
+}
+
+message Pagination {
+  uint64 limit = 1;
+  uint64 page = 2;
+  uint64 total = 3;
+}
+
+message MsgAllSessionInfoRequest {
+  Pagination pagination = 1;
+}
+
+message MsgAllSessionInfoResponse {
+  repeated Session session = 1;
+}
+
+message MsgSessionInfoRequest {
+  uint64 id = 1;
+}
+
+message MsgSessionInfoResponse {
+  Session session = 1;
+}
+
+
+message MsgSubmitRequest {
+  string signature = 1;
+  RequestType type = 2;
+  google.protobuf.Any details = 3;
+}
+
+message MsgSubmitResponse {
+
+}

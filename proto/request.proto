@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
+
+enum RequestType {
+  Proposal = 0;
+  Acceptance = 1;
+  Sign = 2;
+  Reshare = 3;
+  Keygen = 4;
+}
+
+message ProposalRequest {
+  repeated string indexes = 1;
+  string root = 2;
+}
+
+message AcceptanceRequest {
+  string root = 1;
+}
+
+message SignRequest {
+  // TODO
+}
+
+message ReshareRequest {
+  // TODO
+}
+
+message KeygenRequest {
+  // TODO
+}
