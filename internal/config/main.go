@@ -1,35 +1,41 @@
 package config
 
 import (
+	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/kit/comfig"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/kit/pgdb"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
+	"google.golang.org/grpc"
 )
 
 type Config interface {
 	comfig.Logger
 	comfig.Listenerer
 	pgdb.Databaser
-	Tenderminter
-	Cosmoser
+
+	Tendermint() *http.HTTP
+	Cosmos() *grpc.ClientConn
+	Storage() *pg.Storage
 }
 
 type config struct {
 	comfig.Logger
 	comfig.Listenerer
 	pgdb.Databaser
-	Tenderminter
-	Cosmoser
+
+	tendermint comfig.Once
+	cosmos     comfig.Once
+	storage    comfig.Once
+
 	getter kv.Getter
 }
 
 func New(getter kv.Getter) Config {
 	return &config{
-		getter:       getter,
-		Logger:       comfig.NewLogger(getter, comfig.LoggerOpts{}),
-		Listenerer:   comfig.NewListenerer(getter),
-		Databaser:    pgdb.NewDatabaser(getter),
-		Tenderminter: NewTenderminter(getter),
-		Cosmoser:     NewCosmoser(getter),
+		getter:     getter,
+		Logger:     comfig.NewLogger(getter, comfig.LoggerOpts{}),
+		Listenerer: comfig.NewListenerer(getter),
+		Databaser:  pgdb.NewDatabaser(getter),
 	}
 }

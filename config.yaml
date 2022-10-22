@@ -1,0 +1,16 @@
+log:
+  disable_sentry: true
+  level: debug
+
+db:
+  url: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
+listener:
+  addr: :8000
+
+core:
+  addr: tcp://127.0.0.1:26657
+
+cosmos:
+  addr: 127.0.0.1:9090
+
