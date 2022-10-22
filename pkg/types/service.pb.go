@@ -6,10 +6,9 @@ package types
 import (
 	context "context"
 	fmt "fmt"
-	types1 "github.com/cosmos/cosmos-sdk/codec/types"
+	types "github.com/cosmos/cosmos-sdk/codec/types"
 	grpc1 "github.com/gogo/protobuf/grpc"
 	proto "github.com/gogo/protobuf/proto"
-	types "gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -29,6 +28,110 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+type MsgInfoRequest struct {
+}
+
+func (m *MsgInfoRequest) Reset()         { *m = MsgInfoRequest{} }
+func (m *MsgInfoRequest) String() string { return proto.CompactTextString(m) }
+func (*MsgInfoRequest) ProtoMessage()    {}
+func (*MsgInfoRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a0b84a42fa06f626, []int{0}
+}
+func (m *MsgInfoRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgInfoRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgInfoRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgInfoRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgInfoRequest.Merge(m, src)
+}
+func (m *MsgInfoRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgInfoRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgInfoRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgInfoRequest proto.InternalMessageInfo
+
+type MsgInfoResponse struct {
+	CurrentSession uint64 `protobuf:"varint,1,opt,name=currentSession,proto3" json:"currentSession,omitempty"`
+	IsActive       bool   `protobuf:"varint,2,opt,name=isActive,proto3" json:"isActive,omitempty"`
+	PublicKey      string `protobuf:"bytes,3,opt,name=publicKey,proto3" json:"publicKey,omitempty"`
+	Account        string `protobuf:"bytes,4,opt,name=account,proto3" json:"account,omitempty"`
+}
+
+func (m *MsgInfoResponse) Reset()         { *m = MsgInfoResponse{} }
+func (m *MsgInfoResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgInfoResponse) ProtoMessage()    {}
+func (*MsgInfoResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a0b84a42fa06f626, []int{1}
+}
+func (m *MsgInfoResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgInfoResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgInfoResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgInfoResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgInfoResponse.Merge(m, src)
+}
+func (m *MsgInfoResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgInfoResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgInfoResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgInfoResponse proto.InternalMessageInfo
+
+func (m *MsgInfoResponse) GetCurrentSession() uint64 {
+	if m != nil {
+		return m.CurrentSession
+	}
+	return 0
+}
+
+func (m *MsgInfoResponse) GetIsActive() bool {
+	if m != nil {
+		return m.IsActive
+	}
+	return false
+}
+
+func (m *MsgInfoResponse) GetPublicKey() string {
+	if m != nil {
+		return m.PublicKey
+	}
+	return ""
+}
+
+func (m *MsgInfoResponse) GetAccount() string {
+	if m != nil {
+		return m.Account
+	}
+	return ""
+}
+
 type Pagination struct {
 	Limit uint64 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
 	Page  uint64 `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
@@ -39,7 +142,7 @@ func (m *Pagination) Reset()         { *m = Pagination{} }
 func (m *Pagination) String() string { return proto.CompactTextString(m) }
 func (*Pagination) ProtoMessage()    {}
 func (*Pagination) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a0b84a42fa06f626, []int{0}
+	return fileDescriptor_a0b84a42fa06f626, []int{2}
 }
 func (m *Pagination) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -97,7 +200,7 @@ func (m *MsgAllSessionInfoRequest) Reset()         { *m = MsgAllSessionInfoReque
 func (m *MsgAllSessionInfoRequest) String() string { return proto.CompactTextString(m) }
 func (*MsgAllSessionInfoRequest) ProtoMessage()    {}
 func (*MsgAllSessionInfoRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a0b84a42fa06f626, []int{1}
+	return fileDescriptor_a0b84a42fa06f626, []int{3}
 }
 func (m *MsgAllSessionInfoRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -134,14 +237,14 @@ func (m *MsgAllSessionInfoRequest) GetPagination() *Pagination {
 }
 
 type MsgAllSessionInfoResponse struct {
-	Session []*types.Session `protobuf:"bytes,1,rep,name=session,proto3" json:"session,omitempty"`
+	Session []*Session `protobuf:"bytes,1,rep,name=session,proto3" json:"session,omitempty"`
 }
 
 func (m *MsgAllSessionInfoResponse) Reset()         { *m = MsgAllSessionInfoResponse{} }
 func (m *MsgAllSessionInfoResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgAllSessionInfoResponse) ProtoMessage()    {}
 func (*MsgAllSessionInfoResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a0b84a42fa06f626, []int{2}
+	return fileDescriptor_a0b84a42fa06f626, []int{4}
 }
 func (m *MsgAllSessionInfoResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -170,7 +273,7 @@ func (m *MsgAllSessionInfoResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgAllSessionInfoResponse proto.InternalMessageInfo
 
-func (m *MsgAllSessionInfoResponse) GetSession() []*types.Session {
+func (m *MsgAllSessionInfoResponse) GetSession() []*Session {
 	if m != nil {
 		return m.Session
 	}
@@ -185,7 +288,7 @@ func (m *MsgSessionInfoRequest) Reset()         { *m = MsgSessionInfoRequest{} }
 func (m *MsgSessionInfoRequest) String() string { return proto.CompactTextString(m) }
 func (*MsgSessionInfoRequest) ProtoMessage()    {}
 func (*MsgSessionInfoRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a0b84a42fa06f626, []int{3}
+	return fileDescriptor_a0b84a42fa06f626, []int{5}
 }
 func (m *MsgSessionInfoRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -222,14 +325,14 @@ func (m *MsgSessionInfoRequest) GetId() uint64 {
 }
 
 type MsgSessionInfoResponse struct {
-	Session *types.Session `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
+	Session *Session `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
 }
 
 func (m *MsgSessionInfoResponse) Reset()         { *m = MsgSessionInfoResponse{} }
 func (m *MsgSessionInfoResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgSessionInfoResponse) ProtoMessage()    {}
 func (*MsgSessionInfoResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a0b84a42fa06f626, []int{4}
+	return fileDescriptor_a0b84a42fa06f626, []int{6}
 }
 func (m *MsgSessionInfoResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -258,7 +361,7 @@ func (m *MsgSessionInfoResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSessionInfoResponse proto.InternalMessageInfo
 
-func (m *MsgSessionInfoResponse) GetSession() *types.Session {
+func (m *MsgSessionInfoResponse) GetSession() *Session {
 	if m != nil {
 		return m.Session
 	}
@@ -266,16 +369,16 @@ func (m *MsgSessionInfoResponse) GetSession() *types.Session {
 }
 
 type MsgSubmitRequest struct {
-	Signature string            `protobuf:"bytes,1,opt,name=signature,proto3" json:"signature,omitempty"`
-	Type      types.RequestType `protobuf:"varint,2,opt,name=type,proto3,enum=RequestType" json:"type,omitempty"`
-	Details   *types1.Any       `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"`
+	Signature string      `protobuf:"bytes,1,opt,name=signature,proto3" json:"signature,omitempty"`
+	Type      RequestType `protobuf:"varint,2,opt,name=type,proto3,enum=RequestType" json:"type,omitempty"`
+	Details   *types.Any  `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"`
 }
 
 func (m *MsgSubmitRequest) Reset()         { *m = MsgSubmitRequest{} }
 func (m *MsgSubmitRequest) String() string { return proto.CompactTextString(m) }
 func (*MsgSubmitRequest) ProtoMessage()    {}
 func (*MsgSubmitRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a0b84a42fa06f626, []int{5}
+	return fileDescriptor_a0b84a42fa06f626, []int{7}
 }
 func (m *MsgSubmitRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -311,14 +414,14 @@ func (m *MsgSubmitRequest) GetSignature() string {
 	return ""
 }
 
-func (m *MsgSubmitRequest) GetType() types.RequestType {
+func (m *MsgSubmitRequest) GetType() RequestType {
 	if m != nil {
 		return m.Type
 	}
-	return types.RequestType_Proposal
+	return RequestType_Proposal
 }
 
-func (m *MsgSubmitRequest) GetDetails() *types1.Any {
+func (m *MsgSubmitRequest) GetDetails() *types.Any {
 	if m != nil {
 		return m.Details
 	}
@@ -332,7 +435,7 @@ func (m *MsgSubmitResponse) Reset()         { *m = MsgSubmitResponse{} }
 func (m *MsgSubmitResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgSubmitResponse) ProtoMessage()    {}
 func (*MsgSubmitResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a0b84a42fa06f626, []int{6}
+	return fileDescriptor_a0b84a42fa06f626, []int{8}
 }
 func (m *MsgSubmitResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -362,6 +465,8 @@ func (m *MsgSubmitResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgSubmitResponse proto.InternalMessageInfo
 
 func init() {
+	proto.RegisterType((*MsgInfoRequest)(nil), "MsgInfoRequest")
+	proto.RegisterType((*MsgInfoResponse)(nil), "MsgInfoResponse")
 	proto.RegisterType((*Pagination)(nil), "Pagination")
 	proto.RegisterType((*MsgAllSessionInfoRequest)(nil), "MsgAllSessionInfoRequest")
 	proto.RegisterType((*MsgAllSessionInfoResponse)(nil), "MsgAllSessionInfoResponse")
@@ -374,35 +479,41 @@ func init() {
 func init() { proto.RegisterFile("service.proto", fileDescriptor_a0b84a42fa06f626) }
 
 var fileDescriptor_a0b84a42fa06f626 = []byte{
-	// 445 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x51, 0xc1, 0x6e, 0xd3, 0x40,
-	0x14, 0xcc, 0xa6, 0x69, 0x4b, 0x9f, 0x69, 0xa1, 0x4b, 0x29, 0x8e, 0x85, 0xac, 0xc8, 0x17, 0x2a,
-	0x55, 0x5d, 0x4b, 0xe6, 0x8a, 0x40, 0x45, 0x42, 0x80, 0x44, 0x25, 0xe4, 0x72, 0xe2, 0xb6, 0x49,
-	0x36, 0xab, 0x15, 0x8e, 0xd7, 0xf8, 0x6d, 0x22, 0xf9, 0xca, 0x17, 0xf0, 0x4d, 0x9c, 0x38, 0xf6,
-	0xc8, 0x11, 0x25, 0x3f, 0x82, 0xb2, 0x6b, 0x93, 0x28, 0x75, 0x6e, 0x9e, 0x9d, 0x79, 0x9e, 0x79,
-	0xf3, 0xe0, 0x18, 0x45, 0x39, 0x57, 0x23, 0xc1, 0x8a, 0x52, 0x1b, 0x1d, 0x1c, 0x97, 0xe2, 0xfb,
-	0x4c, 0xa0, 0x69, 0x20, 0x0a, 0x44, 0xa5, 0xf3, 0x1a, 0x7a, 0x05, 0x2f, 0x4d, 0x55, 0x83, 0xbe,
-	0xd4, 0x5a, 0x66, 0x22, 0xb6, 0x68, 0x38, 0x9b, 0xc4, 0x3c, 0xaf, 0xa9, 0xe8, 0x13, 0xc0, 0x67,
-	0x2e, 0x55, 0xce, 0x8d, 0xd2, 0x39, 0x3d, 0x83, 0xfd, 0x4c, 0x4d, 0x95, 0xf1, 0xc9, 0x80, 0x5c,
-	0xf4, 0x52, 0x07, 0x28, 0x85, 0x5e, 0xc1, 0xa5, 0xf0, 0xbb, 0xf6, 0xd1, 0x7e, 0xaf, 0x94, 0x46,
-	0x1b, 0x9e, 0xf9, 0x7b, 0x4e, 0x69, 0x41, 0xf4, 0x1e, 0xfc, 0x1b, 0x94, 0xd7, 0x59, 0x76, 0xeb,
-	0xc2, 0x7c, 0xcc, 0x27, 0x3a, 0x75, 0x31, 0xe9, 0x25, 0x40, 0xf1, 0xdf, 0xc9, 0x1a, 0x78, 0x89,
-	0xc7, 0xd6, 0xe6, 0xe9, 0x06, 0x1d, 0xbd, 0x81, 0x7e, 0xcb, 0x8f, 0xb0, 0xd0, 0x39, 0x0a, 0x1a,
-	0xc1, 0x61, 0xbd, 0xac, 0x4f, 0x06, 0x7b, 0x17, 0x5e, 0xf2, 0x80, 0xd5, 0xb2, 0xb4, 0x21, 0xa2,
-	0x17, 0xf0, 0xf4, 0x06, 0x65, 0x4b, 0x8c, 0x13, 0xe8, 0xaa, 0x71, 0xbd, 0x5f, 0x57, 0x8d, 0xa3,
-	0x57, 0x70, 0xbe, 0x2d, 0x6c, 0xb3, 0x21, 0xed, 0x36, 0x3f, 0x08, 0x3c, 0x5e, 0x8d, 0xcf, 0x86,
-	0x53, 0x65, 0x1a, 0x8b, 0xe7, 0x70, 0x84, 0x4a, 0xe6, 0xdc, 0xcc, 0x4a, 0x61, 0x47, 0x8f, 0xd2,
-	0xf5, 0x03, 0x1d, 0x40, 0xcf, 0x54, 0x85, 0x6b, 0xf3, 0x24, 0x79, 0xc8, 0xea, 0xa9, 0x2f, 0x55,
-	0x21, 0x52, 0xcb, 0x50, 0x06, 0x87, 0x63, 0x61, 0xb8, 0xca, 0xd0, 0xb6, 0xeb, 0x25, 0x67, 0xcc,
-	0x1d, 0x90, 0x35, 0x07, 0x64, 0xd7, 0x79, 0x95, 0x36, 0xa2, 0xe8, 0x09, 0x9c, 0x6e, 0x64, 0x70,
-	0xe9, 0x93, 0x5f, 0x04, 0xf6, 0x6f, 0xf9, 0x5c, 0x94, 0xf4, 0x03, 0x3c, 0x5a, 0x17, 0x89, 0xab,
-	0x15, 0x69, 0x9f, 0xed, 0x3a, 0x53, 0x10, 0xb0, 0xdd, 0xc5, 0xbf, 0x06, 0x6f, 0xe3, 0x99, 0x9e,
-	0xb3, 0xd6, 0x8a, 0x83, 0x67, 0x6c, 0x47, 0xa3, 0x31, 0x1c, 0xb8, 0x94, 0xf4, 0x94, 0x6d, 0xb7,
-	0x16, 0x50, 0x76, 0x6f, 0x89, 0xb7, 0xef, 0x7e, 0x2f, 0x42, 0x72, 0xb7, 0x08, 0xc9, 0xdf, 0x45,
-	0x48, 0x7e, 0x2e, 0xc3, 0xce, 0xdd, 0x32, 0xec, 0xfc, 0x59, 0x86, 0x9d, 0xaf, 0x97, 0x52, 0x99,
-	0x8c, 0x0f, 0xd9, 0x48, 0x4f, 0xe3, 0x92, 0x97, 0x6a, 0x52, 0x5d, 0xd9, 0x72, 0x46, 0x3a, 0x36,
-	0x88, 0x57, 0x38, 0x1f, 0xc5, 0xc5, 0x37, 0x19, 0xaf, 0xfa, 0xc4, 0xe1, 0x81, 0xa5, 0x5e, 0xfe,
-	0x0b, 0x00, 0x00, 0xff, 0xff, 0xaf, 0xc8, 0xde, 0x20, 0x42, 0x03, 0x00, 0x00,
+	// 533 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x52, 0xcf, 0x8f, 0xd2, 0x40,
+	0x14, 0xa6, 0x6c, 0x5d, 0xe0, 0xd5, 0x05, 0x76, 0x5c, 0xd7, 0xd2, 0x6c, 0x1a, 0xd2, 0x83, 0x62,
+	0x74, 0xa7, 0x09, 0x5e, 0x8d, 0x06, 0x0f, 0xfe, 0x88, 0x92, 0x98, 0x59, 0x4f, 0xde, 0x86, 0x32,
+	0x34, 0x13, 0x4b, 0xa7, 0x76, 0xa6, 0x24, 0xbd, 0x7a, 0x37, 0xf1, 0xcf, 0xf2, 0xb8, 0x47, 0x8f,
+	0x06, 0xfe, 0x00, 0xff, 0x05, 0xc3, 0xb4, 0x05, 0x44, 0xb8, 0xcd, 0xf7, 0xbe, 0xf7, 0xe6, 0x7b,
+	0xef, 0x7b, 0x0f, 0xce, 0x24, 0x4b, 0x17, 0x3c, 0x60, 0x38, 0x49, 0x85, 0x12, 0xce, 0x59, 0xca,
+	0xbe, 0x66, 0x4c, 0xaa, 0x0a, 0x4a, 0x26, 0x25, 0x17, 0x71, 0x09, 0xad, 0x84, 0xa6, 0x2a, 0x2f,
+	0x41, 0x2f, 0x14, 0x22, 0x8c, 0x98, 0xaf, 0xd1, 0x24, 0x9b, 0xf9, 0x34, 0x2e, 0x29, 0xaf, 0x0b,
+	0xed, 0xb1, 0x0c, 0xdf, 0xc5, 0x33, 0x41, 0x8a, 0xef, 0xbc, 0xef, 0x06, 0x74, 0x36, 0x21, 0x99,
+	0x88, 0x58, 0x32, 0xf4, 0x10, 0xda, 0x41, 0x96, 0xa6, 0x2c, 0x56, 0x37, 0x85, 0x8a, 0x6d, 0xf4,
+	0x8d, 0x81, 0x49, 0xf6, 0xa2, 0xc8, 0x81, 0x26, 0x97, 0xa3, 0x40, 0xf1, 0x05, 0xb3, 0xeb, 0x7d,
+	0x63, 0xd0, 0x24, 0x1b, 0x8c, 0xae, 0xa0, 0x95, 0x64, 0x93, 0x88, 0x07, 0xef, 0x59, 0x6e, 0x9f,
+	0xf4, 0x8d, 0x41, 0x8b, 0x6c, 0x03, 0xc8, 0x86, 0x06, 0x0d, 0x02, 0x91, 0xc5, 0xca, 0x36, 0x35,
+	0x57, 0x41, 0xef, 0x03, 0xc0, 0x47, 0x1a, 0xf2, 0x98, 0xaa, 0xb5, 0xc2, 0x05, 0xdc, 0x89, 0xf8,
+	0x9c, 0xab, 0xb2, 0x81, 0x02, 0x20, 0x04, 0x66, 0x42, 0xc3, 0x42, 0xd3, 0x24, 0xfa, 0xbd, 0xce,
+	0x54, 0x42, 0xd1, 0x48, 0x6b, 0x99, 0xa4, 0x00, 0xde, 0x1b, 0xb0, 0xc7, 0x32, 0x1c, 0x45, 0x51,
+	0xd9, 0xf2, 0xce, 0xe4, 0xe8, 0x09, 0x40, 0xb2, 0x51, 0xd2, 0x02, 0xd6, 0xd0, 0xc2, 0x5b, 0x71,
+	0xb2, 0x43, 0x7b, 0x2f, 0xa1, 0x77, 0xe0, 0xa3, 0xd2, 0x2f, 0x0f, 0x1a, 0x72, 0x63, 0xd4, 0xc9,
+	0xc0, 0x1a, 0x36, 0x71, 0x99, 0x46, 0x2a, 0xc2, 0x7b, 0x04, 0xf7, 0xc7, 0x32, 0x3c, 0xd0, 0x46,
+	0x1b, 0xea, 0x7c, 0x5a, 0xce, 0x57, 0xe7, 0x53, 0xef, 0x39, 0x5c, 0xee, 0x27, 0x1e, 0x92, 0x31,
+	0x0e, 0xcb, 0x7c, 0x33, 0xa0, 0xbb, 0x2e, 0xcf, 0x26, 0x73, 0xae, 0x2a, 0x89, 0x2b, 0x68, 0x49,
+	0x1e, 0xc6, 0x54, 0x65, 0x29, 0xd3, 0xa5, 0x2d, 0xb2, 0x0d, 0xa0, 0x3e, 0x98, 0x2a, 0x4f, 0x0a,
+	0x37, 0xdb, 0xc3, 0xbb, 0xb8, 0xac, 0xfa, 0x94, 0x27, 0x8c, 0x68, 0x06, 0x61, 0x68, 0x4c, 0x99,
+	0xa2, 0x3c, 0x92, 0xda, 0x5d, 0x6b, 0x78, 0x81, 0x8b, 0x13, 0xc3, 0xd5, 0x89, 0xe1, 0x51, 0x9c,
+	0x93, 0x2a, 0xc9, 0xbb, 0x07, 0xe7, 0x3b, 0x3d, 0x14, 0xdd, 0x0f, 0xff, 0x18, 0xd0, 0xb8, 0x29,
+	0x4e, 0x1a, 0x3d, 0x06, 0x73, 0x3d, 0x19, 0xea, 0xe0, 0x7f, 0xaf, 0xd1, 0xe9, 0xe2, 0xfd, 0x5b,
+	0x7c, 0x0b, 0x9d, 0xad, 0xeb, 0x52, 0x57, 0xf5, 0xf0, 0xb1, 0x9d, 0x3a, 0x0e, 0x3e, 0xbe, 0xa5,
+	0x17, 0x60, 0xed, 0x84, 0xd1, 0x25, 0x3e, 0xb8, 0x0f, 0xe7, 0x01, 0x3e, 0x62, 0xbf, 0x0f, 0xa7,
+	0xc5, 0x48, 0xe8, 0x1c, 0xef, 0x5b, 0xec, 0x20, 0xfc, 0xdf, 0xc4, 0xaf, 0x5e, 0xff, 0x5c, 0xba,
+	0xc6, 0xed, 0xd2, 0x35, 0x7e, 0x2f, 0x5d, 0xe3, 0xc7, 0xca, 0xad, 0xdd, 0xae, 0xdc, 0xda, 0xaf,
+	0x95, 0x5b, 0xfb, 0xfc, 0x34, 0xe4, 0x2a, 0xa2, 0x13, 0x1c, 0x88, 0xb9, 0x9f, 0xd2, 0x94, 0xcf,
+	0xf2, 0x6b, 0xed, 0x64, 0x20, 0x22, 0x5f, 0x49, 0x79, 0x2d, 0x17, 0x81, 0x9f, 0x7c, 0x09, 0xfd,
+	0xb5, 0xfb, 0x72, 0x72, 0xaa, 0xb9, 0x67, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0xa2, 0x4b, 0x1e,
+	0xfc, 0x12, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -413,148 +524,259 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// SaverClient is the client API for Saver service.
+// ServiceClient is the client API for Service service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type SaverClient interface {
+type ServiceClient interface {
+	Info(ctx context.Context, in *MsgInfoRequest, opts ...grpc.CallOption) (*MsgInfoResponse, error)
 	AllSessionsInfo(ctx context.Context, in *MsgAllSessionInfoRequest, opts ...grpc.CallOption) (*MsgAllSessionInfoResponse, error)
 	SessionInfo(ctx context.Context, in *MsgSessionInfoRequest, opts ...grpc.CallOption) (*MsgSessionInfoResponse, error)
 	Submit(ctx context.Context, in *MsgSubmitRequest, opts ...grpc.CallOption) (*MsgSubmitResponse, error)
 }
 
-type saverClient struct {
+type serviceClient struct {
 	cc grpc1.ClientConn
 }
 
-func NewSaverClient(cc grpc1.ClientConn) SaverClient {
-	return &saverClient{cc}
+func NewServiceClient(cc grpc1.ClientConn) ServiceClient {
+	return &serviceClient{cc}
 }
 
-func (c *saverClient) AllSessionsInfo(ctx context.Context, in *MsgAllSessionInfoRequest, opts ...grpc.CallOption) (*MsgAllSessionInfoResponse, error) {
+func (c *serviceClient) Info(ctx context.Context, in *MsgInfoRequest, opts ...grpc.CallOption) (*MsgInfoResponse, error) {
+	out := new(MsgInfoResponse)
+	err := c.cc.Invoke(ctx, "/Service/Info", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceClient) AllSessionsInfo(ctx context.Context, in *MsgAllSessionInfoRequest, opts ...grpc.CallOption) (*MsgAllSessionInfoResponse, error) {
 	out := new(MsgAllSessionInfoResponse)
-	err := c.cc.Invoke(ctx, "/Saver/AllSessionsInfo", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Service/AllSessionsInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *saverClient) SessionInfo(ctx context.Context, in *MsgSessionInfoRequest, opts ...grpc.CallOption) (*MsgSessionInfoResponse, error) {
+func (c *serviceClient) SessionInfo(ctx context.Context, in *MsgSessionInfoRequest, opts ...grpc.CallOption) (*MsgSessionInfoResponse, error) {
 	out := new(MsgSessionInfoResponse)
-	err := c.cc.Invoke(ctx, "/Saver/SessionInfo", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Service/SessionInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *saverClient) Submit(ctx context.Context, in *MsgSubmitRequest, opts ...grpc.CallOption) (*MsgSubmitResponse, error) {
+func (c *serviceClient) Submit(ctx context.Context, in *MsgSubmitRequest, opts ...grpc.CallOption) (*MsgSubmitResponse, error) {
 	out := new(MsgSubmitResponse)
-	err := c.cc.Invoke(ctx, "/Saver/Submit", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Service/Submit", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// SaverServer is the server API for Saver service.
-type SaverServer interface {
+// ServiceServer is the server API for Service service.
+type ServiceServer interface {
+	Info(context.Context, *MsgInfoRequest) (*MsgInfoResponse, error)
 	AllSessionsInfo(context.Context, *MsgAllSessionInfoRequest) (*MsgAllSessionInfoResponse, error)
 	SessionInfo(context.Context, *MsgSessionInfoRequest) (*MsgSessionInfoResponse, error)
 	Submit(context.Context, *MsgSubmitRequest) (*MsgSubmitResponse, error)
 }
 
-// UnimplementedSaverServer can be embedded to have forward compatible implementations.
-type UnimplementedSaverServer struct {
+// UnimplementedServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedServiceServer struct {
 }
 
-func (*UnimplementedSaverServer) AllSessionsInfo(ctx context.Context, req *MsgAllSessionInfoRequest) (*MsgAllSessionInfoResponse, error) {
+func (*UnimplementedServiceServer) Info(ctx context.Context, req *MsgInfoRequest) (*MsgInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Info not implemented")
+}
+func (*UnimplementedServiceServer) AllSessionsInfo(ctx context.Context, req *MsgAllSessionInfoRequest) (*MsgAllSessionInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AllSessionsInfo not implemented")
 }
-func (*UnimplementedSaverServer) SessionInfo(ctx context.Context, req *MsgSessionInfoRequest) (*MsgSessionInfoResponse, error) {
+func (*UnimplementedServiceServer) SessionInfo(ctx context.Context, req *MsgSessionInfoRequest) (*MsgSessionInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SessionInfo not implemented")
 }
-func (*UnimplementedSaverServer) Submit(ctx context.Context, req *MsgSubmitRequest) (*MsgSubmitResponse, error) {
+func (*UnimplementedServiceServer) Submit(ctx context.Context, req *MsgSubmitRequest) (*MsgSubmitResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Submit not implemented")
 }
 
-func RegisterSaverServer(s grpc1.Server, srv SaverServer) {
-	s.RegisterService(&_Saver_serviceDesc, srv)
+func RegisterServiceServer(s grpc1.Server, srv ServiceServer) {
+	s.RegisterService(&_Service_serviceDesc, srv)
 }
 
-func _Saver_AllSessionsInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_Info_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).Info(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Service/Info",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).Info(ctx, req.(*MsgInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Service_AllSessionsInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MsgAllSessionInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SaverServer).AllSessionsInfo(ctx, in)
+		return srv.(ServiceServer).AllSessionsInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Saver/AllSessionsInfo",
+		FullMethod: "/Service/AllSessionsInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SaverServer).AllSessionsInfo(ctx, req.(*MsgAllSessionInfoRequest))
+		return srv.(ServiceServer).AllSessionsInfo(ctx, req.(*MsgAllSessionInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Saver_SessionInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_SessionInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MsgSessionInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SaverServer).SessionInfo(ctx, in)
+		return srv.(ServiceServer).SessionInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Saver/SessionInfo",
+		FullMethod: "/Service/SessionInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SaverServer).SessionInfo(ctx, req.(*MsgSessionInfoRequest))
+		return srv.(ServiceServer).SessionInfo(ctx, req.(*MsgSessionInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Saver_Submit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_Submit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MsgSubmitRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SaverServer).Submit(ctx, in)
+		return srv.(ServiceServer).Submit(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Saver/Submit",
+		FullMethod: "/Service/Submit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SaverServer).Submit(ctx, req.(*MsgSubmitRequest))
+		return srv.(ServiceServer).Submit(ctx, req.(*MsgSubmitRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Saver_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "Saver",
-	HandlerType: (*SaverServer)(nil),
+var _Service_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "Service",
+	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Info",
+			Handler:    _Service_Info_Handler,
+		},
+		{
 			MethodName: "AllSessionsInfo",
-			Handler:    _Saver_AllSessionsInfo_Handler,
+			Handler:    _Service_AllSessionsInfo_Handler,
 		},
 		{
 			MethodName: "SessionInfo",
-			Handler:    _Saver_SessionInfo_Handler,
+			Handler:    _Service_SessionInfo_Handler,
 		},
 		{
 			MethodName: "Submit",
-			Handler:    _Saver_Submit_Handler,
+			Handler:    _Service_Submit_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "service.proto",
+}
+
+func (m *MsgInfoRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgInfoRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgInfoRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgInfoResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgInfoResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgInfoResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Account) > 0 {
+		i -= len(m.Account)
+		copy(dAtA[i:], m.Account)
+		i = encodeVarintService(dAtA, i, uint64(len(m.Account)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PublicKey) > 0 {
+		i -= len(m.PublicKey)
+		copy(dAtA[i:], m.PublicKey)
+		i = encodeVarintService(dAtA, i, uint64(len(m.PublicKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.IsActive {
+		i--
+		if m.IsActive {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.CurrentSession != 0 {
+		i = encodeVarintService(dAtA, i, uint64(m.CurrentSession))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Pagination) Marshal() (dAtA []byte, err error) {
@@ -811,6 +1033,38 @@ func encodeVarintService(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
+func (m *MsgInfoRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *MsgInfoResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CurrentSession != 0 {
+		n += 1 + sovService(uint64(m.CurrentSession))
+	}
+	if m.IsActive {
+		n += 2
+	}
+	l = len(m.PublicKey)
+	if l > 0 {
+		n += 1 + l + sovService(uint64(l))
+	}
+	l = len(m.Account)
+	if l > 0 {
+		n += 1 + l + sovService(uint64(l))
+	}
+	return n
+}
+
 func (m *Pagination) Size() (n int) {
 	if m == nil {
 		return 0
@@ -916,6 +1170,209 @@ func sovService(x uint64) (n int) {
 }
 func sozService(x uint64) (n int) {
 	return sovService(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *MsgInfoRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowService
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgInfoRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgInfoRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipService(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthService
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgInfoResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowService
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgInfoResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgInfoResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CurrentSession", wireType)
+			}
+			m.CurrentSession = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CurrentSession |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsActive", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsActive = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublicKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PublicKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Account", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Account = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipService(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthService
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 func (m *Pagination) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -1168,7 +1625,7 @@ func (m *MsgAllSessionInfoResponse) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Session = append(m.Session, &types.Session{})
+			m.Session = append(m.Session, &Session{})
 			if err := m.Session[len(m.Session)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -1322,7 +1779,7 @@ func (m *MsgSessionInfoResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Session == nil {
-				m.Session = &types.Session{}
+				m.Session = &Session{}
 			}
 			if err := m.Session.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1424,7 +1881,7 @@ func (m *MsgSubmitRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Type |= types.RequestType(b&0x7F) << shift
+				m.Type |= RequestType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1459,7 +1916,7 @@ func (m *MsgSubmitRequest) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Details == nil {
-				m.Details = &types1.Any{}
+				m.Details = &types.Any{}
 			}
 			if err := m.Details.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err

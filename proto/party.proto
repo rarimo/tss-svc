@@ -3,8 +3,10 @@ syntax = "proto3";
 option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
 
 message Party {
-  string id = 1;
+  // PublicKey in hex format
+  string pubKey = 1;
+  // Server address connect to
   string address = 2;
-  string pubKey = 3;
-  string account = 4;
+  // Rarimo core account
+  string account = 3;
 }

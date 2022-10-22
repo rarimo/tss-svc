@@ -7,10 +7,20 @@ import "session.proto";
 import "party.proto";
 import "google/protobuf/any.proto";
 
-service Saver {
+service Service {
+  rpc Info(MsgInfoRequest) returns (MsgInfoResponse);
   rpc AllSessionsInfo(MsgAllSessionInfoRequest) returns (MsgAllSessionInfoResponse);
   rpc SessionInfo(MsgSessionInfoRequest) returns (MsgSessionInfoResponse);
   rpc Submit(MsgSubmitRequest) returns (MsgSubmitResponse);
+}
+
+message MsgInfoRequest {}
+
+message MsgInfoResponse {
+  uint64 currentSession = 1;
+  bool isActive = 2;
+  string publicKey = 3;
+  string account = 4;
 }
 
 message Pagination {

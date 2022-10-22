@@ -11,7 +11,9 @@ enum RequestType {
 }
 
 message ProposalRequest {
+  // List of operation ids
   repeated string indexes = 1;
+  // Merkle tree based on operations root hash in hex
   string root = 2;
 }
 

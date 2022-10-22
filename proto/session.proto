@@ -22,9 +22,12 @@ message Step {
 }
 
 message Pool {
+  // List of operation ids
   repeated string indexes = 1;
+  // Merkle tree based on operations root hash in hex
   string root = 2;
-  string proposerId = 3;
+  // Proposer public key
+  string proposer = 3;
 }
 
 message Session {
@@ -33,6 +36,8 @@ message Session {
   Pool pool = 3;
   repeated Step steps = 4;
   StepType currentStep = 5;
+  // Accepted parties public keys
   repeated string acceptedId = 6;
+  // Signed parties public keys
   repeated string signedId = 7;
 }
