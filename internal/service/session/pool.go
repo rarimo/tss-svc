@@ -19,7 +19,7 @@ var (
 
 type IPool interface {
 	Add(id string) error
-	GetNext(n uint) []string
+	GetNext(n uint) ([]string, error)
 }
 
 // Pool represents the pool of operation to be signed by tss protocol.
@@ -54,23 +54,28 @@ func (p *Pool) Add(id string) error {
 	return nil
 }
 
-func (p *Pool) GetNext(n uint) []string {
+func (p *Pool) GetNext(n uint) ([]string, error) {
 	res := make([]string, 0, n)
 	collected := uint(0)
 
 	for collected < n {
 		select {
 		case id := <-p.rawOrder:
-			if err := p.checkUnsigned(id); err != nil {
+			err := p.checkUnsigned(id)
+			switch err {
+			case ErrOpAlreadySigned:
 				continue
+			case nil:
+				res = append(res, id)
+			default:
+				return nil, err
 			}
-			res = append(res, id)
 		default:
 			break
 		}
 	}
 
-	return res
+	return res, nil
 }
 
 func (p *Pool) checkUnsigned(id string) error {
