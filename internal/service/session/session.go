@@ -78,9 +78,6 @@ func (s *Session) tryStepSigning(height uint64) {
 
 // Next moves to the next session
 func (s *Session) next() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	params := s.paramsStorage.GetParams()
 	if len(params.Steps) != StepsAmount {
 		panic(ErrUnsupportedParameters)
