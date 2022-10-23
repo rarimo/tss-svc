@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
@@ -19,22 +20,17 @@ const (
 )
 
 // OperationSubscriber - connector for subscribing to the NewOperation events on the tendermint core.
-// New blocks indexes will be pushed to the uint64 chan and used in future for session timestamping
 type OperationSubscriber struct {
-	op       chan<- rarimo.Operation
-	client   *http.HTTP
-	rarimo   *grpc.ClientConn
-	log      *logan.Entry
-	isClosed bool
+	op     chan<- string
+	client *http.HTTP
+	log    *logan.Entry
 }
 
-func NewOperationSubscriber(op chan<- rarimo.Operation, cfg config.Config) (*OperationSubscriber, error) {
+func NewOperationSubscriber(op chan<- string, cfg config.Config) (*OperationSubscriber, error) {
 	s := &OperationSubscriber{
-		op:       op,
-		isClosed: false,
-		log:      cfg.Log(),
-		client:   cfg.Tendermint(),
-		rarimo:   cfg.Cosmos(),
+		op:     op,
+		log:    cfg.Log(),
+		client: cfg.Tendermint(),
 	}
 
 	return s, s.subscribe()
@@ -62,18 +58,54 @@ func (o *OperationSubscriber) subscribe() error {
 
 			for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeNewOperation, rarimo.AttributeKeyOperationId)] {
 				o.log.Infof("New operation found index=%s", index)
-
-				op, err := rarimo.NewQueryClient(o.rarimo).Operation(context.Background(), &rarimo.QueryGetOperationRequest{Index: index})
-				if err != nil {
-					o.log.WithError(err).Error("error getting operation entry")
-					continue
-				}
-
-				o.op <- op.Operation
+				o.op <- index
 			}
 
 		}
 	}()
 
 	return nil
+}
+
+// OperationCatchupper - connector for catch upping old unsigned operations from core.
+type OperationCatchupper struct {
+	op     chan<- string
+	rarimo *grpc.ClientConn
+	log    *logan.Entry
+}
+
+func NewOperationCatchupper(op chan<- string, cfg config.Config) *OperationCatchupper {
+	return &OperationCatchupper{
+		op:     op,
+		rarimo: cfg.Cosmos(),
+		log:    cfg.Log(),
+	}
+}
+
+// TODO provide catchup config
+
+func (o *OperationCatchupper) Run() error {
+	var nextKey []byte
+
+	for {
+		operations, err := rarimo.NewQueryClient(o.rarimo).OperationAll(context.TODO(), &rarimo.QueryAllOperationRequest{Pagination: &query.PageRequest{Key: nextKey}})
+		if err != nil {
+			return err
+		}
+
+		for _, op := range operations.Operation {
+			if op.Signed {
+				o.log.Debug("Operation already signed")
+				continue
+			}
+
+			o.log.Infof("New operation found index=%s", op.Index)
+			o.op <- op.Index
+		}
+
+		nextKey = operations.Pagination.NextKey
+		if nextKey == nil {
+			return nil
+		}
+	}
 }
