@@ -1,4 +1,4 @@
-package session
+package pool
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/session"
 	"google.golang.org/grpc"
 )
 
@@ -16,11 +17,6 @@ var (
 	// ErrOpAlreadySigned appears when someone tries to add operation that has been already signed
 	ErrOpAlreadySigned = errors.New("operation already signed")
 )
-
-type IPool interface {
-	Add(id string) error
-	GetNext(n uint) ([]string, error)
-}
 
 // Pool represents the pool of operation to be signed by tss protocol.
 // It should take care about collecting validated state with unsigned operations only.
@@ -33,7 +29,7 @@ type Pool struct {
 	rawOrder chan string
 }
 
-func NewPool(cfg config.Config) IPool {
+func NewPool(cfg config.Config) session.IPool {
 	return &Pool{
 		rarimo:   cfg.Cosmos(),
 		log:      cfg.Log(),
@@ -41,9 +37,9 @@ func NewPool(cfg config.Config) IPool {
 	}
 }
 
-// IPool implementation
+// session.IPool implementation
 
-var _ IPool = &Pool{}
+var _ session.IPool = &Pool{}
 
 func (p *Pool) Add(id string) error {
 	if err := p.checkUnsigned(id); err != nil {

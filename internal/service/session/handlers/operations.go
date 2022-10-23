@@ -3,17 +3,17 @@ package handlers
 import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/session"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/session/pool"
 )
 
 // OperationHandler listens to the new operations received from chanel and moving them to the pool
 type OperationHandler struct {
 	op   <-chan string
-	pool *session.Pool
+	pool *pool.Pool
 	log  *logan.Entry
 }
 
-func NewOperationHandler(op <-chan string, p *session.Pool, cfg config.Config) *OperationHandler {
+func NewOperationHandler(op <-chan string, p *pool.Pool, cfg config.Config) *OperationHandler {
 	s := &OperationHandler{
 		op:   op,
 		pool: p,

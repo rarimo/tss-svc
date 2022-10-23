@@ -16,8 +16,8 @@ enum Status {
 }
 
 message Step {
-  string startBlock = 1;
-  string endBlock = 2;
+  uint64 startBlock = 1;
+  uint64 endBlock = 2;
   StepType type = 3;
 }
 
@@ -36,8 +36,10 @@ message Session {
   Pool pool = 3;
   repeated Step steps = 4;
   StepType currentStep = 5;
+  // Hex-encoded produces signature
+  string signature = 6;
   // Accepted parties public keys
-  repeated string acceptedId = 6;
+  repeated string acceptedId = 7;
   // Signed parties public keys
-  repeated string signedId = 7;
+  repeated string signedId = 8;
 }

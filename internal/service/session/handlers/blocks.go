@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/session"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/session/timer"
 )
 
 // BlockHandler is listening to the new blocks received from chanel and upgrading the timer state
 type BlockHandler struct {
 	op    <-chan uint64
-	timer *session.Timer
+	timer *timer.Timer
 }
 
-func NewBlockHandler(op <-chan uint64, t *session.Timer) *BlockHandler {
+func NewBlockHandler(op <-chan uint64, t *timer.Timer) *BlockHandler {
 	s := &BlockHandler{
 		op:    op,
 		timer: t,

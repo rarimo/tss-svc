@@ -73,7 +73,9 @@ type Session struct {
 	Indexes    StringSlice    `db:"indexes"`     // indexes
 	Root       sql.NullString `db:"root"`        // root
 	Proposer   sql.NullString `db:"proposer"`    // proposer
+	Signature  sql.NullString `db:"signature"`   // signature
 	BeginBlock int64          `db:"begin_block"` // begin_block
+	EndBlock   int64          `db:"end_block"`   // end_block
 	Accepted   StringSlice    `db:"accepted"`    // accepted
 	Signed     StringSlice    `db:"signed"`      // signed
 

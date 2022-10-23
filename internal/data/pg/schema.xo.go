@@ -145,18 +145,18 @@ func (s Storage) SessionQ() *SessionQ {
 	return NewSessionQ(s.DB())
 }
 
-var colsSession = `id, status, indexes, root, proposer, begin_block, accepted, signed`
+var colsSession = `id, status, indexes, root, proposer, signature, begin_block, end_block, accepted, signed`
 
 // InsertCtx inserts a Session to the database.
 func (q SessionQ) InsertCtx(ctx context.Context, s *data.Session) error {
 	// sql insert query, primary key must be provided
 	sqlstr := `INSERT INTO public.sessions (` +
-		`id, status, indexes, root, proposer, begin_block, accepted, signed` +
+		`id, status, indexes, root, proposer, signature, begin_block, end_block, accepted, signed` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7, $8` +
+		`$1, $2, $3, $4, $5, $6, $7, $8, $9, $10` +
 		`)`
 	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, s.ID, s.Status, s.Indexes, s.Root, s.Proposer, s.BeginBlock, s.Accepted, s.Signed)
+	err := q.db.ExecRawContext(ctx, sqlstr, s.ID, s.Status, s.Indexes, s.Root, s.Proposer, s.Signature, s.BeginBlock, s.EndBlock, s.Accepted, s.Signed)
 	return errors.Wrap(err, "failed to execute insert query")
 }
 
@@ -169,10 +169,10 @@ func (q SessionQ) Insert(s *data.Session) error {
 func (q SessionQ) UpdateCtx(ctx context.Context, s *data.Session) error {
 	// update with composite primary key
 	sqlstr := `UPDATE public.sessions SET ` +
-		`status = $1, indexes = $2, root = $3, proposer = $4, begin_block = $5, accepted = $6, signed = $7 ` +
-		`WHERE id = $8`
+		`status = $1, indexes = $2, root = $3, proposer = $4, signature = $5, begin_block = $6, end_block = $7, accepted = $8, signed = $9 ` +
+		`WHERE id = $10`
 	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, s.Status, s.Indexes, s.Root, s.Proposer, s.BeginBlock, s.Accepted, s.Signed, s.ID)
+	err := q.db.ExecRawContext(ctx, sqlstr, s.Status, s.Indexes, s.Root, s.Proposer, s.Signature, s.BeginBlock, s.EndBlock, s.Accepted, s.Signed, s.ID)
 	return errors.Wrap(err, "failed to execute update")
 }
 
@@ -185,15 +185,15 @@ func (q SessionQ) Update(s *data.Session) error {
 func (q SessionQ) UpsertCtx(ctx context.Context, s *data.Session) error {
 	// upsert
 	sqlstr := `INSERT INTO public.sessions (` +
-		`id, status, indexes, root, proposer, begin_block, accepted, signed` +
+		`id, status, indexes, root, proposer, signature, begin_block, end_block, accepted, signed` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7, $8` +
+		`$1, $2, $3, $4, $5, $6, $7, $8, $9, $10` +
 		`)` +
 		` ON CONFLICT (id) DO ` +
 		`UPDATE SET ` +
-		`status = EXCLUDED.status, indexes = EXCLUDED.indexes, root = EXCLUDED.root, proposer = EXCLUDED.proposer, begin_block = EXCLUDED.begin_block, accepted = EXCLUDED.accepted, signed = EXCLUDED.signed `
+		`status = EXCLUDED.status, indexes = EXCLUDED.indexes, root = EXCLUDED.root, proposer = EXCLUDED.proposer, signature = EXCLUDED.signature, begin_block = EXCLUDED.begin_block, end_block = EXCLUDED.end_block, accepted = EXCLUDED.accepted, signed = EXCLUDED.signed `
 	// run
-	if err := q.db.ExecRawContext(ctx, sqlstr, s.ID, s.Status, s.Indexes, s.Root, s.Proposer, s.BeginBlock, s.Accepted, s.Signed); err != nil {
+	if err := q.db.ExecRawContext(ctx, sqlstr, s.ID, s.Status, s.Indexes, s.Root, s.Proposer, s.Signature, s.BeginBlock, s.EndBlock, s.Accepted, s.Signed); err != nil {
 		return errors.Wrap(err, "failed to execute upsert stmt")
 	}
 	return nil
@@ -260,7 +260,7 @@ func (q GorpMigrationQ) GorpMigrationByID(id string, isForUpdate bool) (*data.Go
 func (q SessionQ) SessionByIDCtx(ctx context.Context, id int64, isForUpdate bool) (*data.Session, error) {
 	// query
 	sqlstr := `SELECT ` +
-		`id, status, indexes, root, proposer, begin_block, accepted, signed ` +
+		`id, status, indexes, root, proposer, signature, begin_block, end_block, accepted, signed ` +
 		`FROM public.sessions ` +
 		`WHERE id = $1`
 	// run

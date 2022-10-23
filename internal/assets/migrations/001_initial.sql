@@ -7,7 +7,9 @@ create table sessions
     indexes     text[] not null,
     root        text,
     proposer    text,
+    signature   text,
     begin_block bigint             not null,
+    end_block   bigint             not null,
     accepted    text[] not null,
     signed      text[] not null
 );

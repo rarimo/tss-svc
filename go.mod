@@ -12,7 +12,7 @@ require (
 	gitlab.com/distributed_lab/figure v2.1.0+incompatible
 	gitlab.com/distributed_lab/kit v1.11.1
 	gitlab.com/distributed_lab/logan v3.8.1+incompatible
-	gitlab.com/rarify-protocol/rarimo-core v0.0.0-20221022222720-e1f2e5e989a5
+	gitlab.com/rarify-protocol/rarimo-core v0.0.0-20221023014548-327fb2ddd852
 	google.golang.org/grpc v1.50.1
 )
 
