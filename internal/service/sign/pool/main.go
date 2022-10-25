@@ -7,7 +7,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/session"
 	"google.golang.org/grpc"
 )
 
@@ -29,17 +28,13 @@ type Pool struct {
 	rawOrder chan string
 }
 
-func NewPool(cfg config.Config) session.IPool {
+func NewPool(cfg config.Config) *Pool {
 	return &Pool{
 		rarimo:   cfg.Cosmos(),
 		log:      cfg.Log(),
 		rawOrder: make(chan string, poolSz),
 	}
 }
-
-// session.IPool implementation
-
-var _ session.IPool = &Pool{}
 
 func (p *Pool) Add(id string) error {
 	if err := p.checkUnsigned(id); err != nil {

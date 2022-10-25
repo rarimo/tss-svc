@@ -1,20 +1,20 @@
-package handlers
+package listeners
 
 import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/session/pool"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign/pool"
 )
 
-// OperationHandler listens to the new operations received from chanel and moving them to the pool
-type OperationHandler struct {
+// OperationListener is listening to the new operations received from chanel and moving them to the pool
+type OperationListener struct {
 	op   <-chan string
 	pool *pool.Pool
 	log  *logan.Entry
 }
 
-func NewOperationHandler(op <-chan string, p *pool.Pool, cfg config.Config) *OperationHandler {
-	s := &OperationHandler{
+func NewOperationListener(op <-chan string, p *pool.Pool, cfg config.Config) *OperationListener {
+	s := &OperationListener{
 		op:   op,
 		pool: p,
 		log:  cfg.Log(),
@@ -24,7 +24,7 @@ func NewOperationHandler(op <-chan string, p *pool.Pool, cfg config.Config) *Ope
 	return s
 }
 
-func (o *OperationHandler) listen() {
+func (o *OperationListener) listen() {
 	go func() {
 		for {
 			id, ok := <-o.op

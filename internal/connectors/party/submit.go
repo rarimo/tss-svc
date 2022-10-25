@@ -48,7 +48,7 @@ func (s *SubmitConnector) Close() error {
 	return nil
 }
 
-func (s *SubmitConnector) SignAdnSubmit(ctx context.Context, addr string, request types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
+func (s *SubmitConnector) SignAndSubmit(ctx context.Context, addr string, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
 	data, err := request.Details.Marshal()
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (s *SubmitConnector) SignAdnSubmit(ctx context.Context, addr string, reques
 		return nil, err
 	}
 
-	return types.NewServiceClient(client).Submit(ctx, &request)
+	return types.NewServiceClient(client).Submit(ctx, request)
 }
 
 func (s *SubmitConnector) getClient(addr string) (*grpc.ClientConn, error) {
