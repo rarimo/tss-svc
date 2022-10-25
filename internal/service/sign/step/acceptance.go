@@ -7,6 +7,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
@@ -14,33 +15,46 @@ import (
 type AcceptanceController struct {
 	mu   sync.Mutex
 	root string
-	tssP *rarimo.Params
-
-	result chan *session.Acceptance
 
 	acceptances []string
 	index       map[string]struct{}
 
-	log *logan.Entry
+	result chan *session.Acceptance
+	params *local.Storage
+	log    *logan.Entry
 }
 
-func (a *AcceptanceController) ReceiveAcceptance(sender string, request types.MsgSubmitRequest) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+func NewAcceptanceController(
+	root string,
+	result chan *session.Acceptance,
+	params *local.Storage,
+	log *logan.Entry,
+) *AcceptanceController {
+	return &AcceptanceController{
+		root:        root,
+		params:      params,
+		result:      result,
+		acceptances: make([]string, 0, params.N()),
+		index:       make(map[string]struct{}),
+		log:         log,
+	}
+}
 
-	if _, ok := a.index[sender]; !ok && request.Type == types.RequestType_Proposal {
+func (a *AcceptanceController) ReceiveAcceptance(sender *rarimo.Party, request types.MsgSubmitRequest) error {
+	if _, ok := a.index[sender.PubKey]; !ok && request.Type == types.RequestType_Proposal {
 		acceptance := new(types.AcceptanceRequest)
 
 		if err := proto.Unmarshal(request.Details.Value, acceptance); err != nil {
-			a.log.WithError(err).Error("error unmarshalling details")
-			return
+			return err
 		}
 
 		if acceptance.Root == a.root {
-			a.index[sender] = struct{}{}
-			a.acceptances = append(a.acceptances, sender)
+			a.index[sender.PubKey] = struct{}{}
+			a.acceptances = append(a.acceptances, sender.PubKey)
 		}
 	}
+
+	return nil
 }
 
 func (a *AcceptanceController) Run(ctx context.Context) {

@@ -6,6 +6,7 @@ import (
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
+	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
@@ -48,7 +49,7 @@ type Session struct {
 func NewSession(
 	id uint64,
 	startBlock uint64,
-	params *rarimo.Params,
+	params *local.Storage,
 	proposer *rarimo.Party,
 	storage *pg.Storage,
 ) *Session {
@@ -56,7 +57,7 @@ func NewSession(
 		id:         id,
 		status:     types.Status_Processing,
 		startBlock: startBlock,
-		endBlock:   startBlock + params.Steps[sign.StepProposingIndex].Duration + 1 + params.Steps[sign.StepAcceptingIndex].Duration + 1 + params.Steps[sign.StepSigningIndex].Duration,
+		endBlock:   startBlock + params.Step(sign.StepProposingIndex).Duration + 1 + params.Step(sign.StepAcceptingIndex).Duration + 1 + params.Step(sign.StepSigningIndex).Duration,
 		proposer:   proposer,
 		proposal:   make(chan *Proposal, 1),
 		acceptance: make(chan *Acceptance, 1),
@@ -81,6 +82,22 @@ func NewSession(
 	}
 
 	return s
+}
+
+func (s *Session) ID() uint64 {
+	return s.id
+}
+
+func (s *Session) Root() string {
+	return s.root
+}
+
+func (s *Session) Start() uint64 {
+	return s.startBlock
+}
+
+func (s *Session) End() uint64 {
+	return s.endBlock
 }
 
 func (s *Session) GetProposalChanel() chan *Proposal {
@@ -161,9 +178,9 @@ func (s *Session) FinishAcceptance() bool {
 	return true
 }
 
-func (s *Session) FinishSigning() bool {
+func (s *Session) FinishSign() bool {
 	if s.status != types.Status_Processing {
-		return true
+		return false
 	}
 
 	select {

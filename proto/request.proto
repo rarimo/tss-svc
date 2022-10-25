@@ -11,17 +11,20 @@ enum RequestType {
 }
 
 message ProposalRequest {
+  uint64 session = 1;
   // List of operation ids
-  repeated string indexes = 1;
+  repeated string indexes = 2;
   // Merkle tree based on operations root hash in hex
-  string root = 2;
+  string root = 3;
 }
 
 message AcceptanceRequest {
+  // Merkle tree based on operations root hash in hex
   string root = 1;
 }
 
 message SignRequest {
+  string root = 1;
   // TODO
 }
 

@@ -10,7 +10,7 @@ import (
 type BlockNotifier func(height uint64) error
 
 // Timer provides the source for timestamping all operations in the tss system.
-// Use Notifier to receive notification about new blocs in your service
+// Use Notifier to receive notification about new blocks in your service
 type Timer struct {
 	currentBlock uint64
 	toNotify     map[string]BlockNotifier

@@ -12,6 +12,7 @@ import (
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign/session"
@@ -21,32 +22,52 @@ import (
 
 type ProposalController struct {
 	id       uint64
-	tssP     *rarimo.Params
-	tokenP   *token.Params
 	proposer *rarimo.Party
 
 	result chan *session.Proposal
-
 	pool   *pool.Pool
 	rarimo *grpc.ClientConn
-
-	log *logan.Entry
+	params *local.Storage
+	log    *logan.Entry
 }
 
-func (p *ProposalController) ReceiveProposal(sender string, request types.MsgSubmitRequest) {
-	if request.Type == types.RequestType_Proposal && sender == p.proposer.PubKey {
+func NewProposalController(
+	id uint64,
+	params *local.Storage,
+	proposer *rarimo.Party,
+	result chan *session.Proposal,
+	pool *pool.Pool,
+	rarimo *grpc.ClientConn,
+	log *logan.Entry,
+) *ProposalController {
+	return &ProposalController{
+		id:       id,
+		params:   params,
+		proposer: proposer,
+		result:   result,
+		pool:     pool,
+		rarimo:   rarimo,
+		log:      log,
+	}
+}
+
+func (p *ProposalController) ReceiveProposal(sender *rarimo.Party, request types.MsgSubmitRequest) error {
+	if request.Type == types.RequestType_Proposal && sender.PubKey == p.proposer.PubKey {
 		proposal := new(types.ProposalRequest)
 
 		if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
-			p.log.WithError(err).Error("error unmarshalling details")
-			return
+			return err
 		}
 
-		p.result <- &session.Proposal{
-			Indexes: proposal.Indexes,
-			Root:    proposal.Root,
+		if proposal.Session == p.id {
+			p.result <- &session.Proposal{
+				Indexes: proposal.Indexes,
+				Root:    proposal.Root,
+			}
 		}
 	}
+
+	return nil
 }
 
 func (p *ProposalController) Run(ctx context.Context) {
@@ -135,7 +156,7 @@ func (p *ProposalController) getTransferContent(ctx context.Context, op rarimo.O
 		return nil, errors.Wrap(err, "error getting token item entry")
 	}
 
-	content, err := pkg.GetTransferContent(&itemResp.Item, p.tokenP.Networks[transfer.ToChain], transfer)
+	content, err := pkg.GetTransferContent(&itemResp.Item, p.params.ChainParams(transfer.ToChain), transfer)
 	return content, errors.Wrap(err, "error creating content")
 }
 
