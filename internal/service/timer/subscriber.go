@@ -1,4 +1,4 @@
-package core
+package timer
 
 import (
 	"context"
@@ -14,27 +14,22 @@ const (
 	BlockQuery       = "tm.event = 'NewBlock'"
 )
 
-// BlockSubscriber - connector for subscribing to the NewBlock events on the tendermint core.
-// New blocks indexes will be pushed to the uint64 chan and used in future for session timestamping
+// BlockSubscriber subscribes to the NewBlock events on the tendermint core.
+// New blocks indexes will be pushed to the timer and used in future for session timestamping
 type BlockSubscriber struct {
-	blocks chan<- uint64
+	timer  *Timer
 	client *http.HTTP
 	log    *logan.Entry
 }
 
-func NewBlockSubscriber(op chan<- uint64, cfg config.Config) (*BlockSubscriber, error) {
+func NewBlockSubscriber(timer *Timer, cfg config.Config) (*BlockSubscriber, error) {
 	s := &BlockSubscriber{
-		blocks: op,
+		timer:  timer,
 		log:    cfg.Log(),
 		client: cfg.Tendermint(),
 	}
 
 	return s, s.subscribe()
-}
-
-func (b *BlockSubscriber) Close() error {
-	close(b.blocks)
-	return nil
 }
 
 func (b *BlockSubscriber) subscribe() error {
@@ -56,7 +51,7 @@ func (b *BlockSubscriber) subscribe() error {
 			switch data := c.Data.(type) {
 			case types.EventDataNewBlock:
 				b.log.Infof("Received New Block %s height: %d \n", data.Block.Hash().String(), data.Block.Height)
-				b.blocks <- uint64(data.Block.Height)
+				b.timer.newBlock(uint64(data.Block.Height))
 				break
 			}
 

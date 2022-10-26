@@ -2,21 +2,21 @@ package step
 
 import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
 // Step stores information about current step and its start/finish
 // and provides moving to the next step if available.
 type Step struct {
-	params *local.Storage
+	params *local.Params
 
 	stepType   types.StepType
 	startBlock uint64
 	endBlock   uint64
 }
 
-func NewStep(params *local.Storage, startBlock uint64) *Step {
+func NewStep(params *local.Params, startBlock uint64) *Step {
 	return &Step{
 		params:     params,
 		stepType:   types.StepType_Proposing,

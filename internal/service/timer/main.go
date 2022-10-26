@@ -30,7 +30,8 @@ func NewTimer(cfg config.Config) (*Timer, error) {
 	}, nil
 }
 
-func (t *Timer) NewBlock(height uint64) {
+// Only for internal usage in block subscriber
+func (t *Timer) newBlock(height uint64) {
 	t.currentBlock = height
 	go t.notifyAll(height)
 }

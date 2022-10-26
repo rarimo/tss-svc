@@ -1,14 +1,14 @@
-package party
+package connectors
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"errors"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
@@ -25,17 +25,19 @@ type con struct {
 	lastUsed time.Time
 }
 
+// SubmitConnector submits signed requests to the party.
+// Also holds buffer of connections to reduce submitting time.
 type SubmitConnector struct {
 	mu       sync.Mutex
 	isClosed bool
-	prvKey   *ecdsa.PrivateKey
+	secret   *local.Secret
 	clients  map[string]*con
 }
 
-func NewSubmitConnector(prvKey *ecdsa.PrivateKey) *SubmitConnector {
+func NewSubmitConnector(cfg config.Config) *SubmitConnector {
 	c := &SubmitConnector{
 		isClosed: false,
-		prvKey:   prvKey,
+		secret:   local.NewSecret(cfg),
 		clients:  make(map[string]*con),
 	}
 
@@ -48,23 +50,16 @@ func (s *SubmitConnector) Close() error {
 	return nil
 }
 
-func (s *SubmitConnector) SignAndSubmit(ctx context.Context, addr string, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
-	data, err := request.Details.Marshal()
+func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
+	err := s.secret.SignRequest(request)
 	if err != nil {
 		return nil, err
 	}
-
-	signature, err := crypto.Sign(crypto.Keccak256(data), s.prvKey)
-	if err != nil {
-		return nil, err
-	}
-
-	request.Signature = hexutil.Encode(signature)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	client, err := s.getClient(addr)
+	client, err := s.getClient(party.Address)
 	if err != nil {
 		return nil, err
 	}

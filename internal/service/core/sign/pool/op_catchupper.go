@@ -1,4 +1,4 @@
-package core
+package pool
 
 import (
 	"context"
@@ -10,16 +10,16 @@ import (
 	"google.golang.org/grpc"
 )
 
-// OperationCatchupper - connector for catch upping old unsigned operations from core.
+// OperationCatchupper catches up old unsigned operations from core.
 type OperationCatchupper struct {
-	op     chan<- string
+	pool   *Pool
 	rarimo *grpc.ClientConn
 	log    *logan.Entry
 }
 
-func NewOperationCatchupper(op chan<- string, cfg config.Config) *OperationCatchupper {
+func NewOperationCatchupper(pool *Pool, cfg config.Config) *OperationCatchupper {
 	return &OperationCatchupper{
-		op:     op,
+		pool:   pool,
 		rarimo: cfg.Cosmos(),
 		log:    cfg.Log(),
 	}
@@ -43,7 +43,7 @@ func (o *OperationCatchupper) Run() error {
 			}
 
 			o.log.Infof("New operation found index=%s", op.Index)
-			o.op <- op.Index
+			o.pool.Add(op.Index)
 		}
 
 		nextKey = operations.Pagination.NextKey

@@ -4,11 +4,13 @@ import (
 	"context"
 	"sync"
 
+	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign/session"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -20,14 +22,17 @@ type AcceptanceController struct {
 	index       map[string]struct{}
 
 	result chan *session.Acceptance
-	params *local.Storage
-	log    *logan.Entry
+
+	connector *connectors.BroadcastConnector
+	params    *local.Params
+	log       *logan.Entry
 }
 
 func NewAcceptanceController(
 	root string,
 	result chan *session.Acceptance,
-	params *local.Storage,
+	connector *connectors.BroadcastConnector,
+	params *local.Params,
 	log *logan.Entry,
 ) *AcceptanceController {
 	return &AcceptanceController{
@@ -36,11 +41,14 @@ func NewAcceptanceController(
 		result:      result,
 		acceptances: make([]string, 0, params.N()),
 		index:       make(map[string]struct{}),
+		connector:   connector,
 		log:         log,
 	}
 }
 
-func (a *AcceptanceController) ReceiveAcceptance(sender *rarimo.Party, request types.MsgSubmitRequest) error {
+var _ IController = &AcceptanceController{}
+
+func (a *AcceptanceController) Receive(sender rarimo.Party, request types.MsgSubmitRequest) error {
 	if _, ok := a.index[sender.PubKey]; !ok && request.Type == types.RequestType_Proposal {
 		acceptance := new(types.AcceptanceRequest)
 
@@ -62,13 +70,22 @@ func (a *AcceptanceController) Run(ctx context.Context) {
 }
 
 func (a *AcceptanceController) run(ctx context.Context) {
-	_ = types.AcceptanceRequest{Root: a.root}
+	details, err := cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Root: a.root})
+	if err != nil {
+		a.log.WithError(err).Error("error parsing details")
+		return
+	}
 
-	// TODO broadcast acceptance
+	a.connector.SubmitAll(ctx, &types.MsgSubmitRequest{
+		Type:    types.RequestType_Acceptance,
+		Details: details,
+	})
 
 	<-ctx.Done()
-	// TODO check minimum t acceptances
-	a.result <- &session.Acceptance{
-		Accepted: a.acceptances,
+
+	if len(a.result) >= a.params.T() {
+		a.result <- &session.Acceptance{
+			Accepted: a.acceptances,
+		}
 	}
 }

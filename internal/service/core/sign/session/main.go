@@ -7,7 +7,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/data"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -27,15 +27,14 @@ type (
 	}
 )
 
-// Session controls information about current session
+// Session controls information about current session and saves all in db.
 type Session struct {
-	// Default session information
 	id uint64
 
 	status     types.Status
 	startBlock uint64
 	endBlock   uint64
-	proposer   *rarimo.Party
+	proposer   rarimo.Party
 
 	root string
 
@@ -49,8 +48,8 @@ type Session struct {
 func NewSession(
 	id uint64,
 	startBlock uint64,
-	params *local.Storage,
-	proposer *rarimo.Party,
+	params *local.Params,
+	proposer rarimo.Party,
 	storage *pg.Storage,
 ) *Session {
 	s := &Session{
@@ -90,6 +89,10 @@ func (s *Session) ID() uint64 {
 
 func (s *Session) Root() string {
 	return s.root
+}
+
+func (s *Session) Proposer() rarimo.Party {
+	return s.proposer
 }
 
 func (s *Session) Start() uint64 {

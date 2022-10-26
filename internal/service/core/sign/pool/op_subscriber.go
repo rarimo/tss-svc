@@ -1,4 +1,4 @@
-package core
+package pool
 
 import (
 	"context"
@@ -17,16 +17,16 @@ const (
 	OpPoolSize    = 1000
 )
 
-// OperationSubscriber - connector for subscribing to the NewOperation events on the tendermint core.
+// OperationSubscriber subscribes to the NewOperation events on the tendermint core.
 type OperationSubscriber struct {
-	op     chan<- string
+	pool   *Pool
 	client *http.HTTP
 	log    *logan.Entry
 }
 
-func NewOperationSubscriber(op chan<- string, cfg config.Config) (*OperationSubscriber, error) {
+func NewOperationSubscriber(pool *Pool, cfg config.Config) (*OperationSubscriber, error) {
 	s := &OperationSubscriber{
-		op:     op,
+		pool:   pool,
 		log:    cfg.Log(),
 		client: cfg.Tendermint(),
 	}
@@ -34,10 +34,6 @@ func NewOperationSubscriber(op chan<- string, cfg config.Config) (*OperationSubs
 	return s, s.subscribe()
 }
 
-func (o *OperationSubscriber) Close() error {
-	close(o.op)
-	return nil
-}
 func (o *OperationSubscriber) subscribe() error {
 	out, err := o.client.Subscribe(context.Background(), OpServiceName, OpQuery, OpPoolSize)
 	if err != nil {
@@ -56,7 +52,7 @@ func (o *OperationSubscriber) subscribe() error {
 
 			for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeNewOperation, rarimo.AttributeKeyOperationId)] {
 				o.log.Infof("New operation found index=%s", index)
-				o.op <- index
+				o.pool.Add(index)
 			}
 
 		}

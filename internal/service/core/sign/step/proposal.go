@@ -2,7 +2,9 @@ package step
 
 import (
 	"context"
+	goerr "errors"
 
+	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
@@ -12,46 +14,60 @@ import (
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/sign/session"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/pool"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
 
+var (
+	ErrAlreadySigned = goerr.New("operation already signed")
+)
+
 type ProposalController struct {
 	id       uint64
-	proposer *rarimo.Party
+	proposer rarimo.Party
 
 	result chan *session.Proposal
-	pool   *pool.Pool
-	rarimo *grpc.ClientConn
-	params *local.Storage
-	log    *logan.Entry
+
+	connector *connectors.BroadcastConnector
+	pool      *pool.Pool
+	rarimo    *grpc.ClientConn
+	params    *local.Params
+	secret    *local.Secret
+	log       *logan.Entry
 }
 
 func NewProposalController(
 	id uint64,
-	params *local.Storage,
-	proposer *rarimo.Party,
+	params *local.Params,
+	secret *local.Secret,
+	proposer rarimo.Party,
 	result chan *session.Proposal,
+	connector *connectors.BroadcastConnector,
 	pool *pool.Pool,
 	rarimo *grpc.ClientConn,
 	log *logan.Entry,
 ) *ProposalController {
 	return &ProposalController{
-		id:       id,
-		params:   params,
-		proposer: proposer,
-		result:   result,
-		pool:     pool,
-		rarimo:   rarimo,
-		log:      log,
+		id:        id,
+		params:    params,
+		secret:    secret,
+		proposer:  proposer,
+		result:    result,
+		connector: connector,
+		pool:      pool,
+		rarimo:    rarimo,
+		log:       log,
 	}
 }
 
-func (p *ProposalController) ReceiveProposal(sender *rarimo.Party, request types.MsgSubmitRequest) error {
+var _ IController = &ProposalController{}
+
+func (p *ProposalController) Receive(sender rarimo.Party, request types.MsgSubmitRequest) error {
 	if request.Type == types.RequestType_Proposal && sender.PubKey == p.proposer.PubKey {
 		proposal := new(types.ProposalRequest)
 
@@ -59,7 +75,7 @@ func (p *ProposalController) ReceiveProposal(sender *rarimo.Party, request types
 			return err
 		}
 
-		if proposal.Session == p.id {
+		if proposal.Session == p.id && p.validate(proposal.Indexes, proposal.Root) {
 			p.result <- &session.Proposal{
 				Indexes: proposal.Indexes,
 				Root:    proposal.Root,
@@ -70,13 +86,25 @@ func (p *ProposalController) ReceiveProposal(sender *rarimo.Party, request types
 	return nil
 }
 
+func (p *ProposalController) validate(indexes []string, root string) bool {
+	contents, err := p.getContents(context.Background(), indexes)
+	if err != nil {
+		p.log.WithError(err).Error("error preparing contents")
+		return false
+	}
+
+	return hexutil.Encode(merkle.NewTree(crypto.Keccak256, contents...).Root()) == root
+}
+
 func (p *ProposalController) Run(ctx context.Context) {
 	go p.run(ctx)
 }
 
 func (p *ProposalController) run(ctx context.Context) {
-	// TODO check who is proposer
-	// if its me then:
+	if p.proposer.PubKey != p.secret.ECDSAPubKeyStr() {
+		return
+	}
+
 	ids, root, err := p.getNewPool(ctx)
 	if err != nil {
 		p.log.WithError(err).Error("error preparing pool to propose")
@@ -88,7 +116,16 @@ func (p *ProposalController) run(ctx context.Context) {
 		Root:    root,
 	}
 
-	// TODO broadcast
+	details, err := cosmostypes.NewAnyWithValue(&types.ProposalRequest{Session: p.id, Indexes: ids, Root: root})
+	if err != nil {
+		p.log.WithError(err).Error("error parsing details")
+		return
+	}
+
+	p.connector.SubmitAll(ctx, &types.MsgSubmitRequest{
+		Type:    types.RequestType_Proposal,
+		Details: details,
+	})
 }
 
 func (p *ProposalController) getNewPool(ctx context.Context) ([]string, string, error) {
@@ -112,6 +149,10 @@ func (p *ProposalController) getContents(ctx context.Context, ids []string) ([]m
 		resp, err := rarimo.NewQueryClient(p.rarimo).Operation(context.TODO(), &rarimo.QueryGetOperationRequest{Index: id})
 		if err != nil {
 			return nil, errors.Wrap(err, "error fetching operation")
+		}
+
+		if resp.Operation.Signed {
+			return nil, ErrAlreadySigned
 		}
 
 		switch resp.Operation.OperationType {
