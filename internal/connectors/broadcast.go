@@ -19,7 +19,7 @@ type BroadcastConnector struct {
 }
 
 func NewBroadcastConnector(cfg config.Config) (*BroadcastConnector, error) {
-	params, err := local.NewStorage(cfg)
+	params, err := local.NewParams(cfg)
 	if err != nil {
 		return nil, err
 	}
