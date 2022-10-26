@@ -12,9 +12,9 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/step"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )

@@ -2,7 +2,6 @@ package step
 
 import (
 	"context"
-	goerr "errors"
 
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -17,14 +16,10 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
-)
-
-var (
-	ErrAlreadySigned = goerr.New("operation already signed")
 )
 
 type ProposalController struct {
@@ -152,7 +147,7 @@ func (p *ProposalController) getContents(ctx context.Context, ids []string) ([]m
 		}
 
 		if resp.Operation.Signed {
-			return nil, ErrAlreadySigned
+			return nil, pool.ErrOpAlreadySigned
 		}
 
 		switch resp.Operation.OperationType {
