@@ -17,6 +17,8 @@ type Config interface {
 	Tendermint() *http.HTTP
 	Cosmos() *grpc.ClientConn
 	Storage() *pg.Storage
+	Session() *SessionInfo
+	Private() *PrivateInfo
 }
 
 type config struct {
@@ -27,6 +29,8 @@ type config struct {
 	tendermint comfig.Once
 	cosmos     comfig.Once
 	storage    comfig.Once
+	session    comfig.Once
+	private    comfig.Once
 
 	getter kv.Getter
 }

@@ -76,7 +76,6 @@ func NewSession(
 	})
 
 	if err != nil {
-		// TODO
 		panic(err)
 	}
 
@@ -127,6 +126,8 @@ func (s *Session) IsFailed() bool {
 	return s.status == types.Status_Failed
 }
 
+// FinishProposal tires to finish proposal step if there is any information received.
+// Responds with true if successful
 func (s *Session) FinishProposal() bool {
 	if s.status != types.Status_Processing {
 		return false
@@ -156,6 +157,8 @@ func (s *Session) FinishProposal() bool {
 	return true
 }
 
+// FinishAcceptance tires to finish acceptance step if there is any information received.
+// Responds with true if successful
 func (s *Session) FinishAcceptance() bool {
 	if s.status != types.Status_Processing {
 		return false
@@ -181,6 +184,9 @@ func (s *Session) FinishAcceptance() bool {
 	return true
 }
 
+// FinishSign tires to finish signing step if there is any information received.
+// Responds with true if successful.
+// After successful finishing of signing step session will be marked as success
 func (s *Session) FinishSign() bool {
 	if s.status != types.Status_Processing {
 		return false
@@ -213,6 +219,7 @@ func (s *Session) FinishSign() bool {
 	return true
 }
 
+// Fail updates session status to types.Status_Failed
 func (s *Session) Fail() {
 	if s.status != types.Status_Processing && s.status != types.Status_Pending {
 		return

@@ -8,6 +8,9 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 )
 
+// Params implements singleton pattern
+var params *Params
+
 // Params handles core global parameters
 // and called up to be the source for the parameters in all components.
 type Params struct {
@@ -18,30 +21,35 @@ type Params struct {
 	nextTokenP chan *token.Params
 }
 
-func NewParams(cfg config.Config) (*Params, error) {
-	tssP, err := rarimo.NewQueryClient(cfg.Cosmos()).Params(context.TODO(), &rarimo.QueryParamsRequest{})
-	if err != nil {
-		return nil, err
-	}
+func NewParams(cfg config.Config) *Params {
+	if params == nil {
+		tssP, err := rarimo.NewQueryClient(cfg.Cosmos()).Params(context.TODO(), &rarimo.QueryParamsRequest{})
+		if err != nil {
+			panic(err)
+		}
 
-	tokenP, err := token.NewQueryClient(cfg.Cosmos()).Params(context.TODO(), &token.QueryParamsRequest{})
-	if err != nil {
-		return nil, err
-	}
+		tokenP, err := token.NewQueryClient(cfg.Cosmos()).Params(context.TODO(), &token.QueryParamsRequest{})
+		if err != nil {
+			panic(err)
+		}
 
-	return &Params{
-		tssP:       &tssP.Params,
-		tokenP:     &tokenP.Params,
-		nextTssP:   make(chan *rarimo.Params, 100),
-		nextTokenP: make(chan *token.Params, 100),
-	}, nil
+		params = &Params{
+			tssP:       &tssP.Params,
+			tokenP:     &tokenP.Params,
+			nextTssP:   make(chan *rarimo.Params, 100),
+			nextTokenP: make(chan *token.Params, 100),
+		}
+	}
+	return params
 }
 
+// NewParams receives new parameters but does not update it until UpdateParams is called
 func (s *Params) NewParams(tss *rarimo.Params, token *token.Params) {
 	s.nextTssP <- tss
 	s.nextTokenP <- token
 }
 
+// UpdateParams checks and updates params if there are the new one
 func (s *Params) UpdateParams() {
 	for {
 		select {
@@ -78,8 +86,7 @@ func (s *Params) N() int {
 }
 
 func (s *Params) T() int {
-	// TODO
-	return 0
+	return int(s.tssP.Threshold)
 }
 
 func (s *Params) IsParty(key string) bool {

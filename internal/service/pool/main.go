@@ -17,6 +17,9 @@ var (
 	ErrOpAlreadySigned = errors.New("operation already signed")
 )
 
+// Pool implements singleton pattern
+var pool *Pool
+
 // Pool represents the pool of operation to be signed by tss protocol.
 // It should take care about collecting validated state with unsigned operations only.
 type Pool struct {
@@ -29,11 +32,15 @@ type Pool struct {
 }
 
 func NewPool(cfg config.Config) *Pool {
-	return &Pool{
-		rarimo:   cfg.Cosmos(),
-		log:      cfg.Log(),
-		rawOrder: make(chan string, poolSz),
+	if pool == nil {
+		pool = &Pool{
+			rarimo:   cfg.Cosmos(),
+			log:      cfg.Log(),
+			rawOrder: make(chan string, poolSz),
+		}
 	}
+
+	return pool
 }
 
 func (p *Pool) Add(id string) error {

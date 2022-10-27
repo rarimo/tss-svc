@@ -22,20 +22,21 @@ type BlockSubscriber struct {
 	log    *logan.Entry
 }
 
-func NewBlockSubscriber(timer *Timer, cfg config.Config) (*BlockSubscriber, error) {
+func NewBlockSubscriber(cfg config.Config) *BlockSubscriber {
 	s := &BlockSubscriber{
-		timer:  timer,
+		timer:  NewTimer(cfg),
 		log:    cfg.Log(),
 		client: cfg.Tendermint(),
 	}
 
-	return s, s.subscribe()
+	s.subscribe()
+	return s
 }
 
-func (b *BlockSubscriber) subscribe() error {
+func (b *BlockSubscriber) subscribe() {
 	out, err := b.client.Subscribe(context.Background(), BlockServiceName, BlockQuery)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	go func() {
@@ -57,6 +58,4 @@ func (b *BlockSubscriber) subscribe() error {
 
 		}
 	}()
-
-	return nil
 }

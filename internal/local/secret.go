@@ -11,13 +11,22 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+// Secret implements singleton pattern
+var secret *Secret
+
+// Secret handles tss party private information
+// and called up to be the service for signing and private key storing
 type Secret struct {
-	prv ecdsa.PrivateKey
+	prv *ecdsa.PrivateKey
 }
 
 func NewSecret(cfg config.Config) *Secret {
-	// TODO
-	return &Secret{}
+	if secret == nil {
+		secret = &Secret{
+			prv: cfg.Private().PrivateKey,
+		}
+	}
+	return secret
 }
 
 func (s *Secret) ECDSAPubKey() ecdsa.PublicKey {
@@ -35,7 +44,7 @@ func (s *Secret) ECDSAPubKeyBytes() []byte {
 
 func (s *Secret) SignRequest(request *types.MsgSubmitRequest) error {
 	hash := crypto.Keccak256(request.Details.Value)
-	signature, err := crypto.Sign(hash, &s.prv)
+	signature, err := crypto.Sign(hash, s.prv)
 	if err != nil {
 		return err
 	}

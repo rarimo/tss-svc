@@ -17,15 +17,13 @@ type OperationCatchupper struct {
 	log    *logan.Entry
 }
 
-func NewOperationCatchupper(pool *Pool, cfg config.Config) *OperationCatchupper {
+func NewOperationCatchupper(cfg config.Config) *OperationCatchupper {
 	return &OperationCatchupper{
-		pool:   pool,
+		pool:   NewPool(cfg),
 		rarimo: cfg.Cosmos(),
 		log:    cfg.Log(),
 	}
 }
-
-// TODO provide catchup config
 
 func (o *OperationCatchupper) Run() error {
 	var nextKey []byte
@@ -33,7 +31,7 @@ func (o *OperationCatchupper) Run() error {
 	for {
 		operations, err := rarimo.NewQueryClient(o.rarimo).OperationAll(context.TODO(), &rarimo.QueryAllOperationRequest{Pagination: &query.PageRequest{Key: nextKey}})
 		if err != nil {
-			return err
+			panic(err)
 		}
 
 		for _, op := range operations.Operation {

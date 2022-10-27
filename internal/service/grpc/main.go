@@ -2,12 +2,37 @@ package grpc
 
 import (
 	"context"
+	"net"
 
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	"google.golang.org/grpc"
 )
 
 type ServerImpl struct {
 	types.UnimplementedServiceServer
+	service  *sign.Service
+	storage  *pg.Storage
+	log      *logan.Entry
+	listener net.Listener
+}
+
+func NewServer(cfg config.Config) *ServerImpl {
+	return &ServerImpl{
+		service:  sign.NewService(cfg),
+		storage:  cfg.Storage(),
+		log:      cfg.Log(),
+		listener: cfg.Listener(),
+	}
+}
+
+func (s *ServerImpl) Run() error {
+	grpcServer := grpc.NewServer()
+	types.RegisterServiceServer(grpcServer, s)
+	return grpcServer.Serve(s.listener)
 }
 
 var _ types.ServiceServer = &ServerImpl{}

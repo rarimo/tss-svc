@@ -24,20 +24,20 @@ type OperationSubscriber struct {
 	log    *logan.Entry
 }
 
-func NewOperationSubscriber(pool *Pool, cfg config.Config) (*OperationSubscriber, error) {
+func NewOperationSubscriber(cfg config.Config) *OperationSubscriber {
 	s := &OperationSubscriber{
-		pool:   pool,
+		pool:   NewPool(cfg),
 		log:    cfg.Log(),
 		client: cfg.Tendermint(),
 	}
-
-	return s, s.subscribe()
+	s.subscribe()
+	return s
 }
 
-func (o *OperationSubscriber) subscribe() error {
+func (o *OperationSubscriber) subscribe() {
 	out, err := o.client.Subscribe(context.Background(), OpServiceName, OpQuery, OpPoolSize)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	go func() {
@@ -57,6 +57,4 @@ func (o *OperationSubscriber) subscribe() error {
 
 		}
 	}()
-
-	return nil
 }

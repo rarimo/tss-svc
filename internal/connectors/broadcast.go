@@ -18,17 +18,13 @@ type BroadcastConnector struct {
 	log *logan.Entry
 }
 
-func NewBroadcastConnector(cfg config.Config) (*BroadcastConnector, error) {
-	params, err := local.NewParams(cfg)
-	if err != nil {
-		return nil, err
-	}
-
+func NewBroadcastConnector(cfg config.Config) *BroadcastConnector {
+	params := local.NewParams(cfg)
 	return &BroadcastConnector{
 		params:          params,
 		SubmitConnector: NewSubmitConnector(cfg),
 		log:             cfg.Log(),
-	}, nil
+	}
 }
 
 func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSubmitRequest) {

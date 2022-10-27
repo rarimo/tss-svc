@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
@@ -25,6 +26,9 @@ const (
 	StepAcceptingIndex = 1
 	StepSigningIndex   = 2
 )
+
+// Service implements singleton pattern
+var service *Service
 
 var (
 	ErrUnsupportedContent = goerr.New("unsupported content")
@@ -59,6 +63,29 @@ type Service struct {
 	storage *pg.Storage
 }
 
+func NewService(cfg config.Config) *Service {
+	if service == nil {
+		// TODO
+		var proposer rarimo.Party
+
+		s := &Service{
+			params:      local.NewParams(cfg),
+			secret:      local.NewSecret(cfg),
+			con:         connectors.NewBroadcastConnector(cfg),
+			pool:        pool.NewPool(cfg),
+			step:        step.NewStep(local.NewParams(cfg), cfg.Session().StartBlock),
+			session:     session.NewSession(cfg.Session().StartSessionId, cfg.Session().StartBlock, local.NewParams(cfg), proposer, cfg.Storage()),
+			controllers: make(map[types.StepType]step.IController),
+			rarimo:      cfg.Cosmos(),
+			log:         cfg.Log(),
+			storage:     cfg.Storage(),
+		}
+
+		s.nextStep()
+	}
+	return service
+}
+
 // NewBlock receives new blocks from timer
 func (s *Service) NewBlock(height uint64) error {
 	s.mu.Lock()
@@ -78,8 +105,15 @@ func (s *Service) NewBlock(height uint64) error {
 	if s.step.Next(height) {
 		s.cancelCtx()
 
-		if ok := s.session.FinishProposal(); !ok {
-			s.session.Fail()
+		switch s.step.Type() {
+		case types.StepType_Accepting:
+			if ok := s.session.FinishProposal(); !ok {
+				s.session.Fail()
+			}
+		case types.StepType_Signing:
+			if ok := s.session.FinishAcceptance(); !ok {
+				s.session.Fail()
+			}
 		}
 
 		s.nextStep()

@@ -7,6 +7,9 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 )
 
+// Timer implements the singleton pattern
+var timer *Timer
+
 type BlockNotifier func(height uint64) error
 
 // Timer provides the source for timestamping all operations in the tss system.
@@ -17,17 +20,21 @@ type Timer struct {
 	log          *logan.Entry
 }
 
-func NewTimer(cfg config.Config) (*Timer, error) {
-	info, err := cfg.Tendermint().Status(context.TODO())
-	if err != nil {
-		return nil, err
+func NewTimer(cfg config.Config) *Timer {
+	if timer == nil {
+		info, err := cfg.Tendermint().Status(context.TODO())
+		if err != nil {
+			panic(err)
+		}
+
+		timer = &Timer{
+			currentBlock: uint64(info.SyncInfo.LatestBlockHeight),
+			toNotify:     make(map[string]BlockNotifier),
+			log:          cfg.Log(),
+		}
 	}
 
-	return &Timer{
-		currentBlock: uint64(info.SyncInfo.LatestBlockHeight),
-		toNotify:     make(map[string]BlockNotifier),
-		log:          cfg.Log(),
-	}, nil
+	return timer
 }
 
 // Only for internal usage in block subscriber
