@@ -64,6 +64,8 @@ func (s *SignatureController) run(ctx context.Context) {
 		return
 	}
 
+	s.log.Infof("--- Signed root %s signature %s ---", s.root, hexutil.Encode(signature))
+
 	s.result <- &session.Signature{
 		Signed:    []string{s.secret.ECDSAPubKeyStr()},
 		Signature: hexutil.Encode(signature),

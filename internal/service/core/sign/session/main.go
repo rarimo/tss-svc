@@ -126,11 +126,19 @@ func (s *Session) IsFailed() bool {
 	return s.status == types.Status_Failed
 }
 
+func (s *Session) IsSuccess() bool {
+	return s.status == types.Status_Success
+}
+
+func (s *Session) IsProcessing() bool {
+	return s.status == types.Status_Processing
+}
+
 // FinishProposal tires to finish proposal step if there is any information received.
 // Responds with true if successful
 func (s *Session) FinishProposal() bool {
 	if s.status != types.Status_Processing {
-		return false
+		return s.status == types.Status_Success
 	}
 
 	select {
@@ -139,8 +147,13 @@ func (s *Session) FinishProposal() bool {
 			return false
 		}
 
+		if len(info.Indexes) == 0 {
+			s.status = types.Status_Success
+		}
+
 		s.root = info.Root
 		err := s.updateEntry(func(entry *data.Session) {
+			entry.Status = int(s.status)
 			entry.Indexes = info.Indexes
 			entry.Root = sql.NullString{
 				String: info.Root,
@@ -161,7 +174,7 @@ func (s *Session) FinishProposal() bool {
 // Responds with true if successful
 func (s *Session) FinishAcceptance() bool {
 	if s.status != types.Status_Processing {
-		return false
+		return s.status == types.Status_Success
 	}
 
 	select {
@@ -189,7 +202,7 @@ func (s *Session) FinishAcceptance() bool {
 // After successful finishing of signing step session will be marked as success
 func (s *Session) FinishSign() bool {
 	if s.status != types.Status_Processing {
-		return false
+		return s.status == types.Status_Success
 	}
 
 	select {

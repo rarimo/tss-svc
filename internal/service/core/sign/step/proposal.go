@@ -71,6 +71,13 @@ func (p *ProposalController) Receive(sender rarimo.Party, request types.MsgSubmi
 		}
 
 		if proposal.Session == p.id && p.validate(proposal.Indexes, proposal.Root) {
+			if len(proposal.Indexes) == 0 {
+				p.log.Info("--- Received empty pool. Skipping. ---")
+			}
+
+			p.log.Infof("--- Pool root %s ---", proposal.Root)
+			p.log.Infof("Pool indexes: %v", proposal.Indexes)
+
 			p.result <- &session.Proposal{
 				Indexes: proposal.Indexes,
 				Root:    proposal.Root,
@@ -106,6 +113,9 @@ func (p *ProposalController) run(ctx context.Context) {
 		return
 	}
 
+	p.log.Infof("--- Session %d: Pool root %s ---", p.id, root)
+	p.log.Infof("Session %d: Pool indexes: %v", p.id, ids)
+
 	p.result <- &session.Proposal{
 		Indexes: ids,
 		Root:    root,
@@ -127,6 +137,11 @@ func (p *ProposalController) getNewPool(ctx context.Context) ([]string, string, 
 	ids, err := p.pool.GetNext(sign.MaxPoolSize)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "error preparing pool")
+	}
+
+	if len(ids) == 0 {
+		p.log.Infof("--- Session %d: Empty pool. Skipping. ---", p.id)
+		return []string{}, "", nil
 	}
 
 	contents, err := p.getContents(ctx, ids)

@@ -187,7 +187,7 @@ func (s *Service) nextSession() {
 
 func (s *Service) nextStep() {
 	s.controllers[s.step.Type()] = s.getStepController()
-	if !s.session.IsFailed() {
+	if s.session.IsProcessing() {
 		var ctx context.Context
 		ctx, s.cancelCtx = context.WithCancel(context.Background())
 		s.controllers[s.step.Type()].Run(ctx)

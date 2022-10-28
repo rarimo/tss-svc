@@ -57,6 +57,7 @@ func (a *AcceptanceController) Receive(sender rarimo.Party, request types.MsgSub
 		}
 
 		if acceptance.Root == a.root {
+			a.log.Infof("--- Received acceptance from %s for root %s ---", sender.PubKey, a.root)
 			a.index[sender.PubKey] = struct{}{}
 			a.acceptances = append(a.acceptances, sender.PubKey)
 		}
