@@ -55,7 +55,7 @@ type Service struct {
 	pool   *pool.Pool
 
 	step          *step.Step
-	session       *session.Session
+	session       session.ISession
 	lastSignature string
 
 	cancelCtx   context.CancelFunc
@@ -68,23 +68,20 @@ type Service struct {
 
 func NewService(cfg config.Config) *Service {
 	if service == nil {
-		s := &Service{
+		service = &Service{
 			params:        local.NewParams(cfg),
 			secret:        local.NewSecret(cfg),
 			con:           connectors.NewBroadcastConnector(cfg),
 			conf:          connectors.NewConfirmConnector(cfg),
 			pool:          pool.NewPool(cfg),
-			step:          step.NewStep(local.NewParams(cfg), cfg.Session().StartBlock),
+			step:          step.NewLastStep(cfg.Session().StartBlock - 1),
+			session:       session.NewDefaultSession(cfg.Session().StartSessionId-1, cfg.Session().StartBlock-1),
 			lastSignature: cfg.Session().LastSignature,
 			controllers:   make(map[types.StepType]step.IController),
 			rarimo:        cfg.Cosmos(),
 			log:           cfg.Log(),
 			storage:       cfg.Storage(),
 		}
-
-		proposer := s.getProposer(cfg.Session().StartSessionId)
-		s.session = session.NewSession(cfg.Session().StartSessionId, cfg.Session().StartBlock, local.NewParams(cfg), proposer, cfg.Storage())
-		s.nextStep()
 	}
 	return service
 }
@@ -95,7 +92,7 @@ func (s *Service) NewBlock(height uint64) error {
 	defer s.mu.Unlock()
 
 	if s.session.IsFinished(height) {
-		s.cancelCtx()
+		s.stopController()
 
 		if ok := s.session.FinishSign(); ok {
 			s.finish()
@@ -108,7 +105,7 @@ func (s *Service) NewBlock(height uint64) error {
 	}
 
 	if s.step.Next(height) {
-		s.cancelCtx()
+		s.stopController()
 
 		switch s.step.Type() {
 		case types.StepType_Accepting:
@@ -209,10 +206,19 @@ func (s *Service) fail() {
 }
 
 func (s *Service) finish() {
-	if err := s.conf.SubmitConfirmation(s.session.Indexes(), s.session.Root(), s.session.Signature()); err != nil {
-		s.log.WithError(err).Debug("error submitting confirmation. maybe already submitted")
+	if len(s.session.Indexes()) > 0 {
+		if err := s.conf.SubmitConfirmation(s.session.Indexes(), s.session.Root(), s.session.Signature()); err != nil {
+			s.log.WithError(err).Debug("error submitting confirmation. maybe already submitted")
+		}
+		// TODO fix unstable
+		s.lastSignature = s.session.Signature()
 	}
-	s.lastSignature = s.session.Signature()
+}
+
+func (s *Service) stopController() {
+	if s.cancelCtx != nil {
+		s.cancelCtx()
+	}
 }
 
 func (s *Service) getStepController() step.IController {

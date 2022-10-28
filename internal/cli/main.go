@@ -5,6 +5,10 @@ import (
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/grpc"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/timer"
 )
 
 func Run(args []string) bool {
@@ -36,7 +40,11 @@ func Run(args []string) bool {
 
 	switch cmd {
 	case serviceCmd.FullCommand():
-		// TODO run grpc and session controller
+		go timer.NewBlockSubscriber(cfg).Run()
+		go pool.NewOperationSubscriber(cfg).Run()
+		go pool.NewOperationCatchupper(cfg).Run()
+		timer.NewTimer(cfg).SubscribeToBlocks("sign-service", sign.NewService(cfg).NewBlock)
+		grpc.NewServer(cfg).Run()
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():

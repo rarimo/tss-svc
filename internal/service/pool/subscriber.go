@@ -25,16 +25,14 @@ type OperationSubscriber struct {
 }
 
 func NewOperationSubscriber(cfg config.Config) *OperationSubscriber {
-	s := &OperationSubscriber{
+	return &OperationSubscriber{
 		pool:   NewPool(cfg),
 		log:    cfg.Log(),
 		client: cfg.Tendermint(),
 	}
-	s.subscribe()
-	return s
 }
 
-func (o *OperationSubscriber) subscribe() {
+func (o *OperationSubscriber) Run() {
 	out, err := o.client.Subscribe(context.Background(), OpServiceName, OpQuery, OpPoolSize)
 	if err != nil {
 		panic(err)

@@ -23,17 +23,14 @@ type BlockSubscriber struct {
 }
 
 func NewBlockSubscriber(cfg config.Config) *BlockSubscriber {
-	s := &BlockSubscriber{
+	return &BlockSubscriber{
 		timer:  NewTimer(cfg),
 		log:    cfg.Log(),
 		client: cfg.Tendermint(),
 	}
-
-	s.subscribe()
-	return s
 }
 
-func (b *BlockSubscriber) subscribe() {
+func (b *BlockSubscriber) Run() {
 	out, err := b.client.Subscribe(context.Background(), BlockServiceName, BlockQuery)
 	if err != nil {
 		panic(err)

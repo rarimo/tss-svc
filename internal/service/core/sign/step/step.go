@@ -16,6 +16,15 @@ type Step struct {
 	endBlock   uint64
 }
 
+func NewLastStep(end uint64) *Step {
+	return &Step{
+		params:     nil,
+		stepType:   types.StepType_Signing,
+		startBlock: 0,
+		endBlock:   end,
+	}
+}
+
 func NewStep(params *local.Params, startBlock uint64) *Step {
 	return &Step{
 		params:     params,

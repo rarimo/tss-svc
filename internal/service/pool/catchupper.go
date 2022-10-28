@@ -25,7 +25,7 @@ func NewOperationCatchupper(cfg config.Config) *OperationCatchupper {
 	}
 }
 
-func (o *OperationCatchupper) Run() error {
+func (o *OperationCatchupper) Run() {
 	var nextKey []byte
 
 	for {
@@ -41,12 +41,15 @@ func (o *OperationCatchupper) Run() error {
 			}
 
 			o.log.Infof("New operation found index=%s", op.Index)
-			o.pool.Add(op.Index)
+			err := o.pool.Add(op.Index)
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		nextKey = operations.Pagination.NextKey
 		if nextKey == nil {
-			return nil
+			return
 		}
 	}
 }
