@@ -37,7 +37,11 @@ func (s *Secret) ECDSAPubKey() ecdsa.PublicKey {
 	return s.prv.PublicKey
 }
 
-func (s *Secret) AccountPubKey() cryptotypes.Address {
+func (s *Secret) AccountPubKey() cryptotypes.PubKey {
+	return s.account.PubKey()
+}
+
+func (s *Secret) AccountAddress() cryptotypes.Address {
 	return s.account.PubKey().Address()
 }
 
@@ -46,17 +50,13 @@ func (s *Secret) ECDSAPubKeyStr() string {
 	return hexutil.Encode(pub)
 }
 
-func (s *Secret) AccountPubKeyStr() string {
+func (s *Secret) AccountAddressStr() string {
 	address, _ := bech32.ConvertAndEncode(config.AccountPrefix, s.account.PubKey().Address().Bytes())
 	return address
 }
 
 func (s *Secret) ECDSAPubKeyBytes() []byte {
 	return elliptic.Marshal(secp256k1.S256(), s.prv.X, s.prv.Y)
-}
-
-func (s *Secret) AccountPubKeyBytes() []byte {
-	return s.account.PubKey().Address().Bytes()
 }
 
 func (s *Secret) ECDSAPrvKey() *ecdsa.PrivateKey {

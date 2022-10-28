@@ -8,6 +8,7 @@ import (
 type SessionInfo struct {
 	StartBlock     uint64 `fig:"start_block"`
 	StartSessionId uint64 `fig:"start_session_id"`
+	LastSignature  string `fig:"last_signature"`
 }
 
 func (c *config) Session() *SessionInfo {

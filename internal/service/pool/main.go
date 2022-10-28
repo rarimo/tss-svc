@@ -66,7 +66,8 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 			case nil:
 				res = append(res, id)
 			default:
-				return nil, err
+				p.log.WithError(err).Error("error querying operation")
+				p.rawOrder <- id
 			}
 		default:
 			break

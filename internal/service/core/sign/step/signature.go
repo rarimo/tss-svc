@@ -24,12 +24,14 @@ type SignatureController struct {
 func NewSignatureController(
 	root string,
 	params *local.Params,
+	secret *local.Secret,
 	result chan *session.Signature,
 	log *logan.Entry,
 ) *SignatureController {
 	return &SignatureController{
 		root:   root,
 		params: params,
+		secret: secret,
 		result: result,
 		log:    log,
 	}

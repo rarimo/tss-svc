@@ -36,7 +36,9 @@ type Session struct {
 	endBlock   uint64
 	proposer   rarimo.Party
 
-	root string
+	root    string
+	indexes []string
+	sign    string
 
 	proposal   chan *Proposal
 	acceptance chan *Acceptance
@@ -58,6 +60,7 @@ func NewSession(
 		startBlock: startBlock,
 		endBlock:   startBlock + params.Step(sign.StepProposingIndex).Duration + 1 + params.Step(sign.StepAcceptingIndex).Duration + 1 + params.Step(sign.StepSigningIndex).Duration,
 		proposer:   proposer,
+		indexes:    []string{},
 		proposal:   make(chan *Proposal, 1),
 		acceptance: make(chan *Acceptance, 1),
 		signature:  make(chan *Signature, 1),
@@ -88,6 +91,14 @@ func (s *Session) ID() uint64 {
 
 func (s *Session) Root() string {
 	return s.root
+}
+
+func (s *Session) Indexes() []string {
+	return s.indexes
+}
+
+func (s *Session) Signature() string {
+	return s.sign
 }
 
 func (s *Session) Proposer() rarimo.Party {
@@ -152,6 +163,7 @@ func (s *Session) FinishProposal() bool {
 		}
 
 		s.root = info.Root
+		s.indexes = info.Indexes
 		err := s.updateEntry(func(entry *data.Session) {
 			entry.Status = int(s.status)
 			entry.Indexes = info.Indexes
@@ -212,7 +224,7 @@ func (s *Session) FinishSign() bool {
 		}
 
 		s.status = types.Status_Success
-
+		s.sign = info.Signature
 		err := s.updateEntry(func(entry *data.Session) {
 			entry.Signed = info.Signed
 			entry.Signature = sql.NullString{
