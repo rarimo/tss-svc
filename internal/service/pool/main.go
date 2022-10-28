@@ -31,6 +31,8 @@ type Pool struct {
 	rawOrder chan string
 }
 
+// NewPool returns new Pool but only once because Pool implements the singleton pattern for simple usage as
+// the same instance in all injections.
 func NewPool(cfg config.Config) *Pool {
 	if pool == nil {
 		pool = &Pool{
@@ -43,6 +45,8 @@ func NewPool(cfg config.Config) *Pool {
 	return pool
 }
 
+// Add will add operation index to the pool with signed flag check.
+// Returns an error if signed check fails (cause or rpc errors).
 func (p *Pool) Add(id string) error {
 	if err := p.checkUnsigned(id); err != nil {
 		return err
@@ -52,6 +56,7 @@ func (p *Pool) Add(id string) error {
 	return nil
 }
 
+// GetNext returns checked pool of maximum n unsigned operations or an error in case of rpc call errors.
 func (p *Pool) GetNext(n uint) ([]string, error) {
 	res := make([]string, 0, n)
 	collected := uint(0)

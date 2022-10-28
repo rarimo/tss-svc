@@ -25,6 +25,7 @@ type OperationSubscriber struct {
 	log    *logan.Entry
 }
 
+// NewTransferOperationSubscriber creates the subscriber instance for listening new transfer operations
 func NewTransferOperationSubscriber(cfg config.Config) *OperationSubscriber {
 	return &OperationSubscriber{
 		pool:   NewPool(cfg),
@@ -34,6 +35,7 @@ func NewTransferOperationSubscriber(cfg config.Config) *OperationSubscriber {
 	}
 }
 
+// NewChangeKeyOperationSubscriber creates the subscriber instance for listening new change key operations
 func NewChangeKeyOperationSubscriber(cfg config.Config) *OperationSubscriber {
 	return &OperationSubscriber{
 		pool:   NewPool(cfg),

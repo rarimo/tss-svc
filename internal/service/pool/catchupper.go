@@ -17,6 +17,7 @@ type OperationCatchupper struct {
 	log    *logan.Entry
 }
 
+// NewOperationCatchupper creates the catchup instance for adding all unsigned operations to the pool
 func NewOperationCatchupper(cfg config.Config) *OperationCatchupper {
 	return &OperationCatchupper{
 		pool:   NewPool(cfg),

@@ -20,6 +20,8 @@ type Timer struct {
 	log          *logan.Entry
 }
 
+// NewTimer returns new Timer but only once because Timer implements the singleton pattern for simple usage as
+// the same instance in all injections.
 func NewTimer(cfg config.Config) *Timer {
 	if timer == nil {
 		info, err := cfg.Tendermint().Status(context.TODO())
@@ -47,6 +49,7 @@ func (t *Timer) CurrentBlock() uint64 {
 	return t.currentBlock
 }
 
+// SubscribeToBlocks adds receiver method to notify fot the new block events
 func (t *Timer) SubscribeToBlocks(name string, f BlockNotifier) {
 	t.toNotify[name] = f
 	go t.notify(t.currentBlock, name, f)

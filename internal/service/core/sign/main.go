@@ -45,6 +45,12 @@ var (
 	}
 )
 
+// Service implements the full flow of the threshold signing of proposed pool.
+// During receiving new blocks notifications in the NewBlock method service will run the flow steps if possible.
+// The tss flow consists of the following steps:
+// 1. Proposing: the derived proposer proposes the next pool of operations to sign
+// 2. Accepting: all parties shares their acceptances to start signing the pool.
+// 3. Signing
 type Service struct {
 	mu sync.Mutex
 
@@ -66,6 +72,10 @@ type Service struct {
 	storage *pg.Storage
 }
 
+// NewService returns new Service but only once because Service implements the singleton pattern for simple usage as
+// the same instance in all injections.
+// The first session information will be fetched from the service configuration file and the previous session
+// will be mocked to wait for the first one.
 func NewService(cfg config.Config) *Service {
 	if service == nil {
 		service = &Service{
@@ -124,6 +134,7 @@ func (s *Service) NewBlock(height uint64) error {
 	return nil
 }
 
+// Receive method receives the new MsgSubmitRequest from the parties and routes them to the corresponding controller.
 func (s *Service) Receive(request types.MsgSubmitRequest) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -22,6 +22,7 @@ type BlockSubscriber struct {
 	log    *logan.Entry
 }
 
+// NewBlockSubscriber creates the subscriber instance for listening new blocks
 func NewBlockSubscriber(cfg config.Config) *BlockSubscriber {
 	return &BlockSubscriber{
 		timer:  NewTimer(cfg),
