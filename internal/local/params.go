@@ -14,8 +14,9 @@ var params *Params
 // Params handles core global parameters
 // and called up to be the source for the parameters in all components.
 type Params struct {
-	tssP   *rarimo.Params
-	tokenP *token.Params
+	tssP    *rarimo.Params
+	tokenP  *token.Params
+	chainId string
 
 	nextTssP   chan *rarimo.Params
 	nextTokenP chan *token.Params
@@ -36,6 +37,7 @@ func NewParams(cfg config.Config) *Params {
 		params = &Params{
 			tssP:       &tssP.Params,
 			tokenP:     &tokenP.Params,
+			chainId:    cfg.Private().ChainId,
 			nextTssP:   make(chan *rarimo.Params, 100),
 			nextTokenP: make(chan *token.Params, 100),
 		}
@@ -59,6 +61,10 @@ func (s *Params) UpdateParams() {
 			return
 		}
 	}
+}
+
+func (s *Params) ChainId() string {
+	return s.chainId
 }
 
 func (s *Params) TssParams() *rarimo.Params {

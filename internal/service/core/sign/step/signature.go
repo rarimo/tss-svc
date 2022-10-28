@@ -3,6 +3,8 @@ package step
 import (
 	"context"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
@@ -12,10 +14,10 @@ import (
 )
 
 type SignatureController struct {
-	root string
-
+	root   string
 	result chan *session.Signature
 	params *local.Params
+	secret *local.Secret
 	log    *logan.Entry
 }
 
@@ -54,6 +56,16 @@ func (s *SignatureController) Run(ctx context.Context) {
 	go s.run(ctx)
 }
 
+// TODO mocked for one party
 func (s *SignatureController) run(ctx context.Context) {
-	// TODo
+	signature, err := crypto.Sign(hexutil.MustDecode(s.root), s.secret.ECDSAPrvKey())
+	if err != nil {
+		s.log.WithError(err).Error("error signing root hash")
+		return
+	}
+
+	s.result <- &session.Signature{
+		Signed:    []string{s.secret.ECDSAPubKeyStr()},
+		Signature: hexutil.Encode(signature),
+	}
 }
