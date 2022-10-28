@@ -10,30 +10,41 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 )
 
-// TODO also listening other operations
 const (
-	OpServiceName = "op-subscriber"
-	OpQuery       = "tm.event='Tx' AND new_operation.operation_type='TRANSFER,CHANGE_KEY'"
-	OpPoolSize    = 1000
+	OpServiceName    = "op-subscriber"
+	OpQueryTransfer  = "tm.event='Tx' AND new_operation.operation_type='TRANSFER'"
+	OpQueryChangeKey = "tm.event='Tx' AND new_operation.operation_type='CHANGE_KEY'"
+	OpPoolSize       = 1000
 )
 
 // OperationSubscriber subscribes to the NewOperation events on the tendermint core.
 type OperationSubscriber struct {
 	pool   *Pool
 	client *http.HTTP
+	query  string
 	log    *logan.Entry
 }
 
-func NewOperationSubscriber(cfg config.Config) *OperationSubscriber {
+func NewTransferOperationSubscriber(cfg config.Config) *OperationSubscriber {
 	return &OperationSubscriber{
 		pool:   NewPool(cfg),
 		log:    cfg.Log(),
 		client: cfg.Tendermint(),
+		query:  OpQueryTransfer,
+	}
+}
+
+func NewChangeKeyOperationSubscriber(cfg config.Config) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   NewPool(cfg),
+		log:    cfg.Log(),
+		client: cfg.Tendermint(),
+		query:  OpQueryChangeKey,
 	}
 }
 
 func (o *OperationSubscriber) Run() {
-	out, err := o.client.Subscribe(context.Background(), OpServiceName, OpQuery, OpPoolSize)
+	out, err := o.client.Subscribe(context.Background(), OpServiceName, o.query, OpPoolSize)
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +53,7 @@ func (o *OperationSubscriber) Run() {
 		for {
 			c, ok := <-out
 			if !ok {
-				if err := o.client.Unsubscribe(context.Background(), OpServiceName, OpQuery); err != nil {
+				if err := o.client.Unsubscribe(context.Background(), OpServiceName, o.query); err != nil {
 					o.log.WithError(err).Error("error unsubscribing from new operations")
 				}
 				break

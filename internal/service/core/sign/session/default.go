@@ -4,6 +4,8 @@ import (
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 )
 
+// DefaultSession stores id and end block of the session and used to schedule the real session start
+// during launch of the main service.
 type DefaultSession struct {
 	id  uint64
 	end uint64

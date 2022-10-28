@@ -28,6 +28,7 @@ const (
 	gasLimit      = 100_000_000
 )
 
+// ConfirmConnector submits signed confirmations to the rarimo core
 type ConfirmConnector struct {
 	params   *local.Params
 	secret   *local.Secret

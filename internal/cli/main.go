@@ -41,7 +41,8 @@ func Run(args []string) bool {
 	switch cmd {
 	case serviceCmd.FullCommand():
 		go timer.NewBlockSubscriber(cfg).Run()
-		go pool.NewOperationSubscriber(cfg).Run()
+		go pool.NewTransferOperationSubscriber(cfg).Run()
+		go pool.NewChangeKeyOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
 		timer.NewTimer(cfg).SubscribeToBlocks("sign-service", sign.NewService(cfg).NewBlock)
 		grpc.NewServer(cfg).Run()
