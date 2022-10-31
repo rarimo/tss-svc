@@ -22,7 +22,7 @@ type PrivateInfo struct {
 }
 
 func (c *config) Private() *PrivateInfo {
-	return c.tendermint.Do(func() interface{} {
+	return c.private.Do(func() interface{} {
 		var config struct {
 			PrivateKeyHex    string `fig:"prv_key_hex"`
 			AccountPrvKeyHex string `fig:"account_prv_hex"`

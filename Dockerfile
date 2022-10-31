@@ -15,7 +15,7 @@ RUN GOOS=linux go build  -o /usr/local/bin/tss-svc /go/src/gitlab.com/rarify-pro
 
 FROM alpine:3.9
 
-COPY --from=buildbase /usr/local/bin/signer-svc /usr/local/bin/signer-svc
+COPY --from=buildbase /usr/local/bin/tss-svc /usr/local/bin/tss-svc
 RUN apk add --no-cache ca-certificates
 
-ENTRYPOINT ["signer-svc"]
+ENTRYPOINT ["tss-svc"]

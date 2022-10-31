@@ -2,8 +2,13 @@ package step
 
 import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+)
+
+const (
+	StepProposingIndex = 0
+	StepAcceptingIndex = 1
+	StepSigningIndex   = 2
 )
 
 // Step stores information about current step and its start/finish
@@ -30,7 +35,7 @@ func NewStep(params *local.Params, startBlock uint64) *Step {
 		params:     params,
 		stepType:   types.StepType_Proposing,
 		startBlock: startBlock,
-		endBlock:   startBlock + params.Step(sign.StepProposingIndex).Duration,
+		endBlock:   startBlock + params.Step(StepProposingIndex).Duration - 1,
 	}
 }
 
@@ -50,13 +55,27 @@ func (s *Step) Next(height uint64) bool {
 		case types.StepType_Proposing:
 			s.stepType = types.StepType_Accepting
 			s.startBlock = s.endBlock + 1
-			s.endBlock = s.startBlock + s.params.Step(sign.StepAcceptingIndex).Duration
+			s.endBlock = s.startBlock + s.params.Step(StepAcceptingIndex).Duration - 1
+			return true
 		case types.StepType_Accepting:
 			s.stepType = types.StepType_Signing
 			s.startBlock = s.endBlock + 1
-			s.endBlock = s.startBlock + s.params.Step(sign.StepSigningIndex).Duration
+			s.endBlock = s.startBlock + s.params.Step(StepSigningIndex).Duration - 1
+			return true
 		}
 	}
 
 	return false
+}
+
+func (s *Step) EndAllBlock() uint64 {
+	switch s.stepType {
+	case types.StepType_Proposing:
+		return s.startBlock + s.params.Step(StepProposingIndex).Duration + s.params.Step(StepAcceptingIndex).Duration + s.params.Step(StepSigningIndex).Duration - 1
+	case types.StepType_Accepting:
+		return s.startBlock + s.params.Step(StepAcceptingIndex).Duration + s.params.Step(StepSigningIndex).Duration - 1
+	case types.StepType_Signing:
+		return s.startBlock + s.params.Step(StepSigningIndex).Duration - 1
+	}
+	return 0
 }

@@ -34,6 +34,9 @@ func NewParams(cfg config.Config) *Params {
 			panic(err)
 		}
 
+		cfg.Log().Infof("fetched new tss params %v", tssP.Params)
+		cfg.Log().Infof("fetched new token params %v", tokenP.Params)
+
 		params = &Params{
 			tssP:       &tssP.Params,
 			tokenP:     &tokenP.Params,
@@ -55,8 +58,10 @@ func (s *Params) NewParams(tss *rarimo.Params, token *token.Params) {
 func (s *Params) UpdateParams() {
 	for {
 		select {
-		case s.tssP = <-s.nextTssP:
-		case s.tokenP = <-s.nextTokenP:
+		case p := <-s.nextTssP:
+			s.tssP = p
+		case p := <-s.nextTokenP:
+			s.tokenP = p
 		default:
 			return
 		}

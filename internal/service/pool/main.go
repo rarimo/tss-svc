@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const poolSz = 1000
+const poolSz = 10000
 
 var (
 	// ErrOpAlreadySigned appears when someone tries to add operation that has been already signed
@@ -70,12 +70,14 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 				continue
 			case nil:
 				res = append(res, id)
+				collected++
 			default:
 				p.log.WithError(err).Error("error querying operation")
 				p.rawOrder <- id
+				return res, nil
 			}
 		default:
-			break
+			return res, nil
 		}
 	}
 

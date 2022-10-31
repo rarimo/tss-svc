@@ -6,8 +6,6 @@ import (
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
-	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -34,7 +32,7 @@ type Session struct {
 func NewSession(
 	id uint64,
 	startBlock uint64,
-	params *local.Params,
+	endBlock uint64,
 	proposer rarimo.Party,
 	storage *pg.Storage,
 ) ISession {
@@ -42,7 +40,7 @@ func NewSession(
 		id:         id,
 		status:     types.Status_Processing,
 		startBlock: startBlock,
-		endBlock:   startBlock + params.Step(sign.StepProposingIndex).Duration + 1 + params.Step(sign.StepAcceptingIndex).Duration + 1 + params.Step(sign.StepSigningIndex).Duration,
+		endBlock:   endBlock,
 		proposer:   proposer,
 		indexes:    []string{},
 		proposal:   make(chan *Proposal, 1),
@@ -51,7 +49,7 @@ func NewSession(
 		storage:    storage,
 	}
 
-	err := storage.SessionQ().Insert(&data.Session{
+	err := storage.SessionQ().Upsert(&data.Session{
 		ID:     int64(s.id),
 		Status: int(s.status),
 		Proposer: sql.NullString{

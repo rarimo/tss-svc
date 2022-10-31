@@ -2,6 +2,7 @@ package step
 
 import (
 	"context"
+	goerr "errors"
 
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -15,12 +16,15 @@ import (
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
+
+const MaxPoolSize = 32
+
+var ErrUnsupportedContent = goerr.New("unsupported content")
 
 type ProposalController struct {
 	id       uint64
@@ -76,7 +80,7 @@ func (p *ProposalController) Receive(sender rarimo.Party, request types.MsgSubmi
 			}
 
 			p.log.Infof("--- Pool root %s ---", proposal.Root)
-			p.log.Infof("Pool indexes: %v", proposal.Indexes)
+			p.log.Infof("Indexes: %v", proposal.Indexes)
 
 			p.result <- &session.Proposal{
 				Indexes: proposal.Indexes,
@@ -104,6 +108,7 @@ func (p *ProposalController) Run(ctx context.Context) {
 
 func (p *ProposalController) run(ctx context.Context) {
 	if p.proposer.PubKey != p.secret.ECDSAPubKeyStr() {
+		p.log.Infof("--- Session %d: Proposer is another party ---", p.id)
 		return
 	}
 
@@ -114,7 +119,7 @@ func (p *ProposalController) run(ctx context.Context) {
 	}
 
 	p.log.Infof("--- Session %d: Pool root %s ---", p.id, root)
-	p.log.Infof("Session %d: Pool indexes: %v", p.id, ids)
+	p.log.Infof("indexes: %v", p.id, ids)
 
 	p.result <- &session.Proposal{
 		Indexes: ids,
@@ -134,7 +139,7 @@ func (p *ProposalController) run(ctx context.Context) {
 }
 
 func (p *ProposalController) getNewPool(ctx context.Context) ([]string, string, error) {
-	ids, err := p.pool.GetNext(sign.MaxPoolSize)
+	ids, err := p.pool.GetNext(MaxPoolSize)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "error preparing pool")
 	}
@@ -180,7 +185,7 @@ func (p *ProposalController) getContents(ctx context.Context, ids []string) ([]m
 			contents = append(contents, content)
 
 		default:
-			return nil, sign.ErrUnsupportedContent
+			return nil, ErrUnsupportedContent
 		}
 	}
 

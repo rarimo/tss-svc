@@ -21,18 +21,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	MaxPoolSize        = 32
-	StepProposingIndex = 0
-	StepAcceptingIndex = 1
-	StepSigningIndex   = 2
-)
-
 // Service implements singleton pattern
 var service *Service
 
 var (
-	ErrUnsupportedContent = goerr.New("unsupported content")
 	ErrInvalidRequestType = goerr.New("invalid request type")
 	ErrSignerNotAParty    = goerr.New("signer not a party")
 	ErrInvalidSignature   = goerr.New("invalid signature")
@@ -92,21 +84,27 @@ func NewService(cfg config.Config) *Service {
 			log:           cfg.Log(),
 			storage:       cfg.Storage(),
 		}
+
+		service.log.Infof("--- Next session on block: %d with id: %d ---", service.session.End()+1, service.session.ID()+1)
 	}
 	return service
 }
 
 // NewBlock receives new blocks from timer
 func (s *Service) NewBlock(height uint64) error {
+	s.log.Infof("--- New block: %d ---", height)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.session.IsFinished(height) {
+		s.log.Infof("--- Session %d finished---", s.session.ID())
 		s.stopController()
 
 		if ok := s.session.FinishSign(); ok {
+			s.log.Infof("--- Session %d Successful! ---", s.session.ID())
 			s.finish()
 		} else {
+			s.log.Infof("failed to finish signing step")
 			s.fail()
 		}
 
@@ -115,15 +113,18 @@ func (s *Service) NewBlock(height uint64) error {
 	}
 
 	if s.step.Next(height) {
+		s.log.Infof("--- Step finished. Next step: %s ---", s.step.Type().String())
 		s.stopController()
 
 		switch s.step.Type() {
 		case types.StepType_Accepting:
 			if ok := s.session.FinishProposal(); !ok {
+				s.log.Infof("failed to finish proposal step")
 				s.fail()
 			}
 		case types.StepType_Signing:
 			if ok := s.session.FinishAcceptance(); !ok {
+				s.log.Infof("failed to finish acceptance step")
 				s.fail()
 			}
 		}
@@ -180,26 +181,30 @@ func (s *Service) AuthRequest(request types.MsgSubmitRequest) (rarimo.Party, err
 }
 
 func (s *Service) nextSession() {
+	s.log.Infof("Scheduling next session id=%d", s.session.ID()+1)
 	s.params.UpdateParams()
 	s.controllers = make(map[types.StepType]step.IController)
 
 	proposer := s.getProposer(s.session.ID() + 1)
+	s.log.Infof("Proposer account: %s", proposer.Account)
+	s.log.Debugf("Proposer pub key: %s", proposer.PubKey)
+	s.step = step.NewStep(s.params, s.session.End()+1)
 
 	s.session = session.NewSession(
 		s.session.ID()+1,
 		s.session.End()+1,
-		s.params,
+		s.step.EndAllBlock(),
 		proposer,
 		s.storage,
 	)
 
-	s.step = step.NewStep(s.params, s.session.Start())
 	s.nextStep()
 }
 
 func (s *Service) nextStep() {
 	s.controllers[s.step.Type()] = s.getStepController()
 	if s.session.IsProcessing() {
+		s.log.Infof("Running controller for step: %s", s.step.Type().String())
 		var ctx context.Context
 		ctx, s.cancelCtx = context.WithCancel(context.Background())
 		s.controllers[s.step.Type()].Run(ctx)
