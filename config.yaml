@@ -14,3 +14,12 @@ core:
 cosmos:
   addr: 127.0.0.1:9090
 
+session:
+  start_block:
+  start_session_id:
+  last_signature:
+
+prv:
+  prv_key_hex:
+  account_prv_hex:
+  chain_id: rarimo
