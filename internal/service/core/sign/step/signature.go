@@ -2,6 +2,7 @@ package step
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -14,14 +15,20 @@ import (
 )
 
 type SignatureController struct {
-	root   string
+	wg   *sync.WaitGroup
+	id   uint64
+	root string
+
 	result chan *session.Signature
+
 	params *local.Params
 	secret *local.Secret
-	log    *logan.Entry
+
+	log *logan.Entry
 }
 
 func NewSignatureController(
+	id uint64,
 	root string,
 	params *local.Params,
 	secret *local.Secret,
@@ -29,6 +36,8 @@ func NewSignatureController(
 	log *logan.Entry,
 ) *SignatureController {
 	return &SignatureController{
+		wg:     &sync.WaitGroup{},
+		id:     id,
 		root:   root,
 		params: params,
 		secret: secret,
@@ -55,6 +64,7 @@ func (s *SignatureController) Receive(sender rarimo.Party, request types.MsgSubm
 }
 
 func (s *SignatureController) Run(ctx context.Context) {
+	s.wg.Add(1)
 	go s.run(ctx)
 }
 
@@ -66,10 +76,17 @@ func (s *SignatureController) run(ctx context.Context) {
 		return
 	}
 
-	s.log.Infof("--- Signed root %s signature %s ---", s.root, hexutil.Encode(signature))
+	s.log.Infof("[Signing %d] - Signed root %s signature %s", s.id, s.root, hexutil.Encode(signature))
 
 	s.result <- &session.Signature{
 		Signed:    []string{s.secret.ECDSAPubKeyStr()},
 		Signature: hexutil.Encode(signature),
 	}
+
+	s.log.Infof("[Signing %d] - Controller finished", s.id)
+	s.wg.Done()
+}
+
+func (s *SignatureController) WaitFinish() {
+	s.wg.Wait()
 }

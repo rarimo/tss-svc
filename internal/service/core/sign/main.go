@@ -56,8 +56,8 @@ type Service struct {
 	session       session.ISession
 	lastSignature string
 
-	cancelCtx   context.CancelFunc
-	controllers map[types.StepType]step.IController
+	cancelCtx context.CancelFunc
+	current   step.IController
 
 	rarimo  *grpc.ClientConn
 	log     *logan.Entry
@@ -79,32 +79,31 @@ func NewService(cfg config.Config) *Service {
 			step:          step.NewLastStep(cfg.Session().StartBlock - 1),
 			session:       session.NewDefaultSession(cfg.Session().StartSessionId-1, cfg.Session().StartBlock-1),
 			lastSignature: cfg.Session().LastSignature,
-			controllers:   make(map[types.StepType]step.IController),
 			rarimo:        cfg.Cosmos(),
 			log:           cfg.Log(),
 			storage:       cfg.Storage(),
 		}
 
-		service.log.Infof("--- Next session on block: %d with id: %d ---", service.session.End()+1, service.session.ID()+1)
+		service.log.Infof("Next session on block: %d with id: %d", service.session.End()+1, service.session.ID()+1)
 	}
 	return service
 }
 
 // NewBlock receives new blocks from timer
 func (s *Service) NewBlock(height uint64) error {
-	s.log.Infof("--- New block: %d ---", height)
+	s.log.Infof("[*****] New block: %d [*****]", height)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.session.IsFinished(height) {
-		s.log.Infof("--- Session %d finished---", s.session.ID())
+		s.log.Infof("[Session %d] - Finished.", s.session.ID())
 		s.stopController()
 
 		if ok := s.session.FinishSign(); ok {
-			s.log.Infof("--- Session %d Successful! ---", s.session.ID())
+			s.log.Infof("[Session %d] - Successful!", s.session.ID())
 			s.finish()
 		} else {
-			s.log.Infof("failed to finish signing step")
+			s.log.Error("[Session %d] - Failed to finish signing step", s.session.ID())
 			s.fail()
 		}
 
@@ -113,18 +112,18 @@ func (s *Service) NewBlock(height uint64) error {
 	}
 
 	if s.step.Next(height) {
-		s.log.Infof("--- Step finished. Next step: %s ---", s.step.Type().String())
+		s.log.Infof("[Session %d] - Step finished. Next step: %s", s.session.ID(), s.step.Type().String())
 		s.stopController()
 
 		switch s.step.Type() {
 		case types.StepType_Accepting:
 			if ok := s.session.FinishProposal(); !ok {
-				s.log.Infof("failed to finish proposal step")
+				s.log.Errorf("[Session %d] - Failed to finish proposal step", s.session.ID())
 				s.fail()
 			}
 		case types.StepType_Signing:
 			if ok := s.session.FinishAcceptance(); !ok {
-				s.log.Infof("failed to finish acceptance step")
+				s.log.Errorf("[Session %d] - Failed to finish acceptance step", s.session.ID())
 				s.fail()
 			}
 		}
@@ -149,7 +148,7 @@ func (s *Service) Receive(request types.MsgSubmitRequest) error {
 		return err
 	}
 
-	if err = s.controllers[s.step.Type()].Receive(sender, request); err != nil {
+	if err = s.current.Receive(sender, request); err != nil {
 		s.log.WithError(err).Debug("failed to process request")
 		return ErrProcessingRequest
 	}
@@ -181,17 +180,17 @@ func (s *Service) AuthRequest(request types.MsgSubmitRequest) (rarimo.Party, err
 }
 
 func (s *Service) nextSession() {
-	s.log.Infof("Scheduling next session id=%d", s.session.ID()+1)
-	s.params.UpdateParams()
-	s.controllers = make(map[types.StepType]step.IController)
+	id := s.session.ID() + 1
+	s.log.Infof("Scheduling next session id=%d", id)
 
-	proposer := s.getProposer(s.session.ID() + 1)
-	s.log.Infof("Proposer account: %s", proposer.Account)
-	s.log.Debugf("Proposer pub key: %s", proposer.PubKey)
+	s.params.UpdateParams()
+
+	proposer := s.getProposer(id)
+	s.log.Infof("[Session %d] - Proposer account: %s", id, proposer.Account)
 	s.step = step.NewStep(s.params, s.session.End()+1)
 
 	s.session = session.NewSession(
-		s.session.ID()+1,
+		id,
 		s.session.End()+1,
 		s.step.EndAllBlock(),
 		proposer,
@@ -202,29 +201,32 @@ func (s *Service) nextSession() {
 }
 
 func (s *Service) nextStep() {
-	s.controllers[s.step.Type()] = s.getStepController()
+	s.current = s.getStepController()
 	if s.session.IsProcessing() {
-		s.log.Infof("Running controller for step: %s", s.step.Type().String())
+		s.log.Infof("[Session %d] - Running controller for step: %s", s.session.ID(), s.step.Type().String())
 		var ctx context.Context
 		ctx, s.cancelCtx = context.WithCancel(context.Background())
-		s.controllers[s.step.Type()].Run(ctx)
+		s.current.Run(ctx)
 	}
 }
 
 func (s *Service) fail() {
-	s.session.Fail()
-	for _, index := range s.session.Indexes() {
-		err := s.pool.Add(index)
-		if err != nil {
-			s.log.WithError(err).Error("failed adding back operation to the pool")
+	if !s.session.IsFailed() {
+		s.log.Infof("[Session %d] Failed.", s.session.ID())
+		s.session.Fail()
+		for _, index := range s.session.Indexes() {
+			err := s.pool.Add(index)
+			if err != nil {
+				s.log.WithError(err).Errorf("[Session %d] - Failed to return operation to the pool", s.session.ID())
+			}
 		}
 	}
 }
 
 func (s *Service) finish() {
-	if len(s.session.Indexes()) > 0 {
+	if s.session.IsSuccess() && len(s.session.Indexes()) > 0 {
 		if err := s.conf.SubmitConfirmation(s.session.Indexes(), s.session.Root(), s.session.Signature()); err != nil {
-			s.log.WithError(err).Debug("error submitting confirmation. maybe already submitted")
+			s.log.WithError(err).Errorf("[Session %d] - Failed to submit confirmation. Maybe already submitted.", s.session.ID())
 		}
 		// TODO fix unstable
 		s.lastSignature = s.session.Signature()
@@ -234,6 +236,7 @@ func (s *Service) finish() {
 func (s *Service) stopController() {
 	if s.cancelCtx != nil {
 		s.cancelCtx()
+		s.current.WaitFinish()
 	}
 }
 
@@ -253,14 +256,17 @@ func (s *Service) getStepController() step.IController {
 		)
 	case types.StepType_Accepting:
 		return step.NewAcceptanceController(
+			s.session.ID(),
 			s.session.Root(),
 			s.session.GetAcceptanceChanel(),
 			s.con,
 			s.params,
+			s.secret,
 			s.log,
 		)
 	case types.StepType_Signing:
 		return step.NewSignatureController(
+			s.session.ID(),
 			s.session.Root(),
 			s.params,
 			s.secret,

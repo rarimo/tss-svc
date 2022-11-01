@@ -9,5 +9,6 @@ import (
 
 type IController interface {
 	Run(ctx context.Context)
+	WaitFinish()
 	Receive(party rarimo.Party, request types.MsgSubmitRequest) error
 }

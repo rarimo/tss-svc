@@ -3,6 +3,7 @@ package step
 import (
 	"context"
 	goerr "errors"
+	"sync"
 
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -27,6 +28,7 @@ const MaxPoolSize = 32
 var ErrUnsupportedContent = goerr.New("unsupported content")
 
 type ProposalController struct {
+	wg       *sync.WaitGroup
 	id       uint64
 	proposer rarimo.Party
 
@@ -52,6 +54,7 @@ func NewProposalController(
 	log *logan.Entry,
 ) *ProposalController {
 	return &ProposalController{
+		wg:        &sync.WaitGroup{},
 		id:        id,
 		params:    params,
 		secret:    secret,
@@ -67,7 +70,7 @@ func NewProposalController(
 var _ IController = &ProposalController{}
 
 func (p *ProposalController) Receive(sender rarimo.Party, request types.MsgSubmitRequest) error {
-	if request.Type == types.RequestType_Proposal && sender.PubKey == p.proposer.PubKey {
+	if request.Type == types.RequestType_Proposal && sender.Account == p.proposer.Account {
 		proposal := new(types.ProposalRequest)
 
 		if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
@@ -76,11 +79,11 @@ func (p *ProposalController) Receive(sender rarimo.Party, request types.MsgSubmi
 
 		if proposal.Session == p.id && p.validate(proposal.Indexes, proposal.Root) {
 			if len(proposal.Indexes) == 0 {
-				p.log.Info("--- Received empty pool. Skipping. ---")
+				p.log.Infof("[Proposal %d] - Received empty pool. Skipping.", p.id)
 			}
 
-			p.log.Infof("--- Pool root %s ---", proposal.Root)
-			p.log.Infof("Indexes: %v", proposal.Indexes)
+			p.log.Infof("[Proposal %d] - Pool root: %s", p.id, proposal.Root)
+			p.log.Infof("[Proposal %d] - Indexes: %v", p.id, proposal.Indexes)
 
 			p.result <- &session.Proposal{
 				Indexes: proposal.Indexes,
@@ -103,23 +106,24 @@ func (p *ProposalController) validate(indexes []string, root string) bool {
 }
 
 func (p *ProposalController) Run(ctx context.Context) {
+	p.wg.Add(1)
 	go p.run(ctx)
 }
 
 func (p *ProposalController) run(ctx context.Context) {
 	if p.proposer.PubKey != p.secret.ECDSAPubKeyStr() {
-		p.log.Infof("--- Session %d: Proposer is another party ---", p.id)
+		p.log.Infof("[Proposal %d] - Proposer is another party", p.id)
 		return
 	}
 
 	ids, root, err := p.getNewPool(ctx)
 	if err != nil {
-		p.log.WithError(err).Error("error preparing pool to propose")
+		p.log.WithError(err).Error("[Proposal %d] - Error preparing pool to propose", p.id)
 		return
 	}
 
-	p.log.Infof("--- Session %d: Pool root %s ---", p.id, root)
-	p.log.Infof("indexes: %v", p.id, ids)
+	p.log.Infof("[Proposal %d] - Pool root %s", p.id, root)
+	p.log.Infof("[Proposal %d] - Indexes: %v", p.id, ids)
 
 	p.result <- &session.Proposal{
 		Indexes: ids,
@@ -136,6 +140,9 @@ func (p *ProposalController) run(ctx context.Context) {
 		Type:    types.RequestType_Proposal,
 		Details: details,
 	})
+
+	p.log.Infof("[Proposal %d] - Controller finished", p.id)
+	p.wg.Done()
 }
 
 func (p *ProposalController) getNewPool(ctx context.Context) ([]string, string, error) {
@@ -145,7 +152,7 @@ func (p *ProposalController) getNewPool(ctx context.Context) ([]string, string, 
 	}
 
 	if len(ids) == 0 {
-		p.log.Infof("--- Session %d: Empty pool. Skipping. ---", p.id)
+		p.log.Infof("[Proposal %d] - Empty pool. Skipping.", p.id)
 		return []string{}, "", nil
 	}
 
@@ -224,4 +231,8 @@ func (p *ProposalController) getChangeContent(_ context.Context, op rarimo.Opera
 
 	content, err := pkg.GetChangeKeyContent(change)
 	return content, errors.Wrap(err, "error creating content")
+}
+
+func (p *ProposalController) WaitFinish() {
+	p.wg.Wait()
 }
