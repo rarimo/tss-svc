@@ -5,6 +5,7 @@ import (
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/keygen"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/grpc"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
@@ -27,6 +28,7 @@ func Run(args []string) bool {
 
 	runCmd := app.Command("run", "run command")
 	serviceCmd := runCmd.Command("service", "run service")
+	keygenCmd := runCmd.Command("keygen", "run keygen")
 
 	migrateCmd := app.Command("migrate", "migrate command")
 	migrateUpCmd := migrateCmd.Command("up", "migrate db up")
@@ -45,7 +47,10 @@ func Run(args []string) bool {
 		go pool.NewChangeKeyOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
 		timer.NewTimer(cfg).SubscribeToBlocks("sign-service", sign.NewService(cfg).NewBlock)
-		grpc.NewServer(cfg).Run()
+		grpc.NewServer(sign.NewService(cfg), cfg).Run()
+	case keygenCmd.FullCommand():
+		go keygen.NewService(cfg).Run()
+		grpc.NewServer(keygen.NewService(cfg), cfg).Run()
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():

@@ -15,6 +15,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/step"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
@@ -90,6 +91,8 @@ func NewService(cfg config.Config) *Service {
 	return service
 }
 
+var _ core.IGlobalReceiver = &Service{}
+
 // NewBlock receives new blocks from timer
 func (s *Service) NewBlock(height uint64) error {
 	s.log.Infof("[*****] New block: %d [*****]", height)
@@ -136,7 +139,7 @@ func (s *Service) NewBlock(height uint64) error {
 }
 
 // Receive method receives the new MsgSubmitRequest from the parties and routes them to the corresponding controller.
-func (s *Service) Receive(request types.MsgSubmitRequest) error {
+func (s *Service) Receive(request *types.MsgSubmitRequest) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -149,11 +152,7 @@ func (s *Service) Receive(request types.MsgSubmitRequest) error {
 		return err
 	}
 
-	if err = s.current.Receive(sender, request); err != nil {
-		s.log.WithError(err).Debug("failed to process request")
-		return ErrProcessingRequest
-	}
-
+	s.current.Receive(sender, request)
 	return nil
 }
 

@@ -3,12 +3,11 @@ package step
 import (
 	"context"
 
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 )
 
 type IController interface {
+	core.IReceiver
 	Run(ctx context.Context)
 	WaitFinish()
-	Receive(party rarimo.Party, request types.MsgSubmitRequest) error
 }

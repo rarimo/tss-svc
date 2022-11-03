@@ -29,7 +29,7 @@ func NewRequestAuthorizer(cfg config.Config) *RequestAuthorizer {
 	}
 }
 
-func (r *RequestAuthorizer) Auth(request types.MsgSubmitRequest) (rarimo.Party, error) {
+func (r *RequestAuthorizer) Auth(request *types.MsgSubmitRequest) (rarimo.Party, error) {
 	hash := crypto.Keccak256(request.Details.Value)
 
 	signature, err := hexutil.Decode(request.Signature)

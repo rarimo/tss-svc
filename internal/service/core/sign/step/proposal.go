@@ -17,6 +17,7 @@ import (
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
@@ -28,6 +29,7 @@ const MaxPoolSize = 32
 var ErrUnsupportedContent = goerr.New("unsupported content")
 
 type ProposalController struct {
+	*core.Receiver
 	wg       *sync.WaitGroup
 	id       uint64
 	proposer rarimo.Party
@@ -54,6 +56,7 @@ func NewProposalController(
 	log *logan.Entry,
 ) *ProposalController {
 	return &ProposalController{
+		Receiver:  core.NewReceiver(1),
 		wg:        &sync.WaitGroup{},
 		id:        id,
 		params:    params,
@@ -69,30 +72,35 @@ func NewProposalController(
 
 var _ IController = &ProposalController{}
 
-func (p *ProposalController) Receive(sender rarimo.Party, request types.MsgSubmitRequest) error {
-	if request.Type == types.RequestType_Proposal && sender.Account == p.proposer.Account {
-		proposal := new(types.ProposalRequest)
-
-		if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
-			return err
+func (p *ProposalController) receive() {
+	for {
+		msg, ok := <-p.Order
+		if !ok {
+			break
 		}
 
-		if proposal.Session == p.id && p.validate(proposal.Indexes, proposal.Root) {
-			if len(proposal.Indexes) == 0 {
-				p.log.Infof("[Proposal %d] - Received empty pool. Skipping.", p.id)
+		if msg.Request.Type == types.RequestType_Proposal && msg.Sender.Account == p.proposer.Account {
+			proposal := new(types.ProposalRequest)
+
+			if err := proto.Unmarshal(msg.Request.Details.Value, proposal); err != nil {
+				p.log.WithError(err).Error("error unmarshalling request")
 			}
 
-			p.log.Infof("[Proposal %d] - Pool root: %s", p.id, proposal.Root)
-			p.log.Infof("[Proposal %d] - Indexes: %v", p.id, proposal.Indexes)
+			if proposal.Session == p.id && p.validate(proposal.Indexes, proposal.Root) {
+				if len(proposal.Indexes) == 0 {
+					p.log.Infof("[Proposal %d] - Received empty pool. Skipping.", p.id)
+				}
 
-			p.result <- &session.Proposal{
-				Indexes: proposal.Indexes,
-				Root:    proposal.Root,
+				p.log.Infof("[Proposal %d] - Pool root: %s", p.id, proposal.Root)
+				p.log.Infof("[Proposal %d] - Indexes: %v", p.id, proposal.Indexes)
+
+				p.result <- &session.Proposal{
+					Indexes: proposal.Indexes,
+					Root:    proposal.Root,
+				}
 			}
 		}
 	}
-
-	return nil
 }
 
 func (p *ProposalController) validate(indexes []string, root string) bool {
@@ -108,6 +116,7 @@ func (p *ProposalController) validate(indexes []string, root string) bool {
 func (p *ProposalController) Run(ctx context.Context) {
 	p.wg.Add(1)
 	go p.run(ctx)
+	go p.receive()
 }
 
 func (p *ProposalController) run(ctx context.Context) {
@@ -234,5 +243,6 @@ func (p *ProposalController) getChangeContent(_ context.Context, op rarimo.Opera
 }
 
 func (p *ProposalController) WaitFinish() {
+	close(p.Order)
 	p.wg.Wait()
 }

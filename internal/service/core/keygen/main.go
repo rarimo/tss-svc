@@ -16,6 +16,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -29,8 +30,9 @@ type Service struct {
 	*auth.RequestAuthorizer
 	mu sync.Mutex
 
-	params *local.Params
-	secret *local.Secret
+	receiver *core.Receiver
+	params   *local.Params
+	secret   *local.Secret
 
 	party tss.Party
 	log   *logan.Entry
@@ -44,11 +46,14 @@ func NewService(cfg config.Config) *Service {
 	return &Service{
 		BroadcastConnector: connectors.NewBroadcastConnector(cfg),
 		RequestAuthorizer:  auth.NewRequestAuthorizer(cfg),
+		receiver:           core.NewReceiver(local.NewParams(cfg).N()),
 		params:             local.NewParams(cfg),
 		secret:             local.NewSecret(cfg),
 		log:                cfg.Log(),
 	}
 }
+
+var _ core.IGlobalReceiver = &Service{}
 
 func (s *Service) Run() {
 	parties := tss.SortPartyIDs(s.params.PartyIds())
@@ -96,39 +101,49 @@ func (s *Service) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				Details:     details,
 			}
 
-			if msg.IsBroadcast() {
-				s.SubmitAll(ctx, request)
-				continue
+			toParties := s.params.PartyIds()
+			if !msg.IsBroadcast() {
+				toParties = msg.GetTo()
 			}
 
-			for _, to := range msg.GetTo() {
+			for _, to := range toParties {
 				party, _ := s.params.PartyByAccount(to.Id)
-				s.Submit(ctx, party, request)
+				for {
+					if _, err := s.Submit(ctx, party, request); err == nil {
+						break
+					}
+				}
 			}
 		}
 	}
 }
 
-// Receive method receives the new MsgSubmitRequest from the parties.
-func (s *Service) Receive(request types.MsgSubmitRequest) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if request.Type == types.RequestType_Keygen {
-		return ErrInvalidRequestType
-	}
-
+func (s *Service) Receive(request *types.MsgSubmitRequest) error {
 	sender, err := s.Auth(request)
 	if err != nil {
 		return err
 	}
-
-	partyId := tss.NewPartyID(sender.Account, "", new(big.Int).SetBytes(hexutil.MustDecode(sender.PubKey)))
-	_, err = s.party.UpdateFromBytes(request.Details.Value, partyId, true)
-	if err != nil {
-		s.log.WithError(err).Error("error updating party")
-		return ErrProcessingRequest
-	}
-
+	s.receiver.Receive(sender, request)
 	return nil
+}
+
+// Receive method receives the new MsgSubmitRequest from the parties.
+func (s *Service) receive() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for {
+		msg, ok := <-s.receiver.Order
+		if !ok {
+			break
+		}
+
+		if msg.Request.Type == types.RequestType_Keygen {
+			partyId := tss.NewPartyID(msg.Sender.Account, "", new(big.Int).SetBytes(hexutil.MustDecode(msg.Sender.PubKey)))
+			_, err := s.party.UpdateFromBytes(msg.Request.Details.Value, partyId, true)
+			if err != nil {
+				s.log.WithError(err).Error("error updating party")
+			}
+		}
+	}
 }

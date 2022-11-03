@@ -7,22 +7,22 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
 
 type ServerImpl struct {
 	types.UnimplementedServiceServer
-	service  *sign.Service
+	core     core.IGlobalReceiver
 	storage  *pg.Storage
 	log      *logan.Entry
 	listener net.Listener
 }
 
-func NewServer(cfg config.Config) *ServerImpl {
+func NewServer(receiver core.IGlobalReceiver, cfg config.Config) *ServerImpl {
 	return &ServerImpl{
-		service:  sign.NewService(cfg),
+		core:     receiver,
 		storage:  cfg.Storage(),
 		log:      cfg.Log(),
 		listener: cfg.Listener(),
@@ -53,6 +53,5 @@ func (s *ServerImpl) SessionInfo(ctx context.Context, request *types.MsgSessionI
 }
 
 func (s *ServerImpl) Submit(ctx context.Context, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return &types.MsgSubmitResponse{}, s.core.Receive(request)
 }
