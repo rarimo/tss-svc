@@ -18,6 +18,10 @@ type (
 	}
 )
 
+// ISession is responsible for managing session time bounds, storing session intermediate information
+// and submits data to the database.
+// There are two implementations: DefaultSession and Session. The fist one is used to mock the session where
+// the party will not be a part of.
 type ISession interface {
 	ID() uint64
 	Root() string

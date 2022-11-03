@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	StepProposingIndex = 0
-	StepAcceptingIndex = 1
-	StepSigningIndex   = 2
+	ProposingIndex = 0
+	AcceptingIndex = 1
+	SigningIndex   = 2
 )
 
 // Step stores information about current step and its start/finish
@@ -35,7 +35,7 @@ func NewStep(params *local.Params, startBlock uint64) *Step {
 		params:     params,
 		stepType:   types.StepType_Proposing,
 		startBlock: startBlock,
-		endBlock:   startBlock + params.Step(StepProposingIndex).Duration - 1,
+		endBlock:   startBlock + params.Step(ProposingIndex).Duration - 1,
 	}
 }
 
@@ -55,12 +55,12 @@ func (s *Step) Next(height uint64) bool {
 		case types.StepType_Proposing:
 			s.stepType = types.StepType_Accepting
 			s.startBlock = s.endBlock + 1
-			s.endBlock = s.startBlock + s.params.Step(StepAcceptingIndex).Duration - 1
+			s.endBlock = s.startBlock + s.params.Step(AcceptingIndex).Duration - 1
 			return true
 		case types.StepType_Accepting:
 			s.stepType = types.StepType_Signing
 			s.startBlock = s.endBlock + 1
-			s.endBlock = s.startBlock + s.params.Step(StepSigningIndex).Duration - 1
+			s.endBlock = s.startBlock + s.params.Step(SigningIndex).Duration - 1
 			return true
 		}
 	}
@@ -71,11 +71,11 @@ func (s *Step) Next(height uint64) bool {
 func (s *Step) EndAllBlock() uint64 {
 	switch s.stepType {
 	case types.StepType_Proposing:
-		return s.startBlock + s.params.Step(StepProposingIndex).Duration + s.params.Step(StepAcceptingIndex).Duration + s.params.Step(StepSigningIndex).Duration - 1
+		return s.startBlock + s.params.Step(ProposingIndex).Duration + s.params.Step(AcceptingIndex).Duration + s.params.Step(SigningIndex).Duration - 1
 	case types.StepType_Accepting:
-		return s.startBlock + s.params.Step(StepAcceptingIndex).Duration + s.params.Step(StepSigningIndex).Duration - 1
+		return s.startBlock + s.params.Step(AcceptingIndex).Duration + s.params.Step(SigningIndex).Duration - 1
 	case types.StepType_Signing:
-		return s.startBlock + s.params.Step(StepSigningIndex).Duration - 1
+		return s.startBlock + s.params.Step(SigningIndex).Duration - 1
 	}
 	return 0
 }
