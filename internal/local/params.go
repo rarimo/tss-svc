@@ -2,7 +2,10 @@ package local
 
 import (
 	"context"
+	"math/big"
 
+	"github.com/binance-chain/tss-lib/tss"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
@@ -101,7 +104,7 @@ func (s *Params) T() int {
 }
 
 func (s *Params) IsParty(key string) bool {
-	for _, party := range s.Parties() {
+	for _, party := range s.tssP.Parties {
 		if party.PubKey == key {
 			return true
 		}
@@ -111,8 +114,18 @@ func (s *Params) IsParty(key string) bool {
 }
 
 func (s *Params) Party(key string) (rarimo.Party, bool) {
-	for _, party := range s.Parties() {
+	for _, party := range s.tssP.Parties {
 		if party.PubKey == key {
+			return *party, true
+		}
+	}
+
+	return rarimo.Party{}, false
+}
+
+func (s *Params) PartyByAccount(account string) (rarimo.Party, bool) {
+	for _, party := range s.tssP.Parties {
+		if party.Account == account {
 			return *party, true
 		}
 	}
@@ -122,4 +135,19 @@ func (s *Params) Party(key string) (rarimo.Party, bool) {
 
 func (s *Params) ChainParams(network string) *token.ChainParams {
 	return s.tokenP.Networks[network]
+}
+
+func (s *Params) PartyIds() tss.UnSortedPartyIDs {
+	res := make([]*tss.PartyID, 0, len(s.tssP.Parties))
+
+	for _, party := range s.tssP.Parties {
+		_, data, err := bech32.DecodeAndConvert(party.Account)
+		if err != nil {
+			panic(err)
+		}
+
+		res = append(res, tss.NewPartyID(party.Account, "", new(big.Int).SetBytes(data)))
+	}
+
+	return res
 }

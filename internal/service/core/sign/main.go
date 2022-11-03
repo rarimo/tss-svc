@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/auth"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
@@ -26,8 +27,6 @@ var service *Service
 
 var (
 	ErrInvalidRequestType = goerr.New("invalid request type")
-	ErrSignerNotAParty    = goerr.New("signer not a party")
-	ErrInvalidSignature   = goerr.New("invalid signature")
 	ErrProcessingRequest  = goerr.New("error processing request")
 
 	stepForRequest = map[types.RequestType]types.StepType{
@@ -44,12 +43,13 @@ var (
 // 2. Accepting: all parties shares their acceptances to start signing the pool.
 // 3. Signing
 type Service struct {
+	*auth.RequestAuthorizer
+	*connectors.ConfirmConnector
 	mu sync.Mutex
 
 	params *local.Params
 	secret *local.Secret
 	con    *connectors.BroadcastConnector
-	conf   *connectors.ConfirmConnector
 	pool   *pool.Pool
 
 	step          *step.Step
@@ -71,17 +71,18 @@ type Service struct {
 func NewService(cfg config.Config) *Service {
 	if service == nil {
 		service = &Service{
-			params:        local.NewParams(cfg),
-			secret:        local.NewSecret(cfg),
-			con:           connectors.NewBroadcastConnector(cfg),
-			conf:          connectors.NewConfirmConnector(cfg),
-			pool:          pool.NewPool(cfg),
-			step:          step.NewLastStep(cfg.Session().StartBlock - 1),
-			session:       session.NewDefaultSession(cfg.Session().StartSessionId-1, cfg.Session().StartBlock-1),
-			lastSignature: cfg.Session().LastSignature,
-			rarimo:        cfg.Cosmos(),
-			log:           cfg.Log(),
-			storage:       cfg.Storage(),
+			RequestAuthorizer: auth.NewRequestAuthorizer(cfg),
+			ConfirmConnector:  connectors.NewConfirmConnector(cfg),
+			params:            local.NewParams(cfg),
+			secret:            local.NewSecret(cfg),
+			con:               connectors.NewBroadcastConnector(cfg),
+			pool:              pool.NewPool(cfg),
+			step:              step.NewLastStep(cfg.Session().StartBlock - 1),
+			session:           session.NewDefaultSession(cfg.Session().StartSessionId-1, cfg.Session().StartBlock-1),
+			lastSignature:     cfg.Session().LastSignature,
+			rarimo:            cfg.Cosmos(),
+			log:               cfg.Log(),
+			storage:           cfg.Storage(),
 		}
 
 		service.log.Infof("Next session on block: %d with id: %d", service.session.End()+1, service.session.ID()+1)
@@ -143,7 +144,7 @@ func (s *Service) Receive(request types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	sender, err := s.AuthRequest(request)
+	sender, err := s.Auth(request)
 	if err != nil {
 		return err
 	}
@@ -154,29 +155,6 @@ func (s *Service) Receive(request types.MsgSubmitRequest) error {
 	}
 
 	return nil
-}
-
-func (s *Service) AuthRequest(request types.MsgSubmitRequest) (rarimo.Party, error) {
-	hash := crypto.Keccak256(request.Details.Value)
-
-	signature, err := hexutil.Decode(request.Signature)
-	if err != nil {
-		s.log.WithError(err).Debug("failed to decode signature")
-		return rarimo.Party{}, ErrInvalidSignature
-	}
-
-	pub, err := crypto.Ecrecover(hash, signature)
-	if err != nil {
-		s.log.WithError(err).Debug("failed to recover signature pub key")
-		return rarimo.Party{}, ErrInvalidSignature
-	}
-
-	party, ok := s.params.Party(hexutil.Encode(pub))
-	if !ok {
-		return rarimo.Party{}, ErrSignerNotAParty
-	}
-
-	return party, nil
 }
 
 func (s *Service) nextSession() {
@@ -225,7 +203,7 @@ func (s *Service) fail() {
 
 func (s *Service) finish() {
 	if s.session.IsSuccess() && len(s.session.Indexes()) > 0 {
-		if err := s.conf.SubmitConfirmation(s.session.Indexes(), s.session.Root(), s.session.Signature()); err != nil {
+		if err := s.SubmitConfirmation(s.session.Indexes(), s.session.Root(), s.session.Signature()); err != nil {
 			s.log.WithError(err).Errorf("[Session %d] - Failed to submit confirmation. Maybe already submitted.", s.session.ID())
 		}
 		// TODO fix unstable

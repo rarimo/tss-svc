@@ -3,7 +3,9 @@ package local
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"math/big"
 
+	"github.com/binance-chain/tss-lib/tss"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -65,6 +67,10 @@ func (s *Secret) ECDSAPrvKey() *ecdsa.PrivateKey {
 
 func (s *Secret) AccountPrvKey() cryptotypes.PrivKey {
 	return s.account
+}
+
+func (s *Secret) PartyId() *tss.PartyID {
+	return tss.NewPartyID(s.AccountAddressStr(), "", new(big.Int).SetBytes(s.account.PubKey().Address().Bytes()))
 }
 
 func (s *Secret) SignRequest(request *types.MsgSubmitRequest) error {
