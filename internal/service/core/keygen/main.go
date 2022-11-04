@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"gitlab.com/distributed_lab/logan/v3"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/auth"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
@@ -28,11 +29,11 @@ var (
 type Service struct {
 	*connectors.BroadcastConnector
 	*auth.RequestAuthorizer
+	*core.RequestQueue
 	mu sync.Mutex
 
-	receiver *core.Receiver
-	params   *local.Params
-	secret   *local.Secret
+	params *local.Params
+	secret *local.Secret
 
 	party tss.Party
 	log   *logan.Entry
@@ -46,7 +47,7 @@ func NewService(cfg config.Config) *Service {
 	return &Service{
 		BroadcastConnector: connectors.NewBroadcastConnector(cfg),
 		RequestAuthorizer:  auth.NewRequestAuthorizer(cfg),
-		receiver:           core.NewReceiver(local.NewParams(cfg).N()),
+		RequestQueue:       core.NewQueue(local.NewParams(cfg).N()),
 		params:             local.NewParams(cfg),
 		secret:             local.NewSecret(cfg),
 		log:                cfg.Log(),
@@ -54,6 +55,7 @@ func NewService(cfg config.Config) *Service {
 }
 
 var _ core.IGlobalReceiver = &Service{}
+var _ core.IReceive = &Service{}
 
 func (s *Service) Run() {
 	parties := tss.SortPartyIDs(s.params.PartyIds())
@@ -73,6 +75,7 @@ func (s *Service) Run() {
 	}()
 
 	ctx, cancel := context.WithCancel(context.TODO())
+	go s.ProcessQueue(ctx, s)
 	go s.listenOutput(ctx, out)
 
 	result := <-end
@@ -123,27 +126,23 @@ func (s *Service) Receive(request *types.MsgSubmitRequest) error {
 	if err != nil {
 		return err
 	}
-	s.receiver.Receive(sender, request)
+
+	s.Queue <- &core.Msg{
+		Request: request,
+		Sender:  sender,
+	}
 	return nil
 }
 
-// Receive method receives the new MsgSubmitRequest from the parties.
-func (s *Service) receive() {
+func (s *Service) ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmitRequest) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for {
-		msg, ok := <-s.receiver.Order
-		if !ok {
-			break
-		}
-
-		if msg.Request.Type == types.RequestType_Keygen {
-			partyId := tss.NewPartyID(msg.Sender.Account, "", new(big.Int).SetBytes(hexutil.MustDecode(msg.Sender.PubKey)))
-			_, err := s.party.UpdateFromBytes(msg.Request.Details.Value, partyId, true)
-			if err != nil {
-				s.log.WithError(err).Error("error updating party")
-			}
+	if request.Type == types.RequestType_Keygen {
+		partyId := tss.NewPartyID(sender.Account, "", new(big.Int).SetBytes(hexutil.MustDecode(sender.PubKey)))
+		_, err := s.party.UpdateFromBytes(request.Details.Value, partyId, true)
+		if err != nil {
+			s.log.WithError(err).Error("error updating party")
 		}
 	}
 }

@@ -7,15 +7,14 @@ import (
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
 type AcceptanceController struct {
-	*core.Receiver
 	mu   sync.Mutex
 	wg   *sync.WaitGroup
 	id   uint64
@@ -42,7 +41,6 @@ func NewAcceptanceController(
 	log *logan.Entry,
 ) *AcceptanceController {
 	return &AcceptanceController{
-		Receiver:    core.NewReceiver(params.N()),
 		wg:          &sync.WaitGroup{},
 		id:          id,
 		root:        root,
@@ -61,27 +59,19 @@ var _ IController = &AcceptanceController{}
 func (a *AcceptanceController) Run(ctx context.Context) {
 	a.wg.Add(1)
 	go a.run(ctx)
-	go a.receive()
 }
 
-func (a *AcceptanceController) receive() {
-	for {
-		msg, ok := <-a.Order
-		if !ok {
-			break
+func (a *AcceptanceController) ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmitRequest) {
+	if _, ok := a.index[sender.Account]; !ok && request.Type == types.RequestType_Proposal {
+		acceptance := new(types.AcceptanceRequest)
+		if err := proto.Unmarshal(request.Details.Value, acceptance); err != nil {
+			a.log.WithError(err).Error("error unmarshalling request")
 		}
 
-		if _, ok := a.index[msg.Sender.Account]; !ok && msg.Request.Type == types.RequestType_Proposal {
-			acceptance := new(types.AcceptanceRequest)
-			if err := proto.Unmarshal(msg.Request.Details.Value, acceptance); err != nil {
-				a.log.WithError(err).Error("error unmarshalling request")
-			}
-
-			if acceptance.Root == a.root {
-				a.log.Infof("[Acceptance %d] - Received acceptance from %s for root %s ---", a.id, msg.Sender.Account, a.root)
-				a.index[msg.Sender.Account] = struct{}{}
-				a.acceptances = append(a.acceptances, msg.Sender.Account)
-			}
+		if acceptance.Root == a.root {
+			a.log.Infof("[Acceptance %d] - Received acceptance from %s for root %s ---", a.id, sender.Account, a.root)
+			a.index[sender.Account] = struct{}{}
+			a.acceptances = append(a.acceptances, sender.Account)
 		}
 	}
 }
@@ -101,7 +91,6 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	})
 
 	<-ctx.Done()
-	close(a.Order)
 	a.log.Infof("[Acceptance %d] - Acceptances: %v", a.id, a.acceptances)
 
 	if len(a.acceptances) >= a.params.T() {

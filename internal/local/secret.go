@@ -15,6 +15,8 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+const AccountPrefix = "rarimo"
+
 // Secret implements singleton pattern
 var secret *Secret
 
@@ -53,7 +55,7 @@ func (s *Secret) ECDSAPubKeyStr() string {
 }
 
 func (s *Secret) AccountAddressStr() string {
-	address, _ := bech32.ConvertAndEncode(config.AccountPrefix, s.account.PubKey().Address().Bytes())
+	address, _ := bech32.ConvertAndEncode(AccountPrefix, s.account.PubKey().Address().Bytes())
 	return address
 }
 

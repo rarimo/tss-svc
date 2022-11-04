@@ -46,6 +46,7 @@ var (
 type Service struct {
 	*auth.RequestAuthorizer
 	*connectors.ConfirmConnector
+	*core.RequestQueue
 	mu sync.Mutex
 
 	params *local.Params
@@ -57,8 +58,10 @@ type Service struct {
 	session       session.ISession
 	lastSignature string
 
+	ctx       context.Context
 	cancelCtx context.CancelFunc
 	current   step.IController
+	toRun     bool
 
 	rarimo  *grpc.ClientConn
 	log     *logan.Entry
@@ -74,6 +77,7 @@ func NewService(cfg config.Config) *Service {
 		service = &Service{
 			RequestAuthorizer: auth.NewRequestAuthorizer(cfg),
 			ConfirmConnector:  connectors.NewConfirmConnector(cfg),
+			RequestQueue:      core.NewQueue(1000),
 			params:            local.NewParams(cfg),
 			secret:            local.NewSecret(cfg),
 			con:               connectors.NewBroadcastConnector(cfg),
@@ -133,6 +137,11 @@ func (s *Service) NewBlock(height uint64) error {
 		}
 
 		s.nextStep()
+		return nil
+	}
+
+	if s.toRun {
+		s.runController()
 	}
 
 	return nil
@@ -152,7 +161,10 @@ func (s *Service) Receive(request *types.MsgSubmitRequest) error {
 		return err
 	}
 
-	s.current.Receive(sender, request)
+	s.Queue <- &core.Msg{
+		Request: request,
+		Sender:  sender,
+	}
 	return nil
 }
 
@@ -180,10 +192,9 @@ func (s *Service) nextSession() {
 func (s *Service) nextStep() {
 	s.current = s.getStepController()
 	if s.session.IsProcessing() {
-		s.log.Infof("[Session %d] - Running controller for step: %s", s.session.ID(), s.step.Type().String())
-		var ctx context.Context
-		ctx, s.cancelCtx = context.WithCancel(context.Background())
-		s.current.Run(ctx)
+		s.toRun = true
+		s.ctx, s.cancelCtx = context.WithCancel(context.Background())
+		s.ProcessQueue(s.ctx, s.current)
 	}
 }
 
@@ -214,6 +225,14 @@ func (s *Service) stopController() {
 	if s.cancelCtx != nil {
 		s.cancelCtx()
 		s.current.WaitFinish()
+	}
+}
+
+func (s *Service) runController() {
+	if s.session.IsProcessing() {
+		s.log.Infof("[Session %d] - Running controller for step: %s", s.session.ID(), s.step.Type().String())
+		s.current.Run(s.ctx)
+		s.toRun = false
 	}
 }
 

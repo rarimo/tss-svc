@@ -1,6 +1,8 @@
 package core
 
 import (
+	"context"
+
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
@@ -9,28 +11,33 @@ type IGlobalReceiver interface {
 	Receive(request *types.MsgSubmitRequest) error
 }
 
-type IReceiver interface {
-	Receive(sender rarimo.Party, request *types.MsgSubmitRequest)
+type IReceive interface {
+	ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmitRequest)
 }
 
-type OrderMsg struct {
+type Msg struct {
 	Request *types.MsgSubmitRequest
 	Sender  rarimo.Party
 }
 
-var _ IReceiver = &Receiver{}
-
-type Receiver struct {
-	Order chan *OrderMsg
+type RequestQueue struct {
+	Queue chan *Msg
 }
 
-func NewReceiver(cap int) *Receiver {
-	return &Receiver{Order: make(chan *OrderMsg, cap)}
+func NewQueue(cap int) *RequestQueue {
+	return &RequestQueue{Queue: make(chan *Msg, cap)}
 }
 
-func (r *Receiver) Receive(sender rarimo.Party, request *types.MsgSubmitRequest) {
-	r.Order <- &OrderMsg{
-		Request: request,
-		Sender:  sender,
+func (r *RequestQueue) ProcessQueue(ctx context.Context, f IReceive) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg, ok := <-r.Queue:
+			if !ok {
+				return
+			}
+			f.ReceiveFromSender(msg.Sender, msg.Request)
+		}
 	}
 }

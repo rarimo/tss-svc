@@ -8,14 +8,13 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
 type SignatureController struct {
-	*core.Receiver
 	wg   *sync.WaitGroup
 	id   uint64
 	root string
@@ -37,38 +36,31 @@ func NewSignatureController(
 	log *logan.Entry,
 ) *SignatureController {
 	return &SignatureController{
-		Receiver: core.NewReceiver(params.N()),
-		wg:       &sync.WaitGroup{},
-		id:       id,
-		root:     root,
-		params:   params,
-		secret:   secret,
-		result:   result,
-		log:      log,
+		wg:     &sync.WaitGroup{},
+		id:     id,
+		root:   root,
+		params: params,
+		secret: secret,
+		result: result,
+		log:    log,
 	}
 }
 
 var _ IController = &SignatureController{}
 
-func (s *SignatureController) receive() {
-	for {
-		msg, ok := <-s.Order
-		if !ok {
-			break
+func (s *SignatureController) ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmitRequest) {
+	if request.Type == types.RequestType_Sign {
+		sign := new(types.SignRequest)
+
+		if err := proto.Unmarshal(request.Details.Value, sign); err != nil {
+			s.log.WithError(err).Error("error unmarshalling request")
 		}
 
-		if msg.Request.Type == types.RequestType_Sign {
-			sign := new(types.SignRequest)
-
-			if err := proto.Unmarshal(msg.Request.Details.Value, sign); err != nil {
-				s.log.WithError(err).Error("error unmarshalling request")
-			}
-
-			if sign.Root == s.root {
-				// TODO
-			}
+		if sign.Root == s.root {
+			// TODO
 		}
 	}
+
 }
 
 func (s *SignatureController) Run(ctx context.Context) {
@@ -93,7 +85,6 @@ func (s *SignatureController) run(ctx context.Context) {
 
 	s.log.Infof("[Signing %d] - Controller finished", s.id)
 	s.wg.Done()
-	close(s.Order)
 }
 
 func (s *SignatureController) WaitFinish() {

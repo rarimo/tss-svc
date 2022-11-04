@@ -1,0 +1,25 @@
+log:
+  disable_sentry: true
+  level: debug
+
+db:
+  url: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
+listener:
+  addr: :8000
+
+core:
+  addr: tcp://127.0.0.1:26657
+
+cosmos:
+  addr: 127.0.0.1:9090
+
+session:
+  start_block:
+  start_session_id:
+  last_signature:
+
+prv:
+  prv_key_hex:
+  account_prv_hex:
+  chain_id: rarimo
