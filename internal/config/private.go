@@ -30,7 +30,7 @@ func (c *config) Private() *PrivateInfo {
 			Please(); err != nil {
 			panic(err)
 		}
-		return config
+		return &config
 	}).(*PrivateInfo)
 }
 
@@ -48,7 +48,7 @@ var hooks = figure.Hooks{
 		prv, err := crypto.ToECDSA(hexutil.MustDecode(v))
 		return reflect.ValueOf(prv), err
 	},
-	"cryptotypes.PrivKey": func(raw interface{}) (reflect.Value, error) {
+	"types.PrivKey": func(raw interface{}) (reflect.Value, error) {
 		v, err := cast.ToStringE(raw)
 		if err != nil {
 			return reflect.Value{}, errors.Wrap(err, "expected string")
