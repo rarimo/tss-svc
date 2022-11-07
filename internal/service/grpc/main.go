@@ -6,7 +6,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
@@ -15,7 +14,6 @@ import (
 type ServerImpl struct {
 	types.UnimplementedServiceServer
 	core     core.IGlobalReceiver
-	storage  *pg.Storage
 	log      *logan.Entry
 	listener net.Listener
 }
@@ -23,7 +21,6 @@ type ServerImpl struct {
 func NewServer(receiver core.IGlobalReceiver, cfg config.Config) *ServerImpl {
 	return &ServerImpl{
 		core:     receiver,
-		storage:  cfg.Storage(),
 		log:      cfg.Log(),
 		listener: cfg.Listener(),
 	}

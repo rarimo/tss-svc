@@ -2,13 +2,17 @@ package keygen
 
 import (
 	"context"
+	"encoding/json"
 	goerr "errors"
 	"math/big"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/binance-chain/tss-lib/ecdsa/keygen"
 	"github.com/binance-chain/tss-lib/tss"
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -21,19 +25,27 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+const PreParamsENV = "LOCAL_PRE_PARAMS_PATH"
+
 var (
 	ErrInvalidRequestType = goerr.New("invalid request type")
 	ErrProcessingRequest  = goerr.New("error processing request")
 )
 
+// Service implements singleton pattern
+var service *Service
+
+// Service implements the full flow of the threshold key generation.
 type Service struct {
 	*connectors.BroadcastConnector
 	*auth.RequestAuthorizer
 	*core.RequestQueue
 	mu sync.Mutex
 
-	params *local.Params
-	secret *local.Secret
+	parties tss.SortedPartyIDs
+	localId *tss.PartyID
+	params  *local.Params
+	secret  *local.Secret
 
 	party tss.Party
 	log   *logan.Entry
@@ -44,28 +56,33 @@ func init() {
 }
 
 func NewService(cfg config.Config) *Service {
-	return &Service{
-		BroadcastConnector: connectors.NewBroadcastConnector(cfg),
-		RequestAuthorizer:  auth.NewRequestAuthorizer(cfg),
-		RequestQueue:       core.NewQueue(local.NewParams(cfg).N()),
-		params:             local.NewParams(cfg),
-		secret:             local.NewSecret(cfg),
-		log:                cfg.Log(),
+	if service == nil {
+		service = &Service{
+			BroadcastConnector: connectors.NewBroadcastConnector(cfg),
+			RequestAuthorizer:  auth.NewRequestAuthorizer(cfg),
+			RequestQueue:       core.NewQueue(local.NewParams(cfg).N()),
+			params:             local.NewParams(cfg),
+			secret:             local.NewSecret(cfg),
+			log:                cfg.Log(),
+		}
 	}
+
+	return service
 }
 
 var _ core.IGlobalReceiver = &Service{}
 var _ core.IReceive = &Service{}
 
 func (s *Service) Run() {
-	parties := tss.SortPartyIDs(s.params.PartyIds())
-	peerCtx := tss.NewPeerContext(parties)
-	params := tss.NewParameters(peerCtx, s.secret.PartyId(), len(parties), s.params.T())
+	s.parties = s.params.PartyIds()
+	s.localId = s.parties.FindByKey(s.secret.PartyId().KeyInt())
+	peerCtx := tss.NewPeerContext(s.parties)
+	params := tss.NewParameters(peerCtx, s.localId, len(s.parties), s.params.T())
 
-	out := make(chan tss.Message)
-	end := make(chan keygen.LocalPartySaveData)
+	out := make(chan tss.Message, 1000)
+	end := make(chan keygen.LocalPartySaveData, 1000)
 
-	s.party = keygen.NewLocalParty(params, out, end)
+	s.party = keygen.NewLocalParty(params, out, end, s.getPreParams())
 
 	go func() {
 		err := s.party.Start()
@@ -81,9 +98,48 @@ func (s *Service) Run() {
 	result := <-end
 	cancel()
 
+	data, _ := json.Marshal(result)
+	s.log.Info(string(data))
+
 	s.log.Infof("Pub key: %s", hexutil.Encode(result.ECDSAPub.Bytes()))
 	s.log.Infof("Xi: %s", hexutil.Encode(result.Xi.Bytes()))
 	s.log.Infof("Ki: %s", hexutil.Encode(result.ShareID.Bytes()))
+}
+
+func (s *Service) getPreParams() keygen.LocalPreParams {
+	if params := openParams(); params != nil {
+		s.log.Info("Params opened from file")
+		return *params
+	}
+
+	s.log.Info("Generating pre params")
+	params, err := keygen.GeneratePreParams(10 * time.Minute)
+	if err != nil {
+		panic(err)
+	}
+
+	data, _ := json.Marshal(*params)
+	s.log.Info(string(data))
+	return *params
+}
+
+func openParams() *keygen.LocalPreParams {
+	path := os.Getenv(PreParamsENV)
+	if path == "" {
+		return nil
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
+	res := new(keygen.LocalPreParams)
+	if err = json.Unmarshal(data, res); err != nil {
+		panic(err)
+	}
+
+	return res
 }
 
 func (s *Service) listenOutput(ctx context.Context, out <-chan tss.Message) {
@@ -104,17 +160,28 @@ func (s *Service) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				Details:     details,
 			}
 
-			toParties := s.params.PartyIds()
-			if !msg.IsBroadcast() {
-				toParties = msg.GetTo()
+			toParties := msg.GetTo()
+			if msg.IsBroadcast() {
+				toParties = s.params.PartyIds()
 			}
 
+			s.log.Infof("Sending to %v", toParties)
 			for _, to := range toParties {
+				s.log.Infof("Sending message to %s", to.Id)
 				party, _ := s.params.PartyByAccount(to.Id)
+				retry := 0
 				for {
-					if _, err := s.Submit(ctx, party, request); err == nil {
-						break
+					retry++
+					if _, err := s.Submit(ctx, party, request); err != nil {
+						// log every 10 seconds
+						if retry%10 == 0 {
+							s.log.Infof("Retry #%d", retry)
+							s.log.WithError(err).Error("error sending request")
+						}
+						time.Sleep(time.Second)
+						continue
 					}
+					break
 				}
 			}
 		}
@@ -139,8 +206,10 @@ func (s *Service) ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmi
 	defer s.mu.Unlock()
 
 	if request.Type == types.RequestType_Keygen {
-		partyId := tss.NewPartyID(sender.Account, "", new(big.Int).SetBytes(hexutil.MustDecode(sender.PubKey)))
-		_, err := s.party.UpdateFromBytes(request.Details.Value, partyId, true)
+		s.log.Infof("Received message from %s", sender.Account)
+
+		_, data, _ := bech32.DecodeAndConvert(sender.Account)
+		_, err := s.party.UpdateFromBytes(request.Details.Value, s.parties.FindByKey(new(big.Int).SetBytes(data)), request.IsBroadcast)
 		if err != nil {
 			s.log.WithError(err).Error("error updating party")
 		}

@@ -137,7 +137,7 @@ func (s *Params) ChainParams(network string) *token.ChainParams {
 	return s.tokenP.Networks[network]
 }
 
-func (s *Params) PartyIds() tss.UnSortedPartyIDs {
+func (s *Params) PartyIds() tss.SortedPartyIDs {
 	res := make([]*tss.PartyID, 0, len(s.tssP.Parties))
 
 	for _, party := range s.tssP.Parties {
@@ -149,5 +149,5 @@ func (s *Params) PartyIds() tss.UnSortedPartyIDs {
 		res = append(res, tss.NewPartyID(party.Account, "", new(big.Int).SetBytes(data)))
 	}
 
-	return res
+	return tss.SortPartyIDs(res)
 }
