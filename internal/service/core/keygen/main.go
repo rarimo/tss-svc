@@ -3,11 +3,8 @@ package keygen
 import (
 	"context"
 	"encoding/json"
-	goerr "errors"
 	"math/big"
-	"os"
 	"sync"
-	"time"
 
 	"github.com/binance-chain/tss-lib/ecdsa/keygen"
 	"github.com/binance-chain/tss-lib/tss"
@@ -23,13 +20,6 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
-)
-
-const PreParamsENV = "LOCAL_PRE_PARAMS_PATH"
-
-var (
-	ErrInvalidRequestType = goerr.New("invalid request type")
-	ErrProcessingRequest  = goerr.New("error processing request")
 )
 
 // Service implements singleton pattern
@@ -82,7 +72,7 @@ func (s *Service) Run() {
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1000)
 
-	s.party = keygen.NewLocalParty(params, out, end, s.getPreParams())
+	s.party = keygen.NewLocalParty(params, out, end, *s.secret.GetLocalPartyPreParams())
 
 	go func() {
 		err := s.party.Start()
@@ -104,42 +94,6 @@ func (s *Service) Run() {
 	s.log.Infof("Pub key: %s", hexutil.Encode(result.ECDSAPub.Bytes()))
 	s.log.Infof("Xi: %s", hexutil.Encode(result.Xi.Bytes()))
 	s.log.Infof("Ki: %s", hexutil.Encode(result.ShareID.Bytes()))
-}
-
-func (s *Service) getPreParams() keygen.LocalPreParams {
-	if params := openParams(); params != nil {
-		s.log.Info("Params opened from file")
-		return *params
-	}
-
-	s.log.Info("Generating pre params")
-	params, err := keygen.GeneratePreParams(10 * time.Minute)
-	if err != nil {
-		panic(err)
-	}
-
-	data, _ := json.Marshal(*params)
-	s.log.Info(string(data))
-	return *params
-}
-
-func openParams() *keygen.LocalPreParams {
-	path := os.Getenv(PreParamsENV)
-	if path == "" {
-		return nil
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-
-	res := new(keygen.LocalPreParams)
-	if err = json.Unmarshal(data, res); err != nil {
-		panic(err)
-	}
-
-	return res
 }
 
 func (s *Service) listenOutput(ctx context.Context, out <-chan tss.Message) {
@@ -169,20 +123,14 @@ func (s *Service) listenOutput(ctx context.Context, out <-chan tss.Message) {
 			for _, to := range toParties {
 				s.log.Infof("Sending message to %s", to.Id)
 				party, _ := s.params.PartyByAccount(to.Id)
-				retry := 0
-				for {
-					retry++
-					if _, err := s.Submit(ctx, party, request); err != nil {
-						// log every 10 seconds
-						if retry%10 == 0 {
-							s.log.Infof("Retry #%d", retry)
-							s.log.WithError(err).Error("error sending request")
-						}
-						time.Sleep(time.Second)
-						continue
-					}
-					break
+
+				if party.Account == s.secret.AccountAddressStr() {
+					s.log.Info("Sending to self")
+					s.ReceiveFromSender(party, request)
+					continue
 				}
+
+				s.MustSubmitTo(ctx, request, &party)
 			}
 		}
 	}

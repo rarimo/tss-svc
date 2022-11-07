@@ -2,6 +2,7 @@ package connectors
 
 import (
 	"context"
+	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
@@ -28,11 +29,11 @@ func NewBroadcastConnector(cfg config.Config) *BroadcastConnector {
 }
 
 func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSubmitRequest) {
-	retry := b.submitAll(ctx, b.params.Parties(), request)
-	b.submitAll(ctx, retry, request)
+	retry := b.SubmitTo(ctx, request, b.params.Parties()...)
+	b.SubmitTo(ctx, request, retry...)
 }
 
-func (b *BroadcastConnector) submitAll(ctx context.Context, parties []*rarimo.Party, request *types.MsgSubmitRequest) []*rarimo.Party {
+func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
 	failed := make([]*rarimo.Party, 0, b.params.N())
 
 	for _, party := range parties {
@@ -47,4 +48,31 @@ func (b *BroadcastConnector) submitAll(ctx context.Context, parties []*rarimo.Pa
 	}
 
 	return failed
+}
+
+func (b *BroadcastConnector) MustSubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) {
+	for _, party := range parties {
+		retry = 0
+		if party.PubKey != b.secret.ECDSAPubKeyStr() {
+			for {
+				if _, err := b.Submit(ctx, *party, request); err != nil {
+					b.logErr(err)
+					time.Sleep(time.Second)
+					continue
+				}
+				break
+			}
+		}
+	}
+}
+
+var retry = 0
+
+// log every 10 retries
+func (b *BroadcastConnector) logErr(err error) {
+	retry++
+	if retry%10 == 0 {
+		b.log.Infof("Retry #%d", retry)
+		b.log.WithError(err).Error("error sending request")
+	}
 }

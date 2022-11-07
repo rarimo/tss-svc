@@ -28,9 +28,7 @@ var service *Service
 
 var (
 	ErrInvalidRequestType = goerr.New("invalid request type")
-	ErrProcessingRequest  = goerr.New("error processing request")
-
-	stepForRequest = map[types.RequestType]types.StepType{
+	stepForRequest        = map[types.RequestType]types.StepType{
 		types.RequestType_Proposal:   types.StepType_Proposing,
 		types.RequestType_Acceptance: types.StepType_Accepting,
 		types.RequestType_Sign:       types.StepType_Signing,
@@ -194,7 +192,7 @@ func (s *Service) nextStep() {
 	if s.session.IsProcessing() {
 		s.toRun = true
 		s.ctx, s.cancelCtx = context.WithCancel(context.Background())
-		s.ProcessQueue(s.ctx, s.current)
+		go s.ProcessQueue(s.ctx, s.current)
 	}
 }
 
@@ -268,6 +266,7 @@ func (s *Service) getStepController() step.IController {
 			s.secret,
 			s.session.GetSignatureChanel(),
 			s.log,
+			s.con,
 		)
 	}
 

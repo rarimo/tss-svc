@@ -88,7 +88,7 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	a.connector.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Type:    types.RequestType_Acceptance,
 		Details: details,
-	})
+	}, false)
 
 	<-ctx.Done()
 	a.log.Infof("[Acceptance %d] - Acceptances: %v", a.id, a.acceptances)

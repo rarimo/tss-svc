@@ -52,59 +52,59 @@ func NewParams(cfg config.Config) *Params {
 }
 
 // NewParams receives new parameters but does not update it until UpdateParams is called
-func (s *Params) NewParams(tss *rarimo.Params, token *token.Params) {
-	s.nextTssP <- tss
-	s.nextTokenP <- token
+func (p *Params) NewParams(tss *rarimo.Params, token *token.Params) {
+	p.nextTssP <- tss
+	p.nextTokenP <- token
 }
 
 // UpdateParams checks and updates params if there are the new one
-func (s *Params) UpdateParams() {
+func (p *Params) UpdateParams() {
 	for {
 		select {
-		case p := <-s.nextTssP:
-			s.tssP = p
-		case p := <-s.nextTokenP:
-			s.tokenP = p
+		case params := <-p.nextTssP:
+			p.tssP = params
+		case params := <-p.nextTokenP:
+			p.tokenP = params
 		default:
 			return
 		}
 	}
 }
 
-func (s *Params) ChainId() string {
-	return s.chainId
+func (p *Params) ChainId() string {
+	return p.chainId
 }
 
-func (s *Params) TssParams() *rarimo.Params {
-	return s.tssP
+func (p *Params) TssParams() *rarimo.Params {
+	return p.tssP
 }
 
-func (s *Params) TokenParams() *token.Params {
-	return s.tokenP
+func (p *Params) TokenParams() *token.Params {
+	return p.tokenP
 }
 
-func (s *Params) Parties() []*rarimo.Party {
-	return s.tssP.Parties
+func (p *Params) Parties() []*rarimo.Party {
+	return p.tssP.Parties
 }
 
-func (s *Params) Steps() []*rarimo.Step {
-	return s.tssP.Steps
+func (p *Params) Steps() []*rarimo.Step {
+	return p.tssP.Steps
 }
 
-func (s *Params) Step(id int) *rarimo.Step {
-	return s.tssP.Steps[id]
+func (p *Params) Step(id int) *rarimo.Step {
+	return p.tssP.Steps[id]
 }
 
-func (s *Params) N() int {
-	return len(s.tssP.Parties)
+func (p *Params) N() int {
+	return len(p.tssP.Parties)
 }
 
-func (s *Params) T() int {
-	return int(s.tssP.Threshold)
+func (p *Params) T() int {
+	return int(p.tssP.Threshold)
 }
 
-func (s *Params) IsParty(key string) bool {
-	for _, party := range s.tssP.Parties {
+func (p *Params) IsParty(key string) bool {
+	for _, party := range p.tssP.Parties {
 		if party.PubKey == key {
 			return true
 		}
@@ -113,8 +113,8 @@ func (s *Params) IsParty(key string) bool {
 	return false
 }
 
-func (s *Params) Party(key string) (rarimo.Party, bool) {
-	for _, party := range s.tssP.Parties {
+func (p *Params) Party(key string) (rarimo.Party, bool) {
+	for _, party := range p.tssP.Parties {
 		if party.PubKey == key {
 			return *party, true
 		}
@@ -123,8 +123,8 @@ func (s *Params) Party(key string) (rarimo.Party, bool) {
 	return rarimo.Party{}, false
 }
 
-func (s *Params) PartyByAccount(account string) (rarimo.Party, bool) {
-	for _, party := range s.tssP.Parties {
+func (p *Params) PartyByAccount(account string) (rarimo.Party, bool) {
+	for _, party := range p.tssP.Parties {
 		if party.Account == account {
 			return *party, true
 		}
@@ -133,14 +133,14 @@ func (s *Params) PartyByAccount(account string) (rarimo.Party, bool) {
 	return rarimo.Party{}, false
 }
 
-func (s *Params) ChainParams(network string) *token.ChainParams {
-	return s.tokenP.Networks[network]
+func (p *Params) ChainParams(network string) *token.ChainParams {
+	return p.tokenP.Networks[network]
 }
 
-func (s *Params) PartyIds() tss.SortedPartyIDs {
-	res := make([]*tss.PartyID, 0, len(s.tssP.Parties))
+func (p *Params) PartyIds() tss.SortedPartyIDs {
+	res := make([]*tss.PartyID, 0, len(p.tssP.Parties))
 
-	for _, party := range s.tssP.Parties {
+	for _, party := range p.tssP.Parties {
 		_, data, err := bech32.DecodeAndConvert(party.Account)
 		if err != nil {
 			panic(err)
