@@ -44,10 +44,16 @@ type Secret struct {
 func NewSecret(cfg config.Config) *Secret {
 	if secret == nil {
 		secret = &Secret{
-			prv:     cfg.Private().PrivateKey,
 			account: cfg.Private().AccountPrvKey,
 			log:     cfg.Log(),
 		}
+
+		prv, err := crypto.ToECDSA(secret.GetLocalPartyData().Xi.Bytes())
+		if err != nil {
+			panic(err)
+		}
+
+		secret.prv = prv
 	}
 	return secret
 }

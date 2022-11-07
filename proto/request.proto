@@ -25,7 +25,7 @@ message AcceptanceRequest {
 
 message SignRequest {
   string root = 1;
-  // TODO
+  bytes si = 2;
 }
 
 message ReshareRequest {

@@ -77,6 +77,7 @@ func (a *AcceptanceController) ReceiveFromSender(sender rarimo.Party, request *t
 }
 
 func (a *AcceptanceController) run(ctx context.Context) {
+	defer a.wg.Done()
 	a.acceptances = append(a.acceptances, a.secret.AccountAddressStr())
 
 	details, err := cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Root: a.root})
@@ -86,8 +87,9 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	}
 
 	a.connector.SubmitAll(ctx, &types.MsgSubmitRequest{
-		Type:    types.RequestType_Acceptance,
-		Details: details,
+		Type:        types.RequestType_Acceptance,
+		IsBroadcast: true,
+		Details:     details,
 	})
 
 	<-ctx.Done()
@@ -101,7 +103,6 @@ func (a *AcceptanceController) run(ctx context.Context) {
 		}
 	}
 	a.log.Infof("[Acceptance %d] - Controller finished", a.id)
-	a.wg.Done()
 }
 
 func (a *AcceptanceController) WaitFinish() {

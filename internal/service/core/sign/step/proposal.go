@@ -110,6 +110,8 @@ func (p *ProposalController) Run(ctx context.Context) {
 }
 
 func (p *ProposalController) run(ctx context.Context) {
+	defer p.wg.Done()
+
 	if p.proposer.PubKey != p.secret.ECDSAPubKeyStr() {
 		p.log.Infof("[Proposal %d] - Proposer is another party", p.id)
 		return
@@ -136,12 +138,12 @@ func (p *ProposalController) run(ctx context.Context) {
 	}
 
 	p.connector.SubmitAll(ctx, &types.MsgSubmitRequest{
-		Type:    types.RequestType_Proposal,
-		Details: details,
+		Type:        types.RequestType_Proposal,
+		IsBroadcast: true,
+		Details:     details,
 	})
 
 	p.log.Infof("[Proposal %d] - Controller finished", p.id)
-	p.wg.Done()
 }
 
 func (p *ProposalController) getNewPool(ctx context.Context) ([]string, string, error) {

@@ -2,15 +2,15 @@ package step
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"math/big"
 	"sync"
 
 	"github.com/binance-chain/tss-lib/ecdsa/signing"
 	"github.com/binance-chain/tss-lib/tss"
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
@@ -27,8 +27,10 @@ type SignatureController struct {
 
 	tssParams *tss.Parameters
 	party     tss.Party
-	out       chan tss.Message
 	end       chan *signing.SignatureData
+
+	index map[string]struct{}
+	si    chan *big.Int
 
 	result chan *session.Signature
 
@@ -57,8 +59,9 @@ func NewSignatureController(
 		wg:        &sync.WaitGroup{},
 		id:        id,
 		root:      root,
-		out:       make(chan tss.Message, 1000),
 		end:       make(chan *signing.SignatureData, 1000),
+		si:        make(chan *big.Int, params.N()),
+		index:     make(map[string]struct{}),
 		tssParams: tssParams,
 		params:    params,
 		secret:    secret,
@@ -78,21 +81,17 @@ func (s *SignatureController) ReceiveFromSender(sender rarimo.Party, request *ty
 			s.log.WithError(err).Error("error unmarshalling request")
 		}
 
-		if sign.Root == s.root {
+		if _, ok := s.index[sender.Account]; !ok && sign.Root == s.root {
 			s.log.Infof("Received message from %s", sender.Account)
-			_, data, _ := bech32.DecodeAndConvert(sender.Account)
-			partyId := s.tssParams.Parties().IDs().FindByKey(new(big.Int).SetBytes(data))
-			_, err := s.party.UpdateFromBytes(request.Details.Value, partyId, request.IsBroadcast)
-			if err != nil {
-				s.log.WithError(err).Error("error updating party")
-			}
+			s.index[sender.Account] = struct{}{}
+			s.si <- new(big.Int).SetBytes(sign.Si)
 		}
 	}
 
 }
 
 func (s *SignatureController) Run(ctx context.Context) {
-	s.party = signing.NewLocalParty(nil, s.tssParams, *s.secret.GetLocalPartyData(), s.out, s.end)
+	s.party = signing.NewLocalParty(nil, s.tssParams, *s.secret.GetLocalPartyData(), make(chan tss.Message, 1000), s.end)
 	go func() {
 		err := s.party.Start()
 		if err != nil {
@@ -100,19 +99,53 @@ func (s *SignatureController) Run(ctx context.Context) {
 		}
 	}()
 
-	s.wg.Add(2)
+	s.wg.Add(1)
 	go s.run(ctx)
-	go s.listenOutput(ctx, s.out)
 }
 
-// TODO mocked for one party
 func (s *SignatureController) run(ctx context.Context) {
-	signature, err := crypto.Sign(hexutil.MustDecode(s.root), s.secret.ECDSAPrvKey())
+	defer s.wg.Done()
+	preResult := <-s.end
+
+	msg := new(big.Int).SetBytes(hexutil.MustDecode(s.root))
+	si := signing.FinalizeGetOurSigShare(preResult, msg)
+	details, err := cosmostypes.NewAnyWithValue(
+		&types.SignRequest{
+			Root: s.root,
+			Si:   si.Bytes(),
+		},
+	)
+
 	if err != nil {
-		s.log.WithError(err).Error("error signing root hash")
+		s.log.WithError(err).Error("error parsing details")
 		return
 	}
 
+	s.connector.SubmitAll(ctx, &types.MsgSubmitRequest{
+		Type:        types.RequestType_Sign,
+		IsBroadcast: true,
+		Details:     details,
+	})
+
+	<-ctx.Done()
+
+	shared := make(map[*tss.PartyID]*big.Int)
+	shared[s.secret.PartyId()] = si
+
+	point := s.secret.GetLocalPartyData().ECDSAPub
+	key := &ecdsa.PublicKey{
+		Curve: secp256k1.S256(),
+		X:     point.X(),
+		Y:     point.Y(),
+	}
+
+	data, _, err := signing.FinalizeGetAndVerifyFinalSig(preResult, key, msg, s.secret.PartyId(), si, shared)
+	if err != nil {
+		s.log.WithError(err).Error("error finalizing signature")
+		return
+	}
+
+	signature := append(data.Signature.Signature, data.Signature.SignatureRecovery...)
 	s.log.Infof("[Signing %d] - Signed root %s signature %s", s.id, s.root, hexutil.Encode(signature))
 
 	s.result <- &session.Signature{
@@ -121,54 +154,8 @@ func (s *SignatureController) run(ctx context.Context) {
 	}
 
 	s.log.Infof("[Signing %d] - Controller finished", s.id)
-	s.wg.Done()
 }
 
 func (s *SignatureController) WaitFinish() {
 	s.wg.Wait()
-}
-
-func (s *SignatureController) listenOutput(ctx context.Context, out <-chan tss.Message) {
-	for {
-		select {
-		case <-ctx.Done():
-			s.wg.Done()
-			return
-		case msg := <-out:
-			details, err := cosmostypes.NewAnyWithValue(msg.WireMsg().Message)
-			if err != nil {
-				s.log.WithError(err).Error("failed to parse details")
-				continue
-			}
-
-			request := &types.MsgSubmitRequest{
-				Type:        types.RequestType_Keygen,
-				IsBroadcast: msg.IsBroadcast(),
-				Details:     details,
-			}
-
-			toParties := msg.GetTo()
-			if msg.IsBroadcast() {
-				toParties = s.params.PartyIds()
-			}
-
-			s.log.Infof("Sending to %v", toParties)
-
-			for _, to := range toParties {
-				s.log.Infof("Sending message to %s", to.Id)
-				party, _ := s.params.PartyByAccount(to.Id)
-
-				if party.Account == s.secret.AccountAddressStr() {
-					s.log.Info("Sending to self")
-					s.ReceiveFromSender(party, request)
-					continue
-				}
-
-				failed := s.connector.SubmitTo(ctx, request, &party)
-				for _, f := range failed {
-					s.log.Error("failed submitting to party %s", f.Account)
-				}
-			}
-		}
-	}
 }
