@@ -138,7 +138,7 @@ func (p *ProposalController) run(ctx context.Context) {
 	p.connector.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Type:    types.RequestType_Proposal,
 		Details: details,
-	}, false)
+	})
 
 	p.log.Infof("[Proposal %d] - Controller finished", p.id)
 	p.wg.Done()

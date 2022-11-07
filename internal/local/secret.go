@@ -128,6 +128,7 @@ func (s *Secret) GetLocalPartyPreParams() *keygen.LocalPreParams {
 		if params := openParams(); params != nil {
 			s.log.Info("Params opened from file")
 			s.pre = params
+			return s.pre
 		}
 
 		s.log.Info("Generating pre params")
