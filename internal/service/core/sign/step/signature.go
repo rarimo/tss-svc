@@ -85,7 +85,7 @@ func (s *SignatureController) ReceiveFromSender(sender rarimo.Party, request *ty
 			s.log.WithError(err).Error("error unmarshalling request")
 		}
 
-		if sign.Root == s.root {
+		if s.party != nil && sign.Root == s.root {
 			s.log.Infof("[Signing %d] - Received signing request from %s for root %s ---", s.id, sender.Account, s.root)
 			_, data, _ := bech32.DecodeAndConvert(sender.Account)
 			_, err := s.party.UpdateFromBytes(sign.Details.Value, s.parties.FindByKey(new(big.Int).SetBytes(data)), request.IsBroadcast)
