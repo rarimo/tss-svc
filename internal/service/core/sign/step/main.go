@@ -7,7 +7,7 @@ import (
 )
 
 type IController interface {
-	core.IReceive
+	core.IReceiver
 	Run(ctx context.Context)
 	WaitFinish()
 }

@@ -25,6 +25,7 @@ type (
 type ISession interface {
 	ID() uint64
 	Root() string
+	Acceptances() []string
 	Indexes() []string
 	Signature() string
 	Proposer() rarimo.Party

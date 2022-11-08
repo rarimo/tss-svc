@@ -11,7 +11,6 @@ import (
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/auth"
@@ -41,10 +40,6 @@ type Service struct {
 	log   *logan.Entry
 }
 
-func init() {
-	tss.SetCurve(secp256k1.S256())
-}
-
 func NewService(cfg config.Config) *Service {
 	if service == nil {
 		service = &Service{
@@ -61,7 +56,7 @@ func NewService(cfg config.Config) *Service {
 }
 
 var _ core.IGlobalReceiver = &Service{}
-var _ core.IReceive = &Service{}
+var _ core.IReceiver = &Service{}
 
 func (s *Service) Run() {
 	s.parties = s.params.PartyIds()

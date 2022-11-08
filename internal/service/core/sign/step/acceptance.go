@@ -62,7 +62,7 @@ func (a *AcceptanceController) Run(ctx context.Context) {
 }
 
 func (a *AcceptanceController) ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmitRequest) {
-	if _, ok := a.index[sender.Account]; !ok && request.Type == types.RequestType_Proposal {
+	if _, ok := a.index[sender.Account]; !ok && request.Type == types.RequestType_Acceptance {
 		acceptance := new(types.AcceptanceRequest)
 		if err := proto.Unmarshal(request.Details.Value, acceptance); err != nil {
 			a.log.WithError(err).Error("error unmarshalling request")
@@ -77,9 +77,12 @@ func (a *AcceptanceController) ReceiveFromSender(sender rarimo.Party, request *t
 }
 
 func (a *AcceptanceController) run(ctx context.Context) {
-	defer a.wg.Done()
-	a.acceptances = append(a.acceptances, a.secret.AccountAddressStr())
+	defer func() {
+		a.log.Infof("[Acceptance %d] - Controller finished", a.id)
+		a.wg.Done()
+	}()
 
+	a.acceptances = append(a.acceptances, a.secret.AccountAddressStr())
 	details, err := cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Root: a.root})
 	if err != nil {
 		a.log.WithError(err).Error("error parsing details")
@@ -95,14 +98,13 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	<-ctx.Done()
 	a.log.Infof("[Acceptance %d] - Acceptances: %v", a.id, a.acceptances)
 
-	if len(a.acceptances) >= a.params.T() {
+	if len(a.acceptances) > a.params.T() {
 		a.log.Infof("[Acceptance %d] - Reached required amount of acceptances", a.id)
 
 		a.result <- &session.Acceptance{
 			Accepted: a.acceptances,
 		}
 	}
-	a.log.Infof("[Acceptance %d] - Controller finished", a.id)
 }
 
 func (a *AcceptanceController) WaitFinish() {

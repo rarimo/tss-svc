@@ -11,7 +11,7 @@ type IGlobalReceiver interface {
 	Receive(request *types.MsgSubmitRequest) error
 }
 
-type IReceive interface {
+type IReceiver interface {
 	ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmitRequest)
 }
 
@@ -28,7 +28,7 @@ func NewQueue(cap int) *RequestQueue {
 	return &RequestQueue{Queue: make(chan *Msg, cap)}
 }
 
-func (r *RequestQueue) ProcessQueue(ctx context.Context, f IReceive) {
+func (r *RequestQueue) ProcessQueue(ctx context.Context, f IReceiver) {
 	for {
 		select {
 		case <-ctx.Done():

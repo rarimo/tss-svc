@@ -18,9 +18,10 @@ type Session struct {
 	endBlock   uint64
 	proposer   rarimo.Party
 
-	root    string
-	indexes []string
-	sign    string
+	root     string
+	indexes  []string
+	accepted []string
+	sign     string
 
 	proposal   chan *Proposal
 	acceptance chan *Acceptance
@@ -73,6 +74,10 @@ func (s *Session) ID() uint64 {
 
 func (s *Session) Root() string {
 	return s.root
+}
+
+func (s *Session) Acceptances() []string {
+	return s.accepted
 }
 
 func (s *Session) Indexes() []string {
@@ -177,6 +182,7 @@ func (s *Session) FinishAcceptance() bool {
 			return false
 		}
 
+		s.accepted = info.Accepted
 		err := s.updateEntry(func(entry *data.Session) {
 			entry.Accepted = info.Accepted
 		})

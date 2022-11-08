@@ -129,6 +129,15 @@ func (s *Secret) GetLocalPartyData() *keygen.LocalPartySaveData {
 	return s.data
 }
 
+func (s *Secret) GetGlobalPubKey() *ecdsa.PublicKey {
+	point := s.GetLocalPartyData().ECDSAPub
+	return &ecdsa.PublicKey{
+		Curve: secp256k1.S256(),
+		X:     point.X(),
+		Y:     point.Y(),
+	}
+}
+
 func (s *Secret) GetLocalPartyPreParams() *keygen.LocalPreParams {
 	if s.pre == nil {
 		if params := openParams(); params != nil {

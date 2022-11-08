@@ -95,6 +95,10 @@ func (p *ProposalController) ReceiveFromSender(sender rarimo.Party, request *typ
 }
 
 func (p *ProposalController) validate(indexes []string, root string) bool {
+	if len(indexes) == 0 {
+		return true
+	}
+
 	contents, err := p.getContents(context.Background(), indexes)
 	if err != nil {
 		p.log.WithError(err).Error("error preparing contents")
@@ -110,7 +114,10 @@ func (p *ProposalController) Run(ctx context.Context) {
 }
 
 func (p *ProposalController) run(ctx context.Context) {
-	defer p.wg.Done()
+	defer func() {
+		p.log.Infof("[Proposal %d] - Controller finished", p.id)
+		p.wg.Done()
+	}()
 
 	if p.proposer.PubKey != p.secret.ECDSAPubKeyStr() {
 		p.log.Infof("[Proposal %d] - Proposer is another party", p.id)
@@ -131,6 +138,11 @@ func (p *ProposalController) run(ctx context.Context) {
 		Root:    root,
 	}
 
+	if len(ids) == 0 {
+		p.log.Infof("[Proposal %d] - Empty pool. Skipping.", p.id)
+		return
+	}
+
 	details, err := cosmostypes.NewAnyWithValue(&types.ProposalRequest{Session: p.id, Indexes: ids, Root: root})
 	if err != nil {
 		p.log.WithError(err).Error("error parsing details")
@@ -142,8 +154,6 @@ func (p *ProposalController) run(ctx context.Context) {
 		IsBroadcast: true,
 		Details:     details,
 	})
-
-	p.log.Infof("[Proposal %d] - Controller finished", p.id)
 }
 
 func (p *ProposalController) getNewPool(ctx context.Context) ([]string, string, error) {
@@ -153,7 +163,6 @@ func (p *ProposalController) getNewPool(ctx context.Context) ([]string, string, 
 	}
 
 	if len(ids) == 0 {
-		p.log.Infof("[Proposal %d] - Empty pool. Skipping.", p.id)
 		return []string{}, "", nil
 	}
 

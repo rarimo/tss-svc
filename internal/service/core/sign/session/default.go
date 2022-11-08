@@ -26,6 +26,10 @@ func (p *DefaultSession) Root() string {
 	return ""
 }
 
+func (p *DefaultSession) Acceptances() []string {
+	return []string{}
+}
+
 func (p *DefaultSession) Indexes() []string {
 	return []string{}
 }

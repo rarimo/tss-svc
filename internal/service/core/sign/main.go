@@ -262,6 +262,7 @@ func (s *Service) getStepController() step.IController {
 		return step.NewSignatureController(
 			s.session.ID(),
 			s.session.Root(),
+			s.session.Acceptances(),
 			s.params,
 			s.secret,
 			s.session.GetSignatureChanel(),

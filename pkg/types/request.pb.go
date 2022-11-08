@@ -5,6 +5,7 @@ package types
 
 import (
 	fmt "fmt"
+	types "github.com/cosmos/cosmos-sdk/codec/types"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
@@ -164,8 +165,8 @@ func (m *AcceptanceRequest) GetRoot() string {
 }
 
 type SignRequest struct {
-	Root string `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
-	Si   []byte `protobuf:"bytes,2,opt,name=si,proto3" json:"si,omitempty"`
+	Root    string     `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+	Details *types.Any `protobuf:"bytes,2,opt,name=details,proto3" json:"details,omitempty"`
 }
 
 func (m *SignRequest) Reset()         { *m = SignRequest{} }
@@ -208,117 +209,44 @@ func (m *SignRequest) GetRoot() string {
 	return ""
 }
 
-func (m *SignRequest) GetSi() []byte {
+func (m *SignRequest) GetDetails() *types.Any {
 	if m != nil {
-		return m.Si
+		return m.Details
 	}
 	return nil
 }
-
-type ReshareRequest struct {
-}
-
-func (m *ReshareRequest) Reset()         { *m = ReshareRequest{} }
-func (m *ReshareRequest) String() string { return proto.CompactTextString(m) }
-func (*ReshareRequest) ProtoMessage()    {}
-func (*ReshareRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f73548e33e655fe, []int{3}
-}
-func (m *ReshareRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *ReshareRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_ReshareRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *ReshareRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReshareRequest.Merge(m, src)
-}
-func (m *ReshareRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *ReshareRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReshareRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReshareRequest proto.InternalMessageInfo
-
-type KeygenRequest struct {
-}
-
-func (m *KeygenRequest) Reset()         { *m = KeygenRequest{} }
-func (m *KeygenRequest) String() string { return proto.CompactTextString(m) }
-func (*KeygenRequest) ProtoMessage()    {}
-func (*KeygenRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f73548e33e655fe, []int{4}
-}
-func (m *KeygenRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *KeygenRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_KeygenRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *KeygenRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_KeygenRequest.Merge(m, src)
-}
-func (m *KeygenRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *KeygenRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_KeygenRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_KeygenRequest proto.InternalMessageInfo
 
 func init() {
 	proto.RegisterEnum("RequestType", RequestType_name, RequestType_value)
 	proto.RegisterType((*ProposalRequest)(nil), "ProposalRequest")
 	proto.RegisterType((*AcceptanceRequest)(nil), "AcceptanceRequest")
 	proto.RegisterType((*SignRequest)(nil), "SignRequest")
-	proto.RegisterType((*ReshareRequest)(nil), "ReshareRequest")
-	proto.RegisterType((*KeygenRequest)(nil), "KeygenRequest")
 }
 
 func init() { proto.RegisterFile("request.proto", fileDescriptor_7f73548e33e655fe) }
 
 var fileDescriptor_7f73548e33e655fe = []byte{
-	// 293 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x90, 0xbd, 0x4e, 0xfb, 0x40,
-	0x10, 0xc4, 0x7d, 0x8e, 0x95, 0x8f, 0xcd, 0x97, 0xff, 0x57, 0xb9, 0xb2, 0x2c, 0x37, 0x7f, 0x0b,
-	0x91, 0x58, 0x88, 0x27, 0x80, 0x82, 0x06, 0x09, 0x21, 0x43, 0x03, 0x9d, 0x73, 0x2c, 0xe6, 0x44,
-	0xf0, 0x1d, 0xb7, 0x07, 0xc2, 0x6f, 0xc1, 0x63, 0x51, 0xa6, 0xa4, 0x44, 0xc9, 0x8b, 0xa0, 0x38,
-	0x39, 0x41, 0x45, 0x37, 0xa3, 0x19, 0xfd, 0x34, 0xbb, 0x30, 0x36, 0xf8, 0xfc, 0x82, 0x64, 0xe7,
-	0xda, 0x28, 0xab, 0xd2, 0x1b, 0x98, 0x5e, 0x1a, 0xa5, 0x15, 0x95, 0xcb, 0x62, 0x17, 0xf0, 0x08,
-	0x7a, 0x84, 0x44, 0x52, 0xd5, 0x11, 0x4b, 0x58, 0x16, 0x14, 0xce, 0x6e, 0x13, 0x59, 0xdf, 0xe1,
-	0x1b, 0x52, 0xe4, 0x27, 0x9d, 0x6c, 0x50, 0x38, 0xcb, 0x39, 0x04, 0x46, 0x29, 0x1b, 0x75, 0x12,
-	0x96, 0x0d, 0x8a, 0x56, 0xa7, 0xff, 0xe1, 0xdf, 0x89, 0x10, 0xa8, 0x6d, 0x59, 0x0b, 0x74, 0x70,
-	0x57, 0x64, 0xbf, 0x8a, 0x47, 0x30, 0xbc, 0x92, 0x55, 0xfd, 0x47, 0x85, 0x4f, 0xc0, 0x27, 0x19,
-	0xf9, 0x09, 0xcb, 0x46, 0x85, 0x4f, 0x32, 0x0d, 0x61, 0x52, 0x20, 0x3d, 0x94, 0xc6, 0x81, 0xd3,
-	0x29, 0x8c, 0xcf, 0xb1, 0xa9, 0xd0, 0x61, 0x0e, 0x2e, 0x60, 0xb8, 0x97, 0xd7, 0x8d, 0x46, 0x3e,
-	0x82, 0xbe, 0x3b, 0x34, 0xf4, 0xf8, 0x04, 0xe0, 0x67, 0x5b, 0xc8, 0x78, 0x1f, 0x82, 0xed, 0x84,
-	0xd0, 0xe7, 0x43, 0xe8, 0xed, 0xc9, 0x61, 0x87, 0x03, 0x74, 0x77, 0xd0, 0x30, 0x38, 0x3d, 0xfb,
-	0x58, 0xc7, 0x6c, 0xb5, 0x8e, 0xd9, 0xd7, 0x3a, 0x66, 0xef, 0x9b, 0xd8, 0x5b, 0x6d, 0x62, 0xef,
-	0x73, 0x13, 0x7b, 0xb7, 0x87, 0x95, 0xb4, 0xcb, 0x72, 0x31, 0x17, 0xea, 0x29, 0x37, 0xa5, 0x91,
-	0xf7, 0xcd, 0xac, 0x7d, 0xae, 0x50, 0xcb, 0xdc, 0x12, 0xcd, 0xe8, 0x55, 0xe4, 0xfa, 0xb1, 0xca,
-	0x6d, 0xa3, 0x91, 0x16, 0xdd, 0x36, 0x3b, 0xfe, 0x0e, 0x00, 0x00, 0xff, 0xff, 0x4e, 0x47, 0xbc,
-	0xf0, 0x89, 0x01, 0x00, 0x00,
+	// 310 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x8f, 0xbd, 0x4e, 0xc3, 0x30,
+	0x14, 0x85, 0xe3, 0x36, 0xea, 0xcf, 0x0d, 0x3f, 0xc1, 0x62, 0x08, 0x0c, 0x51, 0xd5, 0x85, 0x08,
+	0xd1, 0x44, 0x82, 0x27, 0x28, 0x03, 0x0b, 0x12, 0x82, 0xc0, 0x02, 0x9b, 0x9b, 0xde, 0x86, 0x88,
+	0x60, 0x1b, 0xdb, 0x45, 0xf8, 0x2d, 0x78, 0x2c, 0xc6, 0x8e, 0x8c, 0xa8, 0x7d, 0x11, 0xd4, 0x14,
+	0x0b, 0x26, 0x36, 0x1f, 0x9d, 0xcf, 0xf7, 0x9c, 0x03, 0xdb, 0x0a, 0x5f, 0xe6, 0xa8, 0x4d, 0x2a,
+	0x95, 0x30, 0xe2, 0xf0, 0xa0, 0x14, 0xa2, 0xac, 0x31, 0x6b, 0xd4, 0x64, 0x3e, 0xcb, 0x18, 0xb7,
+	0x1b, 0x6b, 0x78, 0x0f, 0xbb, 0xd7, 0x4a, 0x48, 0xa1, 0x59, 0x9d, 0x6f, 0xfe, 0xd0, 0x08, 0xba,
+	0x1a, 0xb5, 0xae, 0x04, 0x8f, 0xc8, 0x80, 0x24, 0x7e, 0xee, 0xe4, 0xda, 0xa9, 0xf8, 0x14, 0xdf,
+	0x50, 0x47, 0xad, 0x41, 0x3b, 0xe9, 0xe7, 0x4e, 0x52, 0x0a, 0xbe, 0x12, 0xc2, 0x44, 0xed, 0x01,
+	0x49, 0xfa, 0x79, 0xf3, 0x1e, 0x1e, 0xc1, 0xde, 0xb8, 0x28, 0x50, 0x1a, 0xc6, 0x0b, 0x74, 0xc7,
+	0x1d, 0x48, 0xfe, 0x80, 0x37, 0x10, 0xdc, 0x56, 0x25, 0xff, 0x07, 0xa1, 0x29, 0x74, 0xa7, 0x68,
+	0x58, 0x55, 0xaf, 0x93, 0x49, 0x12, 0x9c, 0xee, 0xa7, 0x9b, 0x4d, 0xa9, 0xdb, 0x94, 0x8e, 0xb9,
+	0xcd, 0x1d, 0x74, 0x7c, 0x05, 0xc1, 0xcf, 0xb9, 0x3b, 0x2b, 0x91, 0x6e, 0x41, 0xcf, 0xad, 0x0c,
+	0x3d, 0xba, 0x03, 0xf0, 0x5b, 0x2c, 0x24, 0xb4, 0x07, 0xfe, 0x3a, 0x3f, 0x6c, 0xd1, 0x00, 0xba,
+	0x39, 0xea, 0x47, 0xa6, 0x30, 0x6c, 0x53, 0x80, 0xce, 0x25, 0xda, 0x12, 0x79, 0xe8, 0x9f, 0x5f,
+	0x7c, 0x2c, 0x63, 0xb2, 0x58, 0xc6, 0xe4, 0x6b, 0x19, 0x93, 0xf7, 0x55, 0xec, 0x2d, 0x56, 0xb1,
+	0xf7, 0xb9, 0x8a, 0xbd, 0x87, 0x93, 0xb2, 0x32, 0x35, 0x9b, 0xa4, 0x85, 0x78, 0xce, 0x14, 0x53,
+	0xd5, 0xcc, 0x8e, 0x9a, 0x4a, 0x85, 0xa8, 0x33, 0xa3, 0xf5, 0x48, 0xbf, 0x16, 0x99, 0x7c, 0x2a,
+	0x33, 0x63, 0x25, 0xea, 0x49, 0xa7, 0xf1, 0xce, 0xbe, 0x03, 0x00, 0x00, 0xff, 0xff, 0x0d, 0xb5,
+	0xf5, 0x8b, 0xa1, 0x01, 0x00, 0x00,
 }
 
 func (m *ProposalRequest) Marshal() (dAtA []byte, err error) {
@@ -415,10 +343,15 @@ func (m *SignRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Si) > 0 {
-		i -= len(m.Si)
-		copy(dAtA[i:], m.Si)
-		i = encodeVarintRequest(dAtA, i, uint64(len(m.Si)))
+	if m.Details != nil {
+		{
+			size, err := m.Details.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRequest(dAtA, i, uint64(size))
+		}
 		i--
 		dAtA[i] = 0x12
 	}
@@ -429,52 +362,6 @@ func (m *SignRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0xa
 	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ReshareRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ReshareRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ReshareRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	return len(dAtA) - i, nil
-}
-
-func (m *KeygenRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *KeygenRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *KeygenRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
 	return len(dAtA) - i, nil
 }
 
@@ -534,28 +421,10 @@ func (m *SignRequest) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovRequest(uint64(l))
 	}
-	l = len(m.Si)
-	if l > 0 {
+	if m.Details != nil {
+		l = m.Details.Size()
 		n += 1 + l + sovRequest(uint64(l))
 	}
-	return n
-}
-
-func (m *ReshareRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	return n
-}
-
-func (m *KeygenRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
 	return n
 }
 
@@ -843,9 +712,9 @@ func (m *SignRequest) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Si", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Details", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowRequest
@@ -855,126 +724,28 @@ func (m *SignRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthRequest
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthRequest
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Si = append(m.Si[:0], dAtA[iNdEx:postIndex]...)
-			if m.Si == nil {
-				m.Si = []byte{}
+			if m.Details == nil {
+				m.Details = &types.Any{}
+			}
+			if err := m.Details.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipRequest(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthRequest
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ReshareRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowRequest
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ReshareRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReshareRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipRequest(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthRequest
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *KeygenRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowRequest
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: KeygenRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: KeygenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRequest(dAtA[iNdEx:])
