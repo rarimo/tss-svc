@@ -4,7 +4,7 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/binance-chain/tss-lib/tss"
+	"github.com/bnb-chain/tss-lib/tss"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"

@@ -5,8 +5,10 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/binance-chain/tss-lib/ecdsa/signing"
-	"github.com/binance-chain/tss-lib/tss"
+	"github.com/bnb-chain/tss-lib/common"
+	"github.com/bnb-chain/tss-lib/ecdsa/signing"
+	"github.com/bnb-chain/tss-lib/tss"
+	s256k1 "github.com/btcsuite/btcd/btcec"
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -28,7 +30,7 @@ type SignatureController struct {
 
 	tssParams *tss.Parameters
 	party     tss.Party
-	end       chan *signing.SignatureData
+	end       chan common.SignatureData
 	out       chan tss.Message
 	result    chan *session.Signature
 
@@ -52,7 +54,7 @@ func NewSignatureController(
 	parties := params.PartyIds()
 	localId := parties.FindByKey(secret.PartyId().KeyInt())
 	peerCtx := tss.NewPeerContext(parties)
-	tssParams := tss.NewParameters(peerCtx, localId, params.N(), params.T())
+	tssParams := tss.NewParameters(s256k1.S256(), peerCtx, localId, params.N(), params.T())
 
 	amap := make(map[string]struct{})
 	for _, acc := range acceptances {
@@ -66,7 +68,7 @@ func NewSignatureController(
 		acceptances: amap,
 		parties:     parties,
 		out:         make(chan tss.Message, 1000),
-		end:         make(chan *signing.SignatureData, 1000),
+		end:         make(chan common.SignatureData, 1000),
 		tssParams:   tssParams,
 		params:      params,
 		secret:      secret,
@@ -126,7 +128,7 @@ func (s *SignatureController) run(ctx context.Context) {
 			return
 		}
 
-		signature := append(result.Signature.Signature, result.Signature.SignatureRecovery...)
+		signature := append(result.Signature, result.SignatureRecovery...)
 		s.log.Infof("[Signing %d] - Signed root %s signature %s", s.id, s.root, hexutil.Encode(signature))
 
 		s.party.WaitingFor()

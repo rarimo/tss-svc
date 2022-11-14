@@ -2,12 +2,14 @@ package keygen
 
 import (
 	"context"
+	"crypto/elliptic"
 	"encoding/json"
 	"math/big"
 	"sync"
 
-	"github.com/binance-chain/tss-lib/ecdsa/keygen"
-	"github.com/binance-chain/tss-lib/tss"
+	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
+	"github.com/bnb-chain/tss-lib/tss"
+	s256k1 "github.com/btcsuite/btcd/btcec"
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -62,7 +64,7 @@ func (s *Service) Run() {
 	s.parties = s.params.PartyIds()
 	s.localId = s.parties.FindByKey(s.secret.PartyId().KeyInt())
 	peerCtx := tss.NewPeerContext(s.parties)
-	params := tss.NewParameters(peerCtx, s.localId, len(s.parties), s.params.T())
+	params := tss.NewParameters(s256k1.S256(), peerCtx, s.localId, len(s.parties), s.params.T())
 
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1000)
@@ -86,7 +88,7 @@ func (s *Service) Run() {
 	data, _ := json.Marshal(result)
 	s.log.Info(string(data))
 
-	s.log.Infof("Pub key: %s", hexutil.Encode(result.ECDSAPub.Bytes()))
+	s.log.Infof("Pub key: %s", hexutil.Encode(elliptic.Marshal(s256k1.S256(), result.ECDSAPub.X(), result.ECDSAPub.Y())))
 	s.log.Infof("Xi: %s", hexutil.Encode(result.Xi.Bytes()))
 	s.log.Infof("Ki: %s", hexutil.Encode(result.ShareID.Bytes()))
 }
