@@ -97,7 +97,7 @@ var _ core.IGlobalReceiver = &Service{}
 
 // NewBlock receives new blocks from timer
 func (s *Service) NewBlock(height uint64) error {
-	s.log.Infof("[*****] New block: %d [*****]", height)
+	s.log.Infof("[Sign service] New block: %d", height)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -168,7 +168,7 @@ func (s *Service) Receive(request *types.MsgSubmitRequest) error {
 
 func (s *Service) nextSession() {
 	id := s.session.ID() + 1
-	s.log.Infof("Scheduling next session id=%d", id)
+	s.log.Infof("[Sign service] Scheduling next session id=%d", id)
 
 	s.params.UpdateParams()
 

@@ -62,7 +62,7 @@ func (o *OperationSubscriber) Run() {
 			}
 
 			for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeNewOperation, rarimo.AttributeKeyOperationId)] {
-				o.log.Infof("New operation found index=%s", index)
+				o.log.Debugf("New operation found index=%s", index)
 				o.pool.Add(index)
 			}
 

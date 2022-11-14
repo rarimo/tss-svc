@@ -41,7 +41,7 @@ func (o *OperationCatchupper) Run() {
 				continue
 			}
 
-			o.log.Infof("New operation found index=%s", op.Index)
+			o.log.Debugf("New operation found index=%s", op.Index)
 			err := o.pool.Add(op.Index)
 			if err != nil {
 				panic(err)
