@@ -99,7 +99,7 @@ func (s *SignatureController) ReceiveFromSender(sender rarimo.Party, request *ty
 }
 
 func (s *SignatureController) Run(ctx context.Context) {
-	s.party = signing.NewLocalParty(new(big.Int).SetBytes(hexutil.MustDecode(s.root)), s.tssParams, *s.secret.GetLocalPartyData(), s.out, s.end)
+	s.party = signing.NewLocalParty(new(big.Int).SetBytes(hexutil.MustDecode(s.root)), s.tssParams, *s.secret.MustGetLocalPartyData(), s.out, s.end)
 	go func() {
 		err := s.party.Start()
 		if err != nil {

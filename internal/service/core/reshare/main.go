@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
+	"github.com/bnb-chain/tss-lib/ecdsa/resharing"
 	"github.com/bnb-chain/tss-lib/tss"
 	s256k1 "github.com/btcsuite/btcd/btcec"
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -26,7 +27,7 @@ import (
 // Service implements singleton pattern
 var service *Service
 
-// Service implements the full flow of the threshold key generation.
+// Service implements the full flow of the threshold key resharing.
 type Service struct {
 	*connectors.BroadcastConnector
 	*auth.RequestAuthorizer
@@ -60,16 +61,22 @@ func NewService(cfg config.Config) *Service {
 var _ core.IGlobalReceiver = &Service{}
 var _ core.IReceiver = &Service{}
 
-func (s *Service) Run() {
+func (s *Service) Run(oldSet tss.SortedPartyIDs, oldT int) {
 	s.parties = s.params.PartyIds()
 	s.localId = s.parties.FindByKey(s.secret.PartyId().KeyInt())
-	peerCtx := tss.NewPeerContext(s.parties)
-	params := tss.NewParameters(s256k1.S256(), peerCtx, s.localId, len(s.parties), s.params.T())
+
+	key, err := s.secret.GetLocalPartyData()
+	if err != nil {
+		empty := keygen.NewLocalPartySaveData(len(oldSet))
+		key = &empty
+		key.LocalPreParams = *s.secret.MustGetLocalPartyPreParams()
+	}
+
+	params := tss.NewReSharingParameters(s256k1.S256(), tss.NewPeerContext(oldSet), tss.NewPeerContext(s.parties), s.localId, len(oldSet), oldT, len(s.parties), s.params.T())
 
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1000)
-
-	s.party = keygen.NewLocalParty(params, out, end, *s.secret.MustGetLocalPartyPreParams())
+	s.party = resharing.NewLocalParty(params, *key, out, end)
 
 	go func() {
 		err := s.party.Start()
@@ -106,7 +113,7 @@ func (s *Service) listenOutput(ctx context.Context, out <-chan tss.Message) {
 			}
 
 			request := &types.MsgSubmitRequest{
-				Type:        types.RequestType_Keygen,
+				Type:        types.RequestType_Reshare,
 				IsBroadcast: msg.IsBroadcast(),
 				Details:     details,
 			}
@@ -150,7 +157,7 @@ func (s *Service) ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmi
 	s.Lock()
 	defer s.Unlock()
 
-	if request.Type == types.RequestType_Keygen {
+	if request.Type == types.RequestType_Reshare {
 		s.log.Infof("Received message from %s", sender.Account)
 
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)

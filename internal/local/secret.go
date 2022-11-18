@@ -7,6 +7,7 @@ import (
 	goerr "errors"
 	"math/big"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
@@ -25,6 +26,7 @@ const (
 	AccountPrefix   = "rarimo"
 	PartyTSSDataENV = "PARTY_TSS_DATA_PATH"
 	PreParamsENV    = "LOCAL_PRE_PARAMS_PATH"
+	FileType        = ".json"
 )
 
 // Secret implements singleton pattern
@@ -34,6 +36,7 @@ var ErrNoTssDataPath = goerr.New("tss data path is empty")
 // Secret handles tss party private information
 // and called up to be the service for signing and private key storing
 type Secret struct {
+	*sync.Mutex
 	prv     *ecdsa.PrivateKey
 	account cryptotypes.PrivKey
 	data    *keygen.LocalPartySaveData
@@ -48,7 +51,7 @@ func NewSecret(cfg config.Config) *Secret {
 			log:     cfg.Log(),
 		}
 
-		prv, err := crypto.ToECDSA(secret.GetLocalPartyData().Xi.Bytes())
+		prv, err := crypto.ToECDSA(secret.MustGetLocalPartyData().Xi.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -59,6 +62,8 @@ func NewSecret(cfg config.Config) *Secret {
 }
 
 func (s *Secret) ECDSAPubKey() ecdsa.PublicKey {
+	s.Lock()
+	defer s.Unlock()
 	return s.prv.PublicKey
 }
 
@@ -71,6 +76,8 @@ func (s *Secret) AccountAddress() cryptotypes.Address {
 }
 
 func (s *Secret) ECDSAPubKeyStr() string {
+	s.Lock()
+	defer s.Unlock()
 	pub := elliptic.Marshal(secp256k1.S256(), s.prv.X, s.prv.Y)
 	return hexutil.Encode(pub)
 }
@@ -81,10 +88,14 @@ func (s *Secret) AccountAddressStr() string {
 }
 
 func (s *Secret) ECDSAPubKeyBytes() []byte {
+	s.Lock()
+	defer s.Unlock()
 	return elliptic.Marshal(secp256k1.S256(), s.prv.X, s.prv.Y)
 }
 
 func (s *Secret) ECDSAPrvKey() *ecdsa.PrivateKey {
+	s.Lock()
+	defer s.Unlock()
 	return s.prv
 }
 
@@ -97,6 +108,8 @@ func (s *Secret) PartyId() *tss.PartyID {
 }
 
 func (s *Secret) SignRequest(request *types.MsgSubmitRequest) error {
+	s.Lock()
+	defer s.Unlock()
 	hash := crypto.Keccak256(request.Details.Value)
 	signature, err := crypto.Sign(hash, s.prv)
 	if err != nil {
@@ -106,31 +119,42 @@ func (s *Secret) SignRequest(request *types.MsgSubmitRequest) error {
 	return nil
 }
 
-func (s *Secret) GetLocalPartyData() *keygen.LocalPartySaveData {
+func (s *Secret) GetLocalPartyData() (*keygen.LocalPartySaveData, error) {
+	path := os.Getenv(PartyTSSDataENV)
+	if path == "" {
+		return nil, ErrNoTssDataPath
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
+	res := new(keygen.LocalPartySaveData)
+	if err = json.Unmarshal(data, res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (s *Secret) MustGetLocalPartyData() *keygen.LocalPartySaveData {
+	s.Lock()
+	defer s.Unlock()
+
 	if s.data == nil {
-		path := os.Getenv(PartyTSSDataENV)
-		if path == "" {
-			panic(ErrNoTssDataPath)
-		}
-
-		data, err := os.ReadFile(path)
+		res, err := s.GetLocalPartyData()
 		if err != nil {
-			panic(err)
-		}
-
-		res := new(keygen.LocalPartySaveData)
-		if err = json.Unmarshal(data, res); err != nil {
 			panic(err)
 		}
 
 		s.data = res
 	}
-
 	return s.data
 }
 
 func (s *Secret) GetGlobalPubKey() *ecdsa.PublicKey {
-	point := s.GetLocalPartyData().ECDSAPub
+	point := s.MustGetLocalPartyData().ECDSAPub
 	return &ecdsa.PublicKey{
 		Curve: secp256k1.S256(),
 		X:     point.X(),
@@ -138,16 +162,12 @@ func (s *Secret) GetGlobalPubKey() *ecdsa.PublicKey {
 	}
 }
 
-func (s *Secret) GetLocalPartyPreParams() *keygen.LocalPreParams {
-	if s.pre == nil {
-		if params := openParams(); params != nil {
-			s.log.Info("Params opened from file")
-			s.pre = params
-			return s.pre
-		}
+func (s *Secret) MustGetLocalPartyPreParams() *keygen.LocalPreParams {
+	s.Lock()
+	defer s.Unlock()
 
-		s.log.Info("Generating pre params")
-		params, err := keygen.GeneratePreParams(10 * time.Minute)
+	if s.pre == nil {
+		params, err := s.GetLocalPartyPreParams()
 		if err != nil {
 			panic(err)
 		}
@@ -155,6 +175,15 @@ func (s *Secret) GetLocalPartyPreParams() *keygen.LocalPreParams {
 		s.pre = params
 	}
 	return s.pre
+}
+
+func (s *Secret) GetLocalPartyPreParams() (*keygen.LocalPreParams, error) {
+	if params := openParams(); params != nil {
+		s.log.Info("Params opened from file")
+		return params, nil
+	}
+	s.log.Info("Generating pre params")
+	return keygen.GeneratePreParams(10 * time.Minute)
 }
 
 func openParams() *keygen.LocalPreParams {
@@ -174,4 +203,26 @@ func openParams() *keygen.LocalPreParams {
 	}
 
 	return res
+}
+
+func (s *Secret) UpdateLocalPartyData(key *keygen.LocalPartySaveData) error {
+	s.Lock()
+	defer s.Unlock()
+
+	path := os.Getenv(PartyTSSDataENV)
+	if path == "" {
+		return ErrNoTssDataPath
+	}
+
+	data, err := json.Marshal(key)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(path, data, os.ModeAppend); err != nil {
+		return err
+	}
+	s.data = key
+	s.prv, _ = crypto.ToECDSA(secret.MustGetLocalPartyData().Xi.Bytes())
+	return nil
 }
