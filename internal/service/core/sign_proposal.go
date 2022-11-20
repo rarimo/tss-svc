@@ -1,97 +1,138 @@
-package step
+package core
 
 import (
 	"context"
 	goerr "errors"
+	"fmt"
 	"sync"
 
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	merkle "gitlab.com/rarify-protocol/go-merkle"
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
-	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign/session"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
-	"google.golang.org/grpc"
+)
+
+var (
+	ErrSenderIsNotProposer = goerr.New("party is not proposer")
+	ErrUnsupportedContent  = goerr.New("unsupported content")
+	ErrInvalidRequestType  = goerr.New("invalid request type")
 )
 
 const MaxPoolSize = 32
 
-var ErrUnsupportedContent = goerr.New("unsupported content")
-
 type ProposalController struct {
-	wg       *sync.WaitGroup
-	id       uint64
-	proposer rarimo.Party
+	*bounds
+	*defaultController
 
-	result chan *session.Proposal
+	mu *sync.Mutex
+	wg *sync.WaitGroup
 
-	connector *connectors.BroadcastConnector
+	sessionId uint64
+	proposer  rarimo.Party
+	result    types.ProposalData
 	pool      *pool.Pool
-	rarimo    *grpc.ClientConn
-	params    *local.Params
-	secret    *local.Secret
-	log       *logan.Entry
+	factory   *ControllerFactory
 }
 
 func NewProposalController(
-	id uint64,
-	params *local.Params,
-	secret *local.Secret,
+	sessionId uint64,
 	proposer rarimo.Party,
-	result chan *session.Proposal,
-	connector *connectors.BroadcastConnector,
 	pool *pool.Pool,
-	rarimo *grpc.ClientConn,
-	log *logan.Entry,
-) *ProposalController {
+	defaultController *defaultController,
+	bounds *bounds,
+	factory *ControllerFactory,
+) IController {
 	return &ProposalController{
-		wg:        &sync.WaitGroup{},
-		id:        id,
-		params:    params,
-		secret:    secret,
-		proposer:  proposer,
-		result:    result,
-		connector: connector,
-		pool:      pool,
-		rarimo:    rarimo,
-		log:       log,
+		bounds:            bounds,
+		defaultController: defaultController,
+		mu:                &sync.Mutex{},
+		wg:                &sync.WaitGroup{},
+		sessionId:         sessionId,
+		proposer:          proposer,
+		pool:              pool,
+		factory:           factory,
 	}
 }
 
 var _ IController = &ProposalController{}
 
-func (p *ProposalController) ReceiveFromSender(sender rarimo.Party, request *types.MsgSubmitRequest) {
-	if request.Type == types.RequestType_Proposal && sender.Account == p.proposer.Account {
-		proposal := new(types.ProposalRequest)
-
-		if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
-			p.log.WithError(err).Error("error unmarshalling request")
-		}
-
-		if proposal.Session == p.id && p.validate(proposal.Indexes, proposal.Root) {
-			if len(proposal.Indexes) == 0 {
-				p.log.Infof("[Proposal %d] - Received empty pool. Skipping.", p.id)
-			}
-
-			p.log.Infof("[Proposal %d] - Pool root: %s", p.id, proposal.Root)
-			p.log.Infof("[Proposal %d] - Indexes: %v", p.id, proposal.Indexes)
-
-			p.result <- &session.Proposal{
-				Indexes: proposal.Indexes,
-				Root:    proposal.Root,
-			}
-		}
+func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
+	if err := p.checkSender(request); err != nil {
+		return err
 	}
 
+	if request.Type != types.RequestType_Proposal {
+		return ErrInvalidRequestType
+	}
+
+	proposal := new(types.ProposalRequest)
+	if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
+		return errors.Wrap(err, "error unmarshalling request")
+	}
+
+	if proposal.Session == p.sessionId && p.validate(proposal.Indexes, proposal.Root) {
+		if len(proposal.Indexes) == 0 {
+			p.infof("Received empty pool. Skipping.")
+		}
+
+		p.finish(proposal.Root, proposal.Indexes)
+	}
+	return nil
+}
+
+func (p *ProposalController) Run(ctx context.Context) {
+	p.wg.Add(1)
+	go p.run(ctx)
+
+}
+
+func (p *ProposalController) WaitFor() {
+	p.wg.Wait()
+}
+
+func (p *ProposalController) Next() IController {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	abounds := NewBounds(p.End()+1, p.params.Step(AcceptingIndex).Duration)
+	if len(p.result.Indexes) == 0 {
+		sBounds := NewBounds(abounds.End()+1, p.params.Step(SigningIndex).Duration)
+		fBounds := NewBounds(sBounds.End()+1, p.params.Step(FinishingIndex).Duration)
+		finish := p.factory.GetFinishController(p.sessionId, types.SignatureData{}, fBounds)
+		signing := p.factory.GetEmptyController(finish, sBounds)
+		acceptance := p.factory.GetEmptyController(signing, abounds)
+		return acceptance
+	}
+
+	return p.factory.GetAcceptanceController(p.sessionId, p.result, abounds)
+}
+
+func (p *ProposalController) finish(root string, indexes []string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.infof("Pool root: %s", root)
+	p.infof("Indexes: %v", indexes)
+	p.result = types.ProposalData{Indexes: indexes, Root: root}
+}
+
+func (p *ProposalController) checkSender(request *types.MsgSubmitRequest) error {
+	sender, err := p.auth.Auth(request)
+	if err != nil {
+		return err
+	}
+
+	if !Equal(&sender, &p.proposer) {
+		return ErrSenderIsNotProposer
+	}
+
+	return nil
 }
 
 func (p *ProposalController) validate(indexes []string, root string) bool {
@@ -101,55 +142,43 @@ func (p *ProposalController) validate(indexes []string, root string) bool {
 
 	contents, err := p.getContents(context.Background(), indexes)
 	if err != nil {
-		p.log.WithError(err).Error("error preparing contents")
+		p.errorf(err, "error preparing contents")
 		return false
 	}
 
 	return hexutil.Encode(merkle.NewTree(crypto.Keccak256, contents...).Root()) == root
 }
 
-func (p *ProposalController) Run(ctx context.Context) {
-	p.wg.Add(1)
-	go p.run(ctx)
-}
-
 func (p *ProposalController) run(ctx context.Context) {
 	defer func() {
-		p.log.Infof("[Proposal %d] - Controller finished", p.id)
+		p.infof("Controller finished")
 		p.wg.Done()
 	}()
 
 	if p.proposer.PubKey != p.secret.ECDSAPubKeyStr() {
-		p.log.Infof("[Proposal %d] - Proposer is another party", p.id)
+		p.infof("Proposer is another party")
 		return
 	}
 
 	ids, root, err := p.getNewPool(ctx)
 	if err != nil {
-		p.log.WithError(err).Error("[Proposal %d] - Error preparing pool to propose", p.id)
+		p.errorf(err, "Error preparing pool to propose")
 		return
 	}
 
-	p.log.Infof("[Proposal %d] - Pool root %s", p.id, root)
-	p.log.Infof("[Proposal %d] - Indexes: %v", p.id, ids)
-
-	p.result <- &session.Proposal{
-		Indexes: ids,
-		Root:    root,
-	}
-
+	p.finish(root, ids)
 	if len(ids) == 0 {
-		p.log.Infof("[Proposal %d] - Empty pool. Skipping.", p.id)
+		p.infof("Empty pool. Skipping.")
 		return
 	}
 
-	details, err := cosmostypes.NewAnyWithValue(&types.ProposalRequest{Session: p.id, Indexes: ids, Root: root})
+	details, err := cosmostypes.NewAnyWithValue(&types.ProposalRequest{Session: p.sessionId, Indexes: ids, Root: root})
 	if err != nil {
-		p.log.WithError(err).Error("error parsing details")
+		p.errorf(err, "Error parsing details")
 		return
 	}
 
-	p.connector.SubmitAll(ctx, &types.MsgSubmitRequest{
+	p.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Type:        types.RequestType_Proposal,
 		IsBroadcast: true,
 		Details:     details,
@@ -194,13 +223,6 @@ func (p *ProposalController) getContents(ctx context.Context, ids []string) ([]m
 				return nil, err
 			}
 			contents = append(contents, content)
-		case rarimo.OpType_CHANGE_KEY:
-			content, err := p.getChangeContent(ctx, resp.Operation)
-			if err != nil {
-				return nil, err
-			}
-			contents = append(contents, content)
-
 		default:
 			return nil, ErrUnsupportedContent
 		}
@@ -233,16 +255,10 @@ func (p *ProposalController) getTransferContent(ctx context.Context, op rarimo.O
 	return content, errors.Wrap(err, "error creating content")
 }
 
-func (p *ProposalController) getChangeContent(_ context.Context, op rarimo.Operation) (merkle.Content, error) {
-	change, err := pkg.GetChangeKey(op)
-	if err != nil {
-		return nil, errors.Wrap(err, "error parsing operation details")
-	}
-
-	content, err := pkg.GetChangeKeyContent(change)
-	return content, errors.Wrap(err, "error creating content")
+func (p *ProposalController) infof(msg string, args ...interface{}) {
+	p.Infof("[Proposal %d] - %s", p.sessionId, fmt.Sprintf(msg, args))
 }
 
-func (p *ProposalController) WaitFinish() {
-	p.wg.Wait()
+func (p *ProposalController) errorf(err error, msg string, args ...interface{}) {
+	p.WithError(err).Errorf("[Proposal %d] - %s", p.sessionId, fmt.Sprintf(msg, args))
 }

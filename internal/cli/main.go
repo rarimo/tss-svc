@@ -5,8 +5,7 @@ import (
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/keygen"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core/sign"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/grpc"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/timer"
@@ -44,13 +43,15 @@ func Run(args []string) bool {
 	case serviceCmd.FullCommand():
 		go timer.NewBlockSubscriber(cfg).Run()
 		go pool.NewTransferOperationSubscriber(cfg).Run()
-		go pool.NewChangeKeyOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
-		timer.NewTimer(cfg).SubscribeToBlocks("sign-service", sign.NewService(cfg).NewBlock)
-		grpc.NewServer(sign.NewService(cfg), cfg).Run()
+		core.Run(cfg)
+		err = grpc.NewServer(cfg).Run()
 	case keygenCmd.FullCommand():
-		go keygen.NewService(cfg).Run()
-		grpc.NewServer(keygen.NewService(cfg), cfg).Run()
+		go timer.NewBlockSubscriber(cfg).Run()
+		go pool.NewTransferOperationSubscriber(cfg).Run()
+		go pool.NewOperationCatchupper(cfg).Run()
+		core.RunKeygen(cfg)
+		err = grpc.NewServer(cfg).Run()
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():

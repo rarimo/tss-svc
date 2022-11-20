@@ -11,10 +11,9 @@ import (
 )
 
 const (
-	OpServiceName    = "op-subscriber"
-	OpQueryTransfer  = "tm.event='Tx' AND new_operation.operation_type='TRANSFER'"
-	OpQueryChangeKey = "tm.event='Tx' AND new_operation.operation_type='CHANGE_KEY'"
-	OpPoolSize       = 1000
+	OpServiceName   = "op-subscriber"
+	OpQueryTransfer = "tm.event='Tx' AND new_operation.operation_type='TRANSFER'"
+	OpPoolSize      = 1000
 )
 
 // OperationSubscriber subscribes to the NewOperation events on the tendermint core.
@@ -32,16 +31,6 @@ func NewTransferOperationSubscriber(cfg config.Config) *OperationSubscriber {
 		log:    cfg.Log(),
 		client: cfg.Tendermint(),
 		query:  OpQueryTransfer,
-	}
-}
-
-// NewChangeKeyOperationSubscriber creates the subscriber instance for listening new change key operations
-func NewChangeKeyOperationSubscriber(cfg config.Config) *OperationSubscriber {
-	return &OperationSubscriber{
-		pool:   NewPool(cfg),
-		log:    cfg.Log(),
-		client: cfg.Tendermint(),
-		query:  OpQueryChangeKey,
 	}
 }
 

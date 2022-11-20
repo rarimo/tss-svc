@@ -13,14 +13,14 @@ import (
 
 type ServerImpl struct {
 	types.UnimplementedServiceServer
-	core     core.IGlobalReceiver
+	receiver core.IGlobalReceiver
 	log      *logan.Entry
 	listener net.Listener
 }
 
-func NewServer(receiver core.IGlobalReceiver, cfg config.Config) *ServerImpl {
+func NewServer(cfg config.Config) *ServerImpl {
 	return &ServerImpl{
-		core:     receiver,
+		receiver: core.NewManager(nil),
 		log:      cfg.Log(),
 		listener: cfg.Listener(),
 	}
@@ -34,21 +34,6 @@ func (s *ServerImpl) Run() error {
 
 var _ types.ServiceServer = &ServerImpl{}
 
-func (s *ServerImpl) Info(ctx context.Context, request *types.MsgInfoRequest) (*types.MsgInfoResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *ServerImpl) AllSessionsInfo(ctx context.Context, request *types.MsgAllSessionInfoRequest) (*types.MsgAllSessionInfoResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *ServerImpl) SessionInfo(ctx context.Context, request *types.MsgSessionInfoRequest) (*types.MsgSessionInfoResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (s *ServerImpl) Submit(ctx context.Context, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
-	return &types.MsgSubmitResponse{}, s.core.Receive(request)
+	return &types.MsgSubmitResponse{}, s.receiver.Receive(request)
 }
