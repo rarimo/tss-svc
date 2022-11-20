@@ -42,14 +42,14 @@ func (b *BlockSubscriber) Run() {
 			c, ok := <-out
 			if !ok {
 				if err := b.client.Unsubscribe(context.Background(), BlockServiceName, BlockQuery); err != nil {
-					b.log.WithError(err).Error("error unsubscribing from new blocks")
+					b.log.WithError(err).Error("[Block] failed to unsubscribe from new blocks")
 				}
 				break
 			}
 
 			switch data := c.Data.(type) {
 			case types.EventDataNewBlock:
-				b.log.Debugf("Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
+				b.log.Debugf("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
 				b.timer.newBlock(uint64(data.Block.Height))
 				break
 			}

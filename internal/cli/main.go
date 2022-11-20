@@ -5,6 +5,7 @@ import (
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/grpc"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
@@ -44,12 +45,14 @@ func Run(args []string) bool {
 		go timer.NewBlockSubscriber(cfg).Run()
 		go pool.NewTransferOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
+		go local.NewParamsSubscriber(cfg).Run()
 		core.Run(cfg)
 		err = grpc.NewServer(cfg).Run()
 	case keygenCmd.FullCommand():
 		go timer.NewBlockSubscriber(cfg).Run()
 		go pool.NewTransferOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
+		go local.NewParamsSubscriber(cfg).Run()
 		core.RunKeygen(cfg)
 		err = grpc.NewServer(cfg).Run()
 	case migrateUpCmd.FullCommand():

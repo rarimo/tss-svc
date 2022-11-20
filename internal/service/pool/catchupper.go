@@ -37,11 +37,11 @@ func (o *OperationCatchupper) Run() {
 
 		for _, op := range operations.Operation {
 			if op.Signed {
-				o.log.Debug("Operation already signed")
+				o.log.Debug("[Pool] Operation already signed")
 				continue
 			}
 
-			o.log.Debugf("New operation found index=%s", op.Index)
+			o.log.Debugf("[Pool] New operation found index=%s", op.Index)
 			err := o.pool.Add(op.Index)
 			if err != nil {
 				panic(err)

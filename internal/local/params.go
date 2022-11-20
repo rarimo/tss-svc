@@ -9,6 +9,7 @@ import (
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"google.golang.org/grpc"
 )
 
 // Params implements singleton pattern
@@ -20,6 +21,8 @@ type Params struct {
 	tssP    *rarimo.Params
 	tokenP  *token.Params
 	chainId string
+
+	rarimo *grpc.ClientConn
 
 	nextTssP   chan *rarimo.Params
 	nextTokenP chan *token.Params
@@ -44,6 +47,7 @@ func NewParams(cfg config.Config) *Params {
 			tssP:       &tssP.Params,
 			tokenP:     &tokenP.Params,
 			chainId:    cfg.Private().ChainId,
+			rarimo:     cfg.Cosmos(),
 			nextTssP:   make(chan *rarimo.Params, 100),
 			nextTokenP: make(chan *token.Params, 100),
 		}
@@ -51,10 +55,20 @@ func NewParams(cfg config.Config) *Params {
 	return params
 }
 
-// NewParams receives new parameters but does not update it until UpdateParams is called
-func (p *Params) NewParams(tss *rarimo.Params, token *token.Params) {
-	p.nextTssP <- tss
-	p.nextTokenP <- token
+func (p *Params) FetchParams() error {
+	tssP, err := rarimo.NewQueryClient(p.rarimo).Params(context.TODO(), &rarimo.QueryParamsRequest{})
+	if err != nil {
+		return err
+	}
+
+	tokenP, err := token.NewQueryClient(p.rarimo).Params(context.TODO(), &token.QueryParamsRequest{})
+	if err != nil {
+		return err
+	}
+
+	p.nextTssP <- &tssP.Params
+	p.nextTokenP <- &tokenP.Params
+	return nil
 }
 
 // UpdateParams checks and updates params if there are the new one

@@ -26,6 +26,8 @@ message ProposalData {
   repeated string indexes = 1;
   // Merkle tree based on operations root hash in hex
   string root = 2;
+  // Reshare info
+  bool reshare = 3;
 }
 
 message AcceptanceData {
@@ -33,6 +35,8 @@ message AcceptanceData {
   repeated string indexes = 1;
   string root = 2;
   map<string, bool> acceptances = 3;
+  // Reshare info
+  bool reshare = 4;
 }
 
 message SignatureData {
@@ -40,6 +44,8 @@ message SignatureData {
   repeated string indexes = 1;
   string root = 2;
   string signature = 3;
+  // Reshare info
+  bool reshare = 4;
 }
 
 message Session {

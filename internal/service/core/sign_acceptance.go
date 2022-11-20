@@ -43,6 +43,7 @@ func NewAcceptanceController(
 			Indexes:     data.Indexes,
 			Root:        data.Root,
 			Acceptances: make(map[string]bool),
+			Reshare:     data.Reshare,
 		},
 		factory: factory,
 	}
@@ -88,14 +89,23 @@ func (a *AcceptanceController) Next() IController {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	sBounds := NewBounds(a.End()+1, a.params.Step(SigningIndex).Duration)
 	if len(a.result.Acceptances) > a.params.T() {
 		a.infof("Reached required amount of acceptances")
+		if a.data.Reshare {
+			return a.factory.GetReshareController(a.sessionId, a.result, NewBounds(a.End()+1, a.params.Step(ReshareIndex).Duration))
+		}
+		sBounds := NewBounds(a.End()+1, a.params.Step(ReshareIndex).Duration+1+a.params.Step(SigningIndex).Duration)
 		return a.factory.GetSignatureController(a.sessionId, a.result, sBounds)
 	}
 
-	fBounds := NewBounds(sBounds.End()+1, a.params.Step(FinishingIndex).Duration)
-	return a.factory.GetEmptyController(a.factory.GetFinishController(a.sessionId, types.SignatureData{}, fBounds), sBounds)
+	bounds := NewBounds(
+		a.End()+1,
+		a.params.Step(ReshareIndex).Duration+
+			1+a.params.Step(SigningIndex).Duration+
+			1+a.params.Step(FinishingIndex).Duration,
+	)
+
+	return a.factory.GetFinishController(a.sessionId, types.SignatureData{}, bounds)
 }
 
 func (a *AcceptanceController) run(ctx context.Context) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -53,13 +54,25 @@ func (f *FinishController) Run(ctx context.Context) {
 	}()
 
 	if f.data.Signature != "" {
-		if err := f.SubmitConfirmation(f.data.Indexes, f.data.Root, f.data.Signature); err != nil {
+		var meta *rarimo.ConfirmationMeta
+
+		if f.data.Reshare {
+			meta = &rarimo.ConfirmationMeta{
+				NewKeyECDSA: f.reshare.Key,
+				PartyKey:    f.reshare.NewKeys,
+			}
+		}
+
+		if err := f.SubmitConfirmation(f.data.Indexes, f.data.Root, f.data.Signature, meta); err != nil {
 			f.errorf(err, "Failed to submit confirmation. Maybe already submitted.")
 			return
 		}
 
 		f.proposer.Update(f.data.Signature)
 	}
+
+	f.secret.UpdateSecret()
+	f.params.UpdateParams()
 }
 
 func (f *FinishController) WaitFor() {
@@ -67,7 +80,6 @@ func (f *FinishController) WaitFor() {
 }
 
 func (f *FinishController) Next() IController {
-	f.params.UpdateParams()
 	pBounds := NewBounds(f.End()+1, f.params.Step(ProposingIndex).Duration)
 	return f.factory.GetProposalController(f.sessionId+1, f.proposer.GetProposer(f.sessionId+1), pBounds)
 }

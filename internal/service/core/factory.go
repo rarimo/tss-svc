@@ -55,3 +55,7 @@ func (c *ControllerFactory) GetFinishController(sessionId uint64, data types.Sig
 func (c *ControllerFactory) GetKeygenController(bounds *bounds) IController {
 	return NewKeygenController(c.defaultController, bounds, c)
 }
+
+func (c *ControllerFactory) GetReshareController(sessionId uint64, data types.AcceptanceData, bounds *bounds) IController {
+	return NewReshareController(sessionId, data, c.defaultController, bounds, c)
+}

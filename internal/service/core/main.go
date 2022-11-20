@@ -17,7 +17,8 @@ const (
 	ProposingIndex = 0
 	AcceptingIndex = 1
 	SigningIndex   = 2
-	FinishingIndex = 2
+	FinishingIndex = 3
+	ReshareIndex   = 4
 )
 
 type IGlobalReceiver interface {
@@ -64,10 +65,11 @@ type defaultController struct {
 	*logan.Entry
 	*connectors.ConfirmConnector
 	*connectors.BroadcastConnector
-	auth   *auth.RequestAuthorizer
-	rarimo *grpc.ClientConn
-	secret *local.Secret
-	params *local.Params
+	auth    *auth.RequestAuthorizer
+	rarimo  *grpc.ClientConn
+	secret  *local.Secret
+	params  *local.Params
+	reshare *ReshareProvider
 }
 
 func NewDefaultController(cfg config.Config) *defaultController {
@@ -79,6 +81,7 @@ func NewDefaultController(cfg config.Config) *defaultController {
 		rarimo:             cfg.Cosmos(),
 		secret:             local.NewSecret(cfg),
 		params:             local.NewParams(cfg),
+		reshare:            NewReshareProvider(cfg),
 	}
 }
 

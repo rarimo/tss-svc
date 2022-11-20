@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	ErrSenderHasNotAccepted = goerr.New("sender has to accepted the proposal")
+	ErrSenderHasNotAccepted = goerr.New("sender has not accepted proposal")
 )
 
 type SignatureController struct {
@@ -69,6 +69,7 @@ func NewSignatureController(
 		result: types.SignatureData{
 			Indexes: data.Indexes,
 			Root:    data.Root,
+			Reshare: data.Reshare,
 		},
 		factory: factory,
 	}

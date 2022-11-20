@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"crypto/elliptic"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"sync"
@@ -30,6 +29,9 @@ type KeygenController struct {
 	end     chan keygen.LocalPartySaveData
 	out     chan tss.Message
 	party   tss.Party
+
+	status bool
+
 	factory *ControllerFactory
 }
 
@@ -111,11 +113,8 @@ func (k *KeygenController) run(ctx context.Context) {
 		}
 
 		k.infof("Pub key: %s", hexutil.Encode(elliptic.Marshal(s256k1.S256(), result.ECDSAPub.X(), result.ECDSAPub.Y())))
-		if err := k.secret.UpdateLocalPartyData(&result); err != nil {
-			data, _ := json.Marshal(result)
-			k.Info(string(data))
-			panic(err)
-		}
+		k.secret.UpdateLocalPartyData(&result)
+		k.status = true
 	default:
 		k.infof("Keygen process has not been finished yet or has some errors")
 	}
@@ -170,8 +169,10 @@ func (k *KeygenController) WaitFor() {
 }
 
 func (k *KeygenController) Next() IController {
-	// FIXME
-	return k.factory.GetFinishController(1, types.SignatureData{}, NewBounds(k.finish+1, k.params.Step(FinishingIndex).Duration))
+	if k.status {
+		return k.factory.GetFinishController(1, types.SignatureData{}, NewBounds(k.finish+1, k.params.Step(FinishingIndex).Duration))
+	}
+	panic("failed to process keygen")
 }
 
 func (k *KeygenController) infof(msg string, args ...interface{}) {

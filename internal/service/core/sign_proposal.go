@@ -101,16 +101,19 @@ func (p *ProposalController) Next() IController {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	abounds := NewBounds(p.End()+1, p.params.Step(AcceptingIndex).Duration)
 	if len(p.result.Indexes) == 0 {
-		sBounds := NewBounds(abounds.End()+1, p.params.Step(SigningIndex).Duration)
-		fBounds := NewBounds(sBounds.End()+1, p.params.Step(FinishingIndex).Duration)
-		finish := p.factory.GetFinishController(p.sessionId, types.SignatureData{}, fBounds)
-		signing := p.factory.GetEmptyController(finish, sBounds)
-		acceptance := p.factory.GetEmptyController(signing, abounds)
-		return acceptance
+		bounds := NewBounds(
+			p.End()+1,
+			p.params.Step(AcceptingIndex).Duration+
+				1+p.params.Step(ReshareIndex).Duration+
+				1+p.params.Step(SigningIndex).Duration+
+				1+p.params.Step(FinishingIndex).Duration,
+		)
+
+		return p.factory.GetFinishController(p.sessionId, types.SignatureData{}, bounds)
 	}
 
+	abounds := NewBounds(p.End()+1, p.params.Step(AcceptingIndex).Duration)
 	return p.factory.GetAcceptanceController(p.sessionId, p.result, abounds)
 }
 
@@ -216,15 +219,25 @@ func (p *ProposalController) getContents(ctx context.Context, ids []string) ([]m
 			return nil, pool.ErrOpAlreadySigned
 		}
 
+		var content merkle.Content
+
 		switch resp.Operation.OperationType {
 		case rarimo.OpType_TRANSFER:
-			content, err := p.getTransferContent(ctx, resp.Operation)
+			content, err = p.getTransferContent(ctx, resp.Operation)
 			if err != nil {
 				return nil, err
 			}
-			contents = append(contents, content)
+		case rarimo.OpType_CHANGE_PARTIES:
+			content, err = p.getChangePartiesContent(ctx, resp.Operation)
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, ErrUnsupportedContent
+		}
+
+		if content != nil {
+			contents = append(contents, content)
 		}
 	}
 
@@ -253,6 +266,25 @@ func (p *ProposalController) getTransferContent(ctx context.Context, op rarimo.O
 
 	content, err := pkg.GetTransferContent(&itemResp.Item, p.params.ChainParams(transfer.ToChain), transfer)
 	return content, errors.Wrap(err, "error creating content")
+}
+
+func (p *ProposalController) getChangePartiesContent(ctx context.Context, op rarimo.Operation) (merkle.Content, error) {
+	change, err := pkg.GetChangeParties(op)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing operation details")
+	}
+
+	// TODO
+	if change.Type == rarimo.ChangeType_REMOVE {
+		return nil, nil
+	}
+
+	if err := p.reshare.Reshare(change); err != nil {
+		return nil, nil
+	}
+
+	p.result.Reshare = true
+	return pkg.GetChangePartiesContent(change)
 }
 
 func (p *ProposalController) infof(msg string, args ...interface{}) {

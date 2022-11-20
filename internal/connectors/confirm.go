@@ -49,12 +49,13 @@ func NewConfirmConnector(cfg config.Config) *ConfirmConnector {
 	}
 }
 
-func (c *ConfirmConnector) SubmitConfirmation(indexes []string, root string, signature string) error {
+func (c *ConfirmConnector) SubmitConfirmation(indexes []string, root string, signature string, meta *rarimo.ConfirmationMeta) error {
 	msg := &rarimo.MsgCreateConfirmation{
 		Creator:        c.secret.AccountAddressStr(),
 		Root:           root,
 		Indexes:        indexes,
 		SignatureECDSA: signature,
+		Meta:           meta,
 	}
 
 	builder := c.txConfig.NewTxBuilder()

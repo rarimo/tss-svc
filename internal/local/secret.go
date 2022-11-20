@@ -42,6 +42,8 @@ type Secret struct {
 	data    *keygen.LocalPartySaveData
 	pre     *keygen.LocalPreParams
 	log     *logan.Entry
+
+	newData chan *keygen.LocalPartySaveData
 }
 
 func NewSecret(cfg config.Config) *Secret {
@@ -205,24 +207,40 @@ func openParams() *keygen.LocalPreParams {
 	return res
 }
 
-func (s *Secret) UpdateLocalPartyData(key *keygen.LocalPartySaveData) error {
+func (s *Secret) UpdateLocalPartyData(key *keygen.LocalPartySaveData) {
+	s.newData <- key
+}
+
+func (s *Secret) UpdateSecret() {
 	s.Lock()
 	defer s.Unlock()
 
-	path := os.Getenv(PartyTSSDataENV)
-	if path == "" {
-		return ErrNoTssDataPath
-	}
+	select {
+	case s.data = <-s.newData:
+		path := os.Getenv(PartyTSSDataENV)
+		if path == "" {
+			data, _ := json.Marshal(s.data)
+			s.log.Info(string(data))
+			panic(ErrNoTssDataPath)
+		}
 
-	data, err := json.Marshal(key)
-	if err != nil {
-		return err
-	}
+		data, err := json.Marshal(s.data)
+		if err != nil {
+			data, _ := json.Marshal(s.data)
+			s.log.Info(string(data))
+			s.log.WithError(err).Error("error updating local party data")
+			panic(err)
+		}
 
-	if err := os.WriteFile(path, data, os.ModeAppend); err != nil {
-		return err
+		if err := os.WriteFile(path, data, os.ModeAppend); err != nil {
+			data, _ := json.Marshal(s.data)
+			s.log.Info(string(data))
+			s.log.WithError(err).Error("error updating local party data")
+			panic(err)
+		}
+
+		s.prv, _ = crypto.ToECDSA(secret.MustGetLocalPartyData().Xi.Bytes())
+	default:
+		return
 	}
-	s.data = key
-	s.prv, _ = crypto.ToECDSA(secret.MustGetLocalPartyData().Xi.Bytes())
-	return nil
 }
