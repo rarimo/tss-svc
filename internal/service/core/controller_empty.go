@@ -20,6 +20,14 @@ func NewEmptyController(next IController, bounds *bounds) IController {
 
 var _ IController = &EmptyController{}
 
+func (e *EmptyController) StepType() types.StepType {
+	return types.StepType_Other
+}
+
+func (e *EmptyController) SessionID() uint64 {
+	return 0
+}
+
 func (e *EmptyController) Receive(request *types.MsgSubmitRequest) error {
 	return nil
 }

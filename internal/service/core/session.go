@@ -13,7 +13,6 @@ import (
 
 type Session struct {
 	*logan.Entry
-	*bounds
 
 	id          uint64
 	initialized bool
@@ -33,7 +32,6 @@ func (s *Session) SessionID() uint64 {
 }
 
 func (s *Session) NextSession(id uint64, proposer string, bounds *bounds) {
-	s.bounds = bounds
 	s.id = id
 	s.initialized = true
 	err := s.storage.SessionQ().Upsert(&data.Session{

@@ -54,6 +54,10 @@ func NewKeygenController(
 
 var _ IController = &KeygenController{}
 
+func (k *KeygenController) StepType() types.StepType {
+	return types.StepType_Other
+}
+
 func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 	sender, err := k.auth.Auth(request)
 	if err != nil {

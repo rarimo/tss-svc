@@ -6,6 +6,9 @@ enum StepType {
   Proposing = 0;
   Accepting = 1;
   Signing = 2;
+  Resharing = 3;
+  Finishing = 4;
+  Other = 5;
 }
 
 enum Status {
@@ -13,50 +16,4 @@ enum Status {
   Processing = 1;
   Success = 2;
   Failed = 3;
-}
-
-message Step {
-  uint64 startBlock = 1;
-  uint64 endBlock = 2;
-  StepType type = 3;
-}
-
-message ProposalData {
-  // List of operation ids
-  repeated string indexes = 1;
-  // Merkle tree based on operations root hash in hex
-  string root = 2;
-  // Reshare info
-  bool reshare = 3;
-}
-
-message AcceptanceData {
-  // List of operation ids
-  repeated string indexes = 1;
-  string root = 2;
-  map<string, bool> acceptances = 3;
-  // Reshare info
-  bool reshare = 4;
-}
-
-message SignatureData {
-  // List of operation ids
-  repeated string indexes = 1;
-  string root = 2;
-  string signature = 3;
-  // Reshare info
-  bool reshare = 4;
-}
-
-message Session {
-  uint64 id = 1;
-  Status status = 2;
-  repeated Step steps = 4;
-  StepType currentStep = 5;
-  // Hex-encoded produces signature
-  string signature = 6;
-  // Accepted parties public keys
-  repeated string acceptedId = 7;
-  // Signed parties public keys
-  repeated string signedId = 8;
 }

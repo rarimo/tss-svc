@@ -39,6 +39,10 @@ func NewFinishController(
 
 var _ IController = &FinishController{}
 
+func (f *FinishController) StepType() types.StepType {
+	return types.StepType_Finishing
+}
+
 func (f *FinishController) Receive(request *types.MsgSubmitRequest) error {
 	return nil
 }

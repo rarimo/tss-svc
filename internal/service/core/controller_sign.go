@@ -77,6 +77,10 @@ func NewSignatureController(
 
 var _ IController = &SignatureController{}
 
+func (s *SignatureController) StepType() types.StepType {
+	return types.StepType_Signing
+}
+
 func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 	sender, err := s.auth.Auth(request)
 	if err != nil {

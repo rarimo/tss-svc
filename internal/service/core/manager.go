@@ -45,3 +45,7 @@ func (m *Manager) run() {
 func (m *Manager) Receive(req *types.MsgSubmitRequest) error {
 	return m.current.Receive(req)
 }
+
+func (m *Manager) Current() IController {
+	return m.current
+}

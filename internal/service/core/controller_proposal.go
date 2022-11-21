@@ -60,6 +60,10 @@ func NewProposalController(
 
 var _ IController = &ProposalController{}
 
+func (p *ProposalController) StepType() types.StepType {
+	return types.StepType_Proposing
+}
+
 func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 	if err := p.checkSender(request); err != nil {
 		return err

@@ -59,6 +59,10 @@ func NewReshareController(
 
 var _ IController = &ReshareController{}
 
+func (r *ReshareController) StepType() types.StepType {
+	return types.StepType_Resharing
+}
+
 func (r *ReshareController) Receive(request *types.MsgSubmitRequest) error {
 	sender, err := r.auth.Auth(request)
 	if err != nil {

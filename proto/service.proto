@@ -4,11 +4,12 @@ option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
 
 import "request.proto";
 import "session.proto";
-import "party.proto";
 import "google/protobuf/any.proto";
 
 service Service {
   rpc Submit(MsgSubmitRequest) returns (MsgSubmitResponse);
+  rpc Info(MsgInfoRequest) returns (MsgInfoResponse);
+  rpc Session(MsgSessionRequest) returns (MsgSessionResponse);
 }
 
 
@@ -19,6 +20,29 @@ message MsgSubmitRequest {
   google.protobuf.Any details = 4;
 }
 
-message MsgSubmitResponse {
+message MsgSubmitResponse {}
 
+
+message MsgInfoRequest{}
+
+message MsgInfoResponse {
+  uint64 id = 1;
+  uint64 start = 2;
+  uint64 end = 3;
+  Status status = 4;
+}
+
+message MsgSessionRequest{
+  uint64 id = 1;
+}
+
+message MsgSessionResponse {
+  uint64 id = 1;
+  uint64 start = 2;
+  uint64 end = 3;
+  Status status = 4;
+  string root = 6;
+  repeated string indexes = 7;
+  repeated string accepted = 8;
+  string signature = 9;
 }

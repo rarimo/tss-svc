@@ -29,6 +29,7 @@ type IController interface {
 	Start() uint64
 	End() uint64
 	SessionID() uint64
+	StepType() types.StepType
 }
 
 type bounds struct {
@@ -88,7 +89,7 @@ func Run(cfg config.Config) {
 		panic("invalid start block")
 	}
 
-	controller := factory.GetEmptyController(factory.GetFinishController(1, SignatureData{}, fBounds), NewBoundsWithEnd(timer.CurrentBlock(), fBounds.start-1))
+	controller := factory.GetEmptyController(factory.GetFinishController(SignatureData{}, fBounds), NewBoundsWithEnd(timer.CurrentBlock(), fBounds.start-1))
 	timer.SubscribeToBlocks("manager", NewManager(controller).NewBlock)
 }
 

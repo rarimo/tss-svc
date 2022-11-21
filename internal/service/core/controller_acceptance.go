@@ -48,6 +48,10 @@ func NewAcceptanceController(
 
 var _ IController = &AcceptanceController{}
 
+func (a *AcceptanceController) StepType() types.StepType {
+	return types.StepType_Accepting
+}
+
 func (a *AcceptanceController) Run(ctx context.Context) {
 	a.wg.Add(1)
 	go a.run(ctx)
