@@ -32,6 +32,7 @@ type ReshareController struct {
 	out       chan tss.Message
 	party     tss.Party
 
+	index  map[string]uint
 	status bool
 
 	factory *ControllerFactory
@@ -54,6 +55,7 @@ func NewReshareController(
 		parties:           defaultController.params.PartyIds(),
 		end:               make(chan keygen.LocalPartySaveData, 1),
 		out:               make(chan tss.Message, 1000),
+		index:             make(map[string]uint),
 		factory:           factory,
 	}
 }
@@ -75,7 +77,7 @@ func (r *ReshareController) receive(sender rarimo.Party, request *types.MsgSubmi
 
 	if request.Type == types.RequestType_Reshare {
 		r.infof("Received message from %s", sender.Account)
-
+		r.index[sender.Account]++
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
 		_, err := r.party.UpdateFromBytes(request.Details.Value, r.parties.FindByKey(new(big.Int).SetBytes(data)), request.IsBroadcast)
 		if err != nil {
@@ -172,13 +174,8 @@ func (r *ReshareController) listenOutput(ctx context.Context) {
 				Details:     details,
 			}
 
-			toParties := msg.GetTo()
-			if msg.IsBroadcast() {
-				toParties = r.params.PartyIds()
-			}
-
-			r.infof("Sending to %v", toParties)
-			for _, to := range toParties {
+			r.infof("Sending to %v", msg.GetTo())
+			for _, to := range msg.GetTo() {
 				r.infof("Sending message to %s", to.Id)
 				party, _ := r.params.PartyByAccount(to.Id)
 

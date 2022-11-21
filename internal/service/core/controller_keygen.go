@@ -140,13 +140,8 @@ func (k *KeygenController) listenOutput(ctx context.Context) {
 				Details:     details,
 			}
 
-			toParties := msg.GetTo()
-			if msg.IsBroadcast() {
-				toParties = k.params.PartyIds()
-			}
-
-			k.infof("Sending to %v", toParties)
-			for _, to := range toParties {
+			k.infof("Sending to %v", msg.GetTo())
+			for _, to := range msg.GetTo() {
 				k.infof("Sending message to %s", to.Id)
 				party, _ := k.params.PartyByAccount(to.Id)
 

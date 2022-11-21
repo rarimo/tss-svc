@@ -3,14 +3,10 @@ package core
 import (
 	"context"
 
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/tss-svc/internal/auth"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/timer"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -58,30 +54,6 @@ func NewBoundsWithEnd(start, end uint64) *bounds {
 	return &bounds{
 		start:  start,
 		finish: end,
-	}
-}
-
-type defaultController struct {
-	*logan.Entry
-	*connectors.ConfirmConnector
-	*connectors.BroadcastConnector
-	auth    *auth.RequestAuthorizer
-	rarimo  *grpc.ClientConn
-	secret  *local.Secret
-	params  *local.Params
-	reshare *ReshareProvider
-}
-
-func NewDefaultController(cfg config.Config) *defaultController {
-	return &defaultController{
-		Entry:              cfg.Log(),
-		ConfirmConnector:   connectors.NewConfirmConnector(cfg),
-		BroadcastConnector: connectors.NewBroadcastConnector(cfg),
-		auth:               auth.NewRequestAuthorizer(cfg),
-		rarimo:             cfg.Cosmos(),
-		secret:             local.NewSecret(cfg),
-		params:             local.NewParams(cfg),
-		reshare:            NewReshareProvider(cfg),
 	}
 }
 

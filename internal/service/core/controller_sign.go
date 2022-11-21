@@ -38,6 +38,8 @@ type SignatureController struct {
 	end       chan common.SignatureData
 	out       chan tss.Message
 
+	index map[string]uint
+
 	result  types.SignatureData
 	party   tss.Party
 	factory *ControllerFactory
@@ -66,6 +68,7 @@ func NewSignatureController(
 		tssParams:         tssParams,
 		out:               make(chan tss.Message, 1000),
 		end:               make(chan common.SignatureData, 1000),
+		index:             make(map[string]uint),
 		result: types.SignatureData{
 			Indexes: data.Indexes,
 			Root:    data.Root,
@@ -102,6 +105,7 @@ func (s *SignatureController) receive(sender rarimo.Party, request *types.MsgSub
 
 	if s.party != nil && sign.Root == s.data.Root {
 		s.infof("Received signing request from %s for root %s", sender.Account, sign.Root)
+		s.index[sender.Account]++
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
 		_, err := s.party.UpdateFromBytes(sign.Details.Value, s.parties.FindByKey(new(big.Int).SetBytes(data)), request.IsBroadcast)
 		if err != nil {
@@ -191,13 +195,8 @@ func (s *SignatureController) listenOutput(ctx context.Context, out <-chan tss.M
 				Details:     details,
 			}
 
-			toParties := msg.GetTo()
-			if msg.IsBroadcast() {
-				toParties = s.params.PartyIds()
-			}
-
-			s.infof("Sending to %v", toParties)
-			for _, to := range toParties {
+			s.infof("Sending to %v", msg.GetTo())
+			for _, to := range msg.GetTo() {
 				s.infof("Sending message to %s", to.Id)
 				party, _ := s.params.PartyByAccount(to.Id)
 

@@ -274,12 +274,11 @@ func (p *ProposalController) getChangePartiesContent(ctx context.Context, op rar
 		return nil, errors.Wrap(err, "error parsing operation details")
 	}
 
-	// TODO
-	if change.Type == rarimo.ChangeType_REMOVE {
+	if err := p.reshare.Reshare(change); err != nil {
 		return nil, nil
 	}
 
-	if err := p.reshare.Reshare(change); err != nil {
+	if !p.rats.PossibleChange(change) {
 		return nil, nil
 	}
 

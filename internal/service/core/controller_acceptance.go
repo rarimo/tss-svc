@@ -132,6 +132,7 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	defer a.mu.Unlock()
 	a.result.Acceptances[a.secret.AccountAddressStr()] = true
 	a.infof("Acceptances: %v", a.result.Acceptances)
+	a.rats.RegisterHonest(a.result.Acceptances)
 }
 
 func (a *AcceptanceController) infof(msg string, args ...interface{}) {

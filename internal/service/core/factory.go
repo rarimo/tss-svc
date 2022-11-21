@@ -1,6 +1,7 @@
 package core
 
 import (
+	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/auth"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
@@ -8,7 +9,20 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	"google.golang.org/grpc"
 )
+
+type defaultController struct {
+	*logan.Entry
+	*connectors.ConfirmConnector
+	*connectors.BroadcastConnector
+	auth    *auth.RequestAuthorizer
+	rarimo  *grpc.ClientConn
+	secret  *local.Secret
+	params  *local.Params
+	reshare *ReshareProvider
+	rats    *RatCounter
+}
 
 type ControllerFactory struct {
 	defaultController *defaultController
@@ -26,6 +40,8 @@ func NewControllerFactory(cfg config.Config) *ControllerFactory {
 			rarimo:             cfg.Cosmos(),
 			secret:             local.NewSecret(cfg),
 			params:             local.NewParams(cfg),
+			reshare:            NewReshareProvider(cfg),
+			rats:               NewRatCounter(cfg),
 		},
 		pool:     pool.NewPool(cfg),
 		proposer: NewProposerProvider(cfg),
