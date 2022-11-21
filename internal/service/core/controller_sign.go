@@ -31,8 +31,7 @@ type SignatureController struct {
 	mu *sync.Mutex
 	wg *sync.WaitGroup
 
-	sessionId uint64
-	data      types.AcceptanceData
+	data      AcceptanceData
 	parties   tss.SortedPartyIDs
 	tssParams *tss.Parameters
 	end       chan common.SignatureData
@@ -40,14 +39,13 @@ type SignatureController struct {
 
 	index map[string]uint
 
-	result  types.SignatureData
+	result  SignatureData
 	party   tss.Party
 	factory *ControllerFactory
 }
 
 func NewSignatureController(
-	sessionId uint64,
-	data types.AcceptanceData,
+	data AcceptanceData,
 	bounds *bounds,
 	defaultController *defaultController,
 	factory *ControllerFactory,
@@ -62,14 +60,13 @@ func NewSignatureController(
 		bounds:            bounds,
 		mu:                &sync.Mutex{},
 		wg:                &sync.WaitGroup{},
-		sessionId:         sessionId,
 		data:              data,
 		parties:           parties,
 		tssParams:         tssParams,
 		out:               make(chan tss.Message, 1000),
 		end:               make(chan common.SignatureData, 1000),
 		index:             make(map[string]uint),
-		result: types.SignatureData{
+		result: SignatureData{
 			Indexes: data.Indexes,
 			Root:    data.Root,
 			Reshare: data.Reshare,
@@ -137,7 +134,7 @@ func (s *SignatureController) WaitFor() {
 
 func (s *SignatureController) Next() IController {
 	fBounds := NewBounds(s.End()+1, s.params.Step(FinishingIndex).Duration)
-	return s.factory.GetFinishController(s.sessionId, s.result, fBounds)
+	return s.factory.GetFinishController(s.result, fBounds)
 }
 
 func (s *SignatureController) run(ctx context.Context) {
@@ -158,7 +155,7 @@ func (s *SignatureController) run(ctx context.Context) {
 		signature := append(result.Signature, result.SignatureRecovery...)
 		s.result.Signature = hexutil.Encode(signature)
 		s.infof("Signed root %s signature %", s.data.Root, s.result.Signature)
-		s.party.WaitingFor()
+		s.UpdateSignature(s.result)
 	default:
 		s.infof("Signature process has not been finished yet or has some errors")
 	}
@@ -217,9 +214,9 @@ func (s *SignatureController) listenOutput(ctx context.Context, out <-chan tss.M
 }
 
 func (s *SignatureController) infof(msg string, args ...interface{}) {
-	s.Infof("[Proposal %d] - %s", s.sessionId, fmt.Sprintf(msg, args))
+	s.Infof("[Proposal %d] - %s", s.SessionID(), fmt.Sprintf(msg, args))
 }
 
 func (s *SignatureController) errorf(err error, msg string, args ...interface{}) {
-	s.WithError(err).Errorf("[Proposal %d] - %s", s.sessionId, fmt.Sprintf(msg, args))
+	s.WithError(err).Errorf("[Proposal %d] - %s", s.SessionID(), fmt.Sprintf(msg, args))
 }

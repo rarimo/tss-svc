@@ -165,7 +165,7 @@ func (k *KeygenController) WaitFor() {
 
 func (k *KeygenController) Next() IController {
 	if k.status {
-		return k.factory.GetFinishController(1, types.SignatureData{}, NewBounds(k.finish+1, k.params.Step(FinishingIndex).Duration))
+		return k.factory.GetFinishController(SignatureData{}, NewBounds(k.finish+1, k.params.Step(FinishingIndex).Duration))
 	}
 	panic("failed to process keygen")
 }

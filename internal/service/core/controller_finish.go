@@ -15,15 +15,13 @@ type FinishController struct {
 
 	wg *sync.WaitGroup
 
-	sessionId uint64
-	data      types.SignatureData
-	proposer  *ProposerProvider
-	factory   *ControllerFactory
+	data     SignatureData
+	proposer *ProposerProvider
+	factory  *ControllerFactory
 }
 
 func NewFinishController(
-	sessionId uint64,
-	data types.SignatureData,
+	data SignatureData,
 	proposer *ProposerProvider,
 	defaultController *defaultController,
 	bounds *bounds,
@@ -33,7 +31,6 @@ func NewFinishController(
 		bounds:            bounds,
 		defaultController: defaultController,
 		wg:                &sync.WaitGroup{},
-		sessionId:         sessionId,
 		data:              data,
 		proposer:          proposer,
 		factory:           factory,
@@ -65,14 +62,17 @@ func (f *FinishController) Run(ctx context.Context) {
 
 		if err := f.SubmitConfirmation(f.data.Indexes, f.data.Root, f.data.Signature, meta); err != nil {
 			f.errorf(err, "Failed to submit confirmation. Maybe already submitted.")
-			return
 		}
 
 		f.proposer.Update(f.data.Signature)
+		f.Success()
+	} else {
+		f.Failed()
 	}
 
 	f.secret.UpdateSecret()
 	f.params.UpdateParams()
+
 }
 
 func (f *FinishController) WaitFor() {
@@ -80,14 +80,25 @@ func (f *FinishController) WaitFor() {
 }
 
 func (f *FinishController) Next() IController {
-	pBounds := NewBounds(f.End()+1, f.params.Step(ProposingIndex).Duration)
-	return f.factory.GetProposalController(f.sessionId+1, f.proposer.GetProposer(f.sessionId+1), pBounds)
+	id := f.SessionID() + 1
+	proposer := f.proposer.GetProposer(id)
+	sessionBounds := NewBounds(
+		f.End()+1,
+		f.params.Step(ProposingIndex).Duration+
+			1+f.params.Step(AcceptingIndex).Duration+
+			1+f.params.Step(ReshareIndex).Duration+
+			1+f.params.Step(SigningIndex).Duration+
+			1+f.params.Step(FinishingIndex).Duration,
+	)
+
+	f.NextSession(id, proposer.Account, sessionBounds)
+	return f.factory.GetProposalController(proposer, NewBounds(f.End()+1, f.params.Step(ProposingIndex).Duration))
 }
 
 func (f *FinishController) infof(msg string, args ...interface{}) {
-	f.Infof("[Acceptance %d] - %s", f.sessionId, fmt.Sprintf(msg, args))
+	f.Infof("[Acceptance %d] - %s", f.SessionID(), fmt.Sprintf(msg, args))
 }
 
 func (f *FinishController) errorf(err error, msg string, args ...interface{}) {
-	f.WithError(err).Errorf("[Acceptance %d] - %s", f.sessionId, fmt.Sprintf(msg, args))
+	f.WithError(err).Errorf("[Acceptance %d] - %s", f.SessionID(), fmt.Sprintf(msg, args))
 }

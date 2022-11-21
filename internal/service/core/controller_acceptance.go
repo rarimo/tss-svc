@@ -18,17 +18,15 @@ type AcceptanceController struct {
 	mu *sync.Mutex
 	wg *sync.WaitGroup
 
-	sessionId uint64
-	data      types.ProposalData
-	result    types.AcceptanceData
+	data   ProposalData
+	result AcceptanceData
 
 	factory *ControllerFactory
 }
 
 func NewAcceptanceController(
 	defaultController *defaultController,
-	sessionId uint64,
-	data types.ProposalData,
+	data ProposalData,
 	bounds *bounds,
 	factory *ControllerFactory,
 ) *AcceptanceController {
@@ -37,12 +35,11 @@ func NewAcceptanceController(
 		defaultController: defaultController,
 		mu:                &sync.Mutex{},
 		wg:                &sync.WaitGroup{},
-		sessionId:         sessionId,
 		data:              data,
-		result: types.AcceptanceData{
+		result: AcceptanceData{
 			Indexes:     data.Indexes,
 			Root:        data.Root,
-			Acceptances: make(map[string]bool),
+			Acceptances: make(map[string]struct{}),
 			Reshare:     data.Reshare,
 		},
 		factory: factory,
@@ -75,7 +72,7 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 		a.mu.Lock()
 		defer a.mu.Unlock()
 		a.infof("Received acceptance from %s for root %s", sender.Account, acceptance.Root)
-		a.result.Acceptances[sender.Account] = true
+		a.result.Acceptances[sender.Account] = struct{}{}
 	}
 
 	return nil
@@ -92,10 +89,10 @@ func (a *AcceptanceController) Next() IController {
 	if len(a.result.Acceptances) > a.params.T() {
 		a.infof("Reached required amount of acceptances")
 		if a.data.Reshare {
-			return a.factory.GetReshareController(a.sessionId, a.result, NewBounds(a.End()+1, a.params.Step(ReshareIndex).Duration))
+			return a.factory.GetReshareController(a.result, NewBounds(a.End()+1, a.params.Step(ReshareIndex).Duration))
 		}
 		sBounds := NewBounds(a.End()+1, a.params.Step(ReshareIndex).Duration+1+a.params.Step(SigningIndex).Duration)
-		return a.factory.GetSignatureController(a.sessionId, a.result, sBounds)
+		return a.factory.GetSignatureController(a.result, sBounds)
 	}
 
 	bounds := NewBounds(
@@ -105,7 +102,7 @@ func (a *AcceptanceController) Next() IController {
 			1+a.params.Step(FinishingIndex).Duration,
 	)
 
-	return a.factory.GetFinishController(a.sessionId, types.SignatureData{}, bounds)
+	return a.factory.GetFinishController(SignatureData{}, bounds)
 }
 
 func (a *AcceptanceController) run(ctx context.Context) {
@@ -130,15 +127,16 @@ func (a *AcceptanceController) run(ctx context.Context) {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.result.Acceptances[a.secret.AccountAddressStr()] = true
+	a.result.Acceptances[a.secret.AccountAddressStr()] = struct{}{}
 	a.infof("Acceptances: %v", a.result.Acceptances)
-	a.rats.RegisterHonest(a.result.Acceptances)
+	a.rats.RegisterAcceptances(a.result.Acceptances)
+	a.UpdateAcceptance(a.result)
 }
 
 func (a *AcceptanceController) infof(msg string, args ...interface{}) {
-	a.Infof("[Acceptance %d] - %s", a.sessionId, fmt.Sprintf(msg, args))
+	a.Infof("[Acceptance %d] - %s", a.SessionID(), fmt.Sprintf(msg, args))
 }
 
 func (a *AcceptanceController) errorf(err error, msg string, args ...interface{}) {
-	a.WithError(err).Errorf("[Acceptance %d] - %s", a.sessionId, fmt.Sprintf(msg, args))
+	a.WithError(err).Errorf("[Acceptance %d] - %s", a.SessionID(), fmt.Sprintf(msg, args))
 }

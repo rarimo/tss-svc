@@ -31,10 +31,10 @@ func NewRatCounter(cfg config.Config) *RatCounter {
 	}
 }
 
-func (r *RatCounter) RegisterAcceptances(accounts map[string]bool) {
-	parties := make(map[string]bool)
+func (r *RatCounter) RegisterAcceptances(accounts map[string]struct{}) {
+	parties := make(map[string]struct{})
 	for _, p := range r.params.Parties() {
-		parties[p.Account] = true
+		parties[p.Account] = struct{}{}
 	}
 
 	for a := range accounts {

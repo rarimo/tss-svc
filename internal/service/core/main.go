@@ -28,6 +28,7 @@ type IController interface {
 	Next() IController
 	Start() uint64
 	End() uint64
+	SessionID() uint64
 }
 
 type bounds struct {
@@ -57,6 +58,28 @@ func NewBoundsWithEnd(start, end uint64) *bounds {
 	}
 }
 
+type (
+	ProposalData struct {
+		Indexes []string
+		Root    string
+		Reshare bool
+	}
+
+	AcceptanceData struct {
+		Indexes     []string
+		Root        string
+		Acceptances map[string]struct{}
+		Reshare     bool
+	}
+
+	SignatureData struct {
+		Indexes   []string
+		Root      string
+		Signature string
+		Reshare   bool
+	}
+)
+
 func Run(cfg config.Config) {
 	factory := NewControllerFactory(cfg)
 	timer := timer.NewTimer(cfg)
@@ -65,7 +88,7 @@ func Run(cfg config.Config) {
 		panic("invalid start block")
 	}
 
-	controller := factory.GetEmptyController(factory.GetFinishController(1, types.SignatureData{}, fBounds), NewBoundsWithEnd(timer.CurrentBlock(), fBounds.start-1))
+	controller := factory.GetEmptyController(factory.GetFinishController(1, SignatureData{}, fBounds), NewBoundsWithEnd(timer.CurrentBlock(), fBounds.start-1))
 	timer.SubscribeToBlocks("manager", NewManager(controller).NewBlock)
 }
 

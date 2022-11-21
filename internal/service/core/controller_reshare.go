@@ -25,12 +25,11 @@ type ReshareController struct {
 	mu *sync.Mutex
 	wg *sync.WaitGroup
 
-	sessionId uint64
-	data      types.AcceptanceData
-	parties   tss.SortedPartyIDs
-	end       chan keygen.LocalPartySaveData
-	out       chan tss.Message
-	party     tss.Party
+	data    AcceptanceData
+	parties tss.SortedPartyIDs
+	end     chan keygen.LocalPartySaveData
+	out     chan tss.Message
+	party   tss.Party
 
 	index  map[string]uint
 	status bool
@@ -39,8 +38,7 @@ type ReshareController struct {
 }
 
 func NewReshareController(
-	sessionId uint64,
-	data types.AcceptanceData,
+	data AcceptanceData,
 	defaultController *defaultController,
 	bounds *bounds,
 	factory *ControllerFactory,
@@ -50,7 +48,6 @@ func NewReshareController(
 		bounds:            bounds,
 		mu:                &sync.Mutex{},
 		wg:                &sync.WaitGroup{},
-		sessionId:         sessionId,
 		data:              data,
 		parties:           defaultController.params.PartyIds(),
 		end:               make(chan keygen.LocalPartySaveData, 1),
@@ -143,7 +140,7 @@ func (r *ReshareController) WaitFor() {
 func (r *ReshareController) Next() IController {
 	if r.status {
 		sBounds := NewBounds(r.End()+1, r.params.Step(SigningIndex).Duration)
-		return r.factory.GetSignatureController(r.sessionId, r.data, sBounds)
+		return r.factory.GetSignatureController(r.data, sBounds)
 	}
 
 	bounds := NewBounds(
@@ -152,7 +149,7 @@ func (r *ReshareController) Next() IController {
 			1+r.params.Step(FinishingIndex).Duration,
 	)
 
-	return r.factory.GetFinishController(r.sessionId, types.SignatureData{}, bounds)
+	return r.factory.GetFinishController(SignatureData{}, bounds)
 }
 
 func (r *ReshareController) listenOutput(ctx context.Context) {

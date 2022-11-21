@@ -34,15 +34,13 @@ type ProposalController struct {
 	mu *sync.Mutex
 	wg *sync.WaitGroup
 
-	sessionId uint64
-	proposer  rarimo.Party
-	result    types.ProposalData
-	pool      *pool.Pool
-	factory   *ControllerFactory
+	proposer rarimo.Party
+	result   ProposalData
+	pool     *pool.Pool
+	factory  *ControllerFactory
 }
 
 func NewProposalController(
-	sessionId uint64,
 	proposer rarimo.Party,
 	pool *pool.Pool,
 	defaultController *defaultController,
@@ -54,7 +52,6 @@ func NewProposalController(
 		defaultController: defaultController,
 		mu:                &sync.Mutex{},
 		wg:                &sync.WaitGroup{},
-		sessionId:         sessionId,
 		proposer:          proposer,
 		pool:              pool,
 		factory:           factory,
@@ -77,7 +74,7 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 		return errors.Wrap(err, "error unmarshalling request")
 	}
 
-	if proposal.Session == p.sessionId && p.validate(proposal.Indexes, proposal.Root) {
+	if proposal.Session == p.SessionID() && p.validate(proposal.Indexes, proposal.Root) {
 		if len(proposal.Indexes) == 0 {
 			p.infof("Received empty pool. Skipping.")
 		}
@@ -110,11 +107,11 @@ func (p *ProposalController) Next() IController {
 				1+p.params.Step(FinishingIndex).Duration,
 		)
 
-		return p.factory.GetFinishController(p.sessionId, types.SignatureData{}, bounds)
+		return p.factory.GetFinishController(SignatureData{}, bounds)
 	}
 
 	abounds := NewBounds(p.End()+1, p.params.Step(AcceptingIndex).Duration)
-	return p.factory.GetAcceptanceController(p.sessionId, p.result, abounds)
+	return p.factory.GetAcceptanceController(p.result, abounds)
 }
 
 func (p *ProposalController) finish(root string, indexes []string) {
@@ -122,7 +119,8 @@ func (p *ProposalController) finish(root string, indexes []string) {
 	defer p.mu.Unlock()
 	p.infof("Pool root: %s", root)
 	p.infof("Indexes: %v", indexes)
-	p.result = types.ProposalData{Indexes: indexes, Root: root}
+	p.result = ProposalData{Indexes: indexes, Root: root}
+	p.UpdateProposal(p.result)
 }
 
 func (p *ProposalController) checkSender(request *types.MsgSubmitRequest) error {
@@ -175,7 +173,7 @@ func (p *ProposalController) run(ctx context.Context) {
 		return
 	}
 
-	details, err := cosmostypes.NewAnyWithValue(&types.ProposalRequest{Session: p.sessionId, Indexes: ids, Root: root})
+	details, err := cosmostypes.NewAnyWithValue(&types.ProposalRequest{Session: p.SessionID(), Indexes: ids, Root: root})
 	if err != nil {
 		p.errorf(err, "Error parsing details")
 		return
@@ -287,9 +285,9 @@ func (p *ProposalController) getChangePartiesContent(ctx context.Context, op rar
 }
 
 func (p *ProposalController) infof(msg string, args ...interface{}) {
-	p.Infof("[Proposal %d] - %s", p.sessionId, fmt.Sprintf(msg, args))
+	p.Infof("[Proposal %d] - %s", p.SessionID(), fmt.Sprintf(msg, args))
 }
 
 func (p *ProposalController) errorf(err error, msg string, args ...interface{}) {
-	p.WithError(err).Errorf("[Proposal %d] - %s", p.sessionId, fmt.Sprintf(msg, args))
+	p.WithError(err).Errorf("[Proposal %d] - %s", p.SessionID(), fmt.Sprintf(msg, args))
 }

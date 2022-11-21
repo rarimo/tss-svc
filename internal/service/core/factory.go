@@ -8,7 +8,6 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
 
@@ -16,6 +15,7 @@ type defaultController struct {
 	*logan.Entry
 	*connectors.ConfirmConnector
 	*connectors.BroadcastConnector
+	*Session
 	auth    *auth.RequestAuthorizer
 	rarimo  *grpc.ClientConn
 	secret  *local.Secret
@@ -36,6 +36,7 @@ func NewControllerFactory(cfg config.Config) *ControllerFactory {
 			Entry:              cfg.Log(),
 			ConfirmConnector:   connectors.NewConfirmConnector(cfg),
 			BroadcastConnector: connectors.NewBroadcastConnector(cfg),
+			Session:            NewSession(cfg),
 			auth:               auth.NewRequestAuthorizer(cfg),
 			rarimo:             cfg.Cosmos(),
 			secret:             local.NewSecret(cfg),
@@ -52,26 +53,26 @@ func (*ControllerFactory) GetEmptyController(next IController, bounds *bounds) I
 	return NewEmptyController(next, bounds)
 }
 
-func (c *ControllerFactory) GetProposalController(sessionId uint64, proposer rarimo.Party, bounds *bounds) IController {
-	return NewProposalController(sessionId, proposer, c.pool, c.defaultController, bounds, c)
+func (c *ControllerFactory) GetProposalController(proposer rarimo.Party, bounds *bounds) IController {
+	return NewProposalController(proposer, c.pool, c.defaultController, bounds, c)
 }
 
-func (c *ControllerFactory) GetAcceptanceController(sessionId uint64, data types.ProposalData, bounds *bounds) IController {
-	return NewAcceptanceController(c.defaultController, sessionId, data, bounds, c)
+func (c *ControllerFactory) GetAcceptanceController(data ProposalData, bounds *bounds) IController {
+	return NewAcceptanceController(c.defaultController, data, bounds, c)
 }
 
-func (c *ControllerFactory) GetSignatureController(sessionId uint64, data types.AcceptanceData, bounds *bounds) IController {
-	return NewSignatureController(sessionId, data, bounds, c.defaultController, c)
+func (c *ControllerFactory) GetSignatureController(data AcceptanceData, bounds *bounds) IController {
+	return NewSignatureController(data, bounds, c.defaultController, c)
 }
 
-func (c *ControllerFactory) GetFinishController(sessionId uint64, data types.SignatureData, bounds *bounds) IController {
-	return NewFinishController(sessionId, data, c.proposer, c.defaultController, bounds, c)
+func (c *ControllerFactory) GetFinishController(data SignatureData, bounds *bounds) IController {
+	return NewFinishController(data, c.proposer, c.defaultController, bounds, c)
 }
 
 func (c *ControllerFactory) GetKeygenController(bounds *bounds) IController {
 	return NewKeygenController(c.defaultController, bounds, c)
 }
 
-func (c *ControllerFactory) GetReshareController(sessionId uint64, data types.AcceptanceData, bounds *bounds) IController {
-	return NewReshareController(sessionId, data, c.defaultController, bounds, c)
+func (c *ControllerFactory) GetReshareController(data AcceptanceData, bounds *bounds) IController {
+	return NewReshareController(data, c.defaultController, bounds, c)
 }
