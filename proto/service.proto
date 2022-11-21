@@ -10,6 +10,7 @@ service Service {
   rpc Submit(MsgSubmitRequest) returns (MsgSubmitResponse);
   rpc Info(MsgInfoRequest) returns (MsgInfoResponse);
   rpc Session(MsgSessionRequest) returns (MsgSessionResponse);
+  rpc AddOperation(MsgAddOperationRequest) returns (MsgAddOperationResponse);
 }
 
 
@@ -46,3 +47,9 @@ message MsgSessionResponse {
   repeated string accepted = 8;
   string signature = 9;
 }
+
+message MsgAddOperationRequest {
+  string index = 1;
+}
+
+message MsgAddOperationResponse {}

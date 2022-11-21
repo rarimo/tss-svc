@@ -6,10 +6,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
+	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/grpc"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/timer"
+	"gitlab.com/rarify-protocol/tss-svc/internal/timer"
 )
 
 func Run(args []string) bool {

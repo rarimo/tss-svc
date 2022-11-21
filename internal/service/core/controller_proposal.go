@@ -15,7 +15,7 @@ import (
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
+	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 

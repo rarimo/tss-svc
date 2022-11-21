@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
+	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
@@ -20,6 +21,7 @@ type ServerImpl struct {
 	log      *logan.Entry
 	listener net.Listener
 	storage  *pg.Storage
+	pool     *pool.Pool
 }
 
 func NewServer(cfg config.Config) *ServerImpl {
@@ -28,6 +30,7 @@ func NewServer(cfg config.Config) *ServerImpl {
 		log:      cfg.Log(),
 		listener: cfg.Listener(),
 		storage:  cfg.Storage(),
+		pool:     pool.NewPool(cfg),
 	}
 }
 
@@ -75,4 +78,13 @@ func (s *ServerImpl) Session(ctx context.Context, request *types.MsgSessionReque
 		Accepted:  session.Accepted,
 		Signature: session.Signature.String,
 	}, nil
+}
+
+func (s *ServerImpl) AddOperation(ctx context.Context, request *types.MsgAddOperationRequest) (*types.MsgAddOperationResponse, error) {
+	err := s.pool.Add(request.Index)
+	if err != nil {
+		s.log.WithError(err).Error("error adding to the pool")
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid request index: maybe already signed")
+	}
+	return &types.MsgAddOperationResponse{}, nil
 }

@@ -7,7 +7,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/pool"
+	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"google.golang.org/grpc"
 )
 

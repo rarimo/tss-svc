@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/local"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/timer"
+	"gitlab.com/rarify-protocol/tss-svc/internal/timer"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 

@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
@@ -25,10 +26,11 @@ var pool *Pool
 type Pool struct {
 	rarimo *grpc.ClientConn
 	log    *logan.Entry
+	mu     *sync.Mutex
 	// Stores the order of operations to be included to the next sign,
 	// but without actual information about signed status.
-	// Also, no checks for duplication will be performed.
 	rawOrder chan string
+	index    map[string]struct{}
 }
 
 // NewPool returns new Pool but only once because Pool implements the singleton pattern for simple usage as
@@ -36,6 +38,7 @@ type Pool struct {
 func NewPool(cfg config.Config) *Pool {
 	if pool == nil {
 		pool = &Pool{
+			mu:       &sync.Mutex{},
 			rarimo:   cfg.Cosmos(),
 			log:      cfg.Log(),
 			rawOrder: make(chan string, poolSz),
@@ -52,12 +55,21 @@ func (p *Pool) Add(id string) error {
 		return err
 	}
 
-	p.rawOrder <- id
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if _, ok := p.index[id]; !ok {
+		p.index[id] = struct{}{}
+		p.rawOrder <- id
+	}
 	return nil
 }
 
 // GetNext returns checked pool of maximum n unsigned operations or an error in case of rpc call errors.
 func (p *Pool) GetNext(n uint) ([]string, error) {
+	p.mu.Lock()
+	defer p.mu.Lock()
+
 	res := make([]string, 0, n)
 	collected := uint(0)
 
@@ -67,8 +79,10 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 			err := p.checkUnsigned(id)
 			switch err {
 			case ErrOpAlreadySigned:
+				delete(p.index, id)
 				continue
 			case nil:
+				delete(p.index, id)
 				res = append(res, id)
 				collected++
 			default:
