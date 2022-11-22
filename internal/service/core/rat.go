@@ -49,11 +49,11 @@ func (r *RatCounter) RegisterAcceptances(accounts map[string]struct{}) {
 	}
 }
 
-func (r *RatCounter) GetRats() []string {
-	rats := make([]string, 0, r.params.N())
+func (r *RatCounter) GetRats() map[string]struct{} {
+	rats := make(map[string]struct{})
 	for acc, counter := range r.counter {
 		if counter.cnt >= maxViolationCount {
-			rats = append(rats, acc)
+			rats[acc] = struct{}{}
 		}
 	}
 

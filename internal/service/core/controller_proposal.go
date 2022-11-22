@@ -280,7 +280,7 @@ func (p *ProposalController) getChangePartiesContent(ctx context.Context, op rar
 		return nil, nil
 	}
 
-	if !p.rats.PossibleChange(change) {
+	if !p.rats.PossibleChange(change) || p.result.Reshare {
 		return nil, nil
 	}
 

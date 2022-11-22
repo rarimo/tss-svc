@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	client "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	xauthsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
@@ -28,8 +29,8 @@ const (
 	gasLimit      = 100_000_000
 )
 
-// ConfirmConnector submits signed confirmations to the rarimo core
-type ConfirmConnector struct {
+// CoreConnector submits signed confirmations to the rarimo core
+type CoreConnector struct {
 	params   *local.Params
 	secret   *local.Secret
 	txclient client.ServiceClient
@@ -38,8 +39,8 @@ type ConfirmConnector struct {
 	log      *logan.Entry
 }
 
-func NewConfirmConnector(cfg config.Config) *ConfirmConnector {
-	return &ConfirmConnector{
+func NewCoreConnector(cfg config.Config) *CoreConnector {
+	return &CoreConnector{
 		params:   local.NewParams(cfg),
 		secret:   local.NewSecret(cfg),
 		txclient: client.NewServiceClient(cfg.Cosmos()),
@@ -49,7 +50,16 @@ func NewConfirmConnector(cfg config.Config) *ConfirmConnector {
 	}
 }
 
-func (c *ConfirmConnector) SubmitConfirmation(indexes []string, root string, signature string, meta *rarimo.ConfirmationMeta) error {
+func (c *CoreConnector) SubmitChangeSet(new []*rarimo.Party) error {
+	msg := &rarimo.MsgCreateChangePartiesOp{
+		Creator: c.secret.AccountAddressStr(),
+		NewSet:  new,
+	}
+
+	return c.Submit(msg)
+}
+
+func (c *CoreConnector) SubmitConfirmation(indexes []string, root string, signature string, meta *rarimo.ConfirmationMeta) error {
 	msg := &rarimo.MsgCreateConfirmation{
 		Creator:        c.secret.AccountAddressStr(),
 		Root:           root,
@@ -58,8 +68,12 @@ func (c *ConfirmConnector) SubmitConfirmation(indexes []string, root string, sig
 		Meta:           meta,
 	}
 
+	return c.Submit(msg)
+}
+
+func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	builder := c.txConfig.NewTxBuilder()
-	err := builder.SetMsgs(msg)
+	err := builder.SetMsgs(msgs...)
 	if err != nil {
 		return err
 	}

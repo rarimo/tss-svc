@@ -76,7 +76,7 @@ func (f *FinishController) Run(ctx context.Context) {
 
 	f.secret.UpdateSecret()
 	f.params.UpdateParams()
-
+	f.checkRats()
 }
 
 func (f *FinishController) WaitFor() {
@@ -97,6 +97,28 @@ func (f *FinishController) Next() IController {
 
 	f.NextSession(id, proposer.Account, sessionBounds)
 	return f.factory.GetProposalController(proposer, NewBounds(f.End()+1, f.params.Step(ProposingIndex).Duration))
+}
+
+func (f *FinishController) checkRats() {
+	rats := f.rats.GetRats()
+	parties := f.params.Parties()
+	newSet := make([]*rarimo.Party, 0, len(parties))
+
+	if len(rats) == 0 {
+		return
+	}
+
+	for _, p := range parties {
+		if _, ok := rats[p.Account]; !ok {
+			newSet = append(newSet, p)
+		}
+	}
+
+	if len(newSet) < len(parties) {
+		if err := f.SubmitChangeSet(newSet); err != nil {
+			f.errorf(err, "error submitting change parties op")
+		}
+	}
 }
 
 func (f *FinishController) infof(msg string, args ...interface{}) {

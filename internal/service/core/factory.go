@@ -13,7 +13,7 @@ import (
 
 type defaultController struct {
 	*logan.Entry
-	*connectors.ConfirmConnector
+	*connectors.CoreConnector
 	*connectors.BroadcastConnector
 	*Session
 	auth    *auth.RequestAuthorizer
@@ -34,7 +34,7 @@ func NewControllerFactory(cfg config.Config) *ControllerFactory {
 	return &ControllerFactory{
 		defaultController: &defaultController{
 			Entry:              cfg.Log(),
-			ConfirmConnector:   connectors.NewConfirmConnector(cfg),
+			CoreConnector:      connectors.NewCoreConnector(cfg),
 			BroadcastConnector: connectors.NewBroadcastConnector(cfg),
 			Session:            NewSession(cfg),
 			auth:               auth.NewRequestAuthorizer(cfg),
