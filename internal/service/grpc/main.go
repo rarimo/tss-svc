@@ -8,7 +8,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/service/old"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -17,7 +17,7 @@ import (
 
 type ServerImpl struct {
 	types.UnimplementedServiceServer
-	manager  *core.Manager
+	manager  *old.Manager
 	log      *logan.Entry
 	listener net.Listener
 	storage  *pg.Storage
@@ -26,7 +26,7 @@ type ServerImpl struct {
 
 func NewServer(cfg config.Config) *ServerImpl {
 	return &ServerImpl{
-		manager:  core.NewManager(nil),
+		manager:  old.NewManager(nil),
 		log:      cfg.Log(),
 		listener: cfg.Listener(),
 		storage:  cfg.Storage(),

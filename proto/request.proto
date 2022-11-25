@@ -4,28 +4,34 @@ option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
 
 import "google/protobuf/any.proto";
 
-enum RequestType {
-  Proposal = 0;
-  Acceptance = 1;
-  Sign = 2;
-  Reshare = 3;
-  Keygen = 4;
+
+enum SessionType {
+  DefaultSession = 0;
+  ReshareSession = 1;
 }
 
-message ProposalRequest {
-  uint64 session = 1;
-  // List of operation ids
+message Set {
+  repeated string parties = 1;
+  uint32 n = 2;
+  uint32 t = 3;
+}
+
+message DefaultSessionProposalData {
   repeated string indexes = 2;
-  // Merkle tree based on operations root hash in hex
   string root = 3;
 }
 
-message AcceptanceRequest {
-  // Merkle tree based on operations root hash in hex
-  string root = 1;
+message ReshareSessionProposalData {
+  Set old = 1;
+  Set new = 2;
+  string oldPublicKey = 3;
 }
 
-message SignRequest {
-  string root = 1;
+message ProposalRequest {
+  SessionType type = 1;
   google.protobuf.Any details = 2;
+}
+
+message AcceptanceRequest {
+  string dataToSign = 1;
 }
