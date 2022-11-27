@@ -8,6 +8,8 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
@@ -84,6 +86,13 @@ func (s *SignatureController) Next() IController {
 	defer s.mu.Unlock()
 
 	if s.data.SessionType == types.SessionType_ReshareSession && s.data.Processing && s.isKeySigner {
+		op := &rarimo.ChangeParties{
+			Parties:   s.data.New.Parties,
+			Signature: s.data.KeySignature,
+		}
+		content, _ := pkg.GetChangePartiesContent(op)
+		s.data.Root = hexutil.Encode(content.CalculateHash())
+		s.data.Indexes = []string{s.data.Root}
 		return s.factory.GetSignRootController()
 	}
 	return s.factory.GetFinishController()

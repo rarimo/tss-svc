@@ -57,5 +57,6 @@ type Storage interface {
 
 	// TSS account management
 	GetTssSecret() *TssSecret
+	GetTrialPrivateKey() *ecdsa.PrivateKey
 	SetTssSecret(secret *TssSecret) error
 }

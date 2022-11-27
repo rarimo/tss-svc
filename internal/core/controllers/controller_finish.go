@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
@@ -35,8 +36,11 @@ func (f *FinishController) Run(ctx context.Context) {
 		f.wg.Done()
 	}()
 
-	switch f.data.SessionType {
+	if !f.data.Processing {
+		return
+	}
 
+	switch f.data.SessionType {
 	case types.SessionType_DefaultSession:
 		f.finishDefaultSession()
 	case types.SessionType_ReshareSession:
@@ -60,14 +64,28 @@ func (f *FinishController) Type() types.ControllerType {
 }
 
 func (f *FinishController) finishReshareSession() {
+	msg1 := &rarimo.MsgCreateChangePartiesOp{
+		Creator:   f.data.New.LocalAccountAddress,
+		NewSet:    f.data.New.Parties,
+		Signature: f.data.KeySignature,
+	}
 
+	msg2 := &rarimo.MsgCreateConfirmation{
+		Creator:        f.data.New.LocalAccountAddress,
+		Root:           f.data.Root,
+		Indexes:        f.data.Indexes,
+		SignatureECDSA: f.data.OperationSignature,
+	}
+
+	if err := f.core.Submit(msg1, msg2); err != nil {
+		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
+	}
+	f.proposer.WithSignature(f.data.OperationSignature)
 }
 
 func (f *FinishController) finishDefaultSession() {
-	if f.data.OperationSignature != "" {
-		if err := f.core.SubmitConfirmation(f.data.Indexes, f.data.Root, f.data.OperationSignature); err != nil {
-			f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
-		}
-		f.proposer.WithSignature(f.data.OperationSignature)
+	if err := f.core.SubmitConfirmation(f.data.Indexes, f.data.Root, f.data.OperationSignature); err != nil {
+		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
 	}
+	f.proposer.WithSignature(f.data.OperationSignature)
 }

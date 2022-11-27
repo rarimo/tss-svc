@@ -49,7 +49,7 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 			}
 
 		case rarimo.OpType_CHANGE_PARTIES:
-			content, err := GetChangePartiesContent(client, op)
+			content, err := GetChangePartiesContent(op)
 			if err != nil {
 				return nil, err
 			}
@@ -94,7 +94,7 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 	return content, errors.Wrap(err, "error creating content")
 }
 
-func GetChangePartiesContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.Content, error) {
+func GetChangePartiesContent(op *rarimo.Operation) (merkle.Content, error) {
 	change, err := pkg.GetChangeParties(*op)
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing operation details")

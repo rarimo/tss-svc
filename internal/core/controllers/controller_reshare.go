@@ -60,14 +60,15 @@ func (r *ReshareController) Run(ctx context.Context) {
 	}
 
 	err := r.storage.SetTssSecret(secret.NewTssSecret(result, r.storage.GetTssSecret().Params, r.storage.GetTssSecret()))
+	if err != nil {
+		panic(err)
+	}
+
 	r.data.New.LocalTss.LocalData = r.storage.GetTssSecret().Data
 	r.data.New.LocalPrivateKey = r.storage.GetTssSecret().Prv
 	r.data.New.LocalPubKey = r.storage.GetTssSecret().PubKeyStr()
 	r.data.New.GlobalPubKey = r.storage.GetTssSecret().GlobalPubKeyStr()
 	r.data.NewGlobalPublicKey = r.data.New.GlobalPubKey
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (r *ReshareController) WaitFor() {

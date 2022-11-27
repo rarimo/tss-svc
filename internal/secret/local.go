@@ -1,6 +1,7 @@
 package secret
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	goerr "errors"
 	"os"
@@ -25,9 +26,10 @@ var ErrNoTssDataPath = goerr.New("tss data path is empty")
 var localStorage *LocalStorage
 
 type LocalStorage struct {
-	mu      *sync.Mutex
-	account cryptotypes.PrivKey
-	secrets []*TssSecret
+	mu          *sync.Mutex
+	account     cryptotypes.PrivKey
+	TrialPrvKey *ecdsa.PrivateKey
+	secrets     []*TssSecret
 }
 
 func NewLocalStorage(cfg config.Config) *LocalStorage {
@@ -38,8 +40,9 @@ func NewLocalStorage(cfg config.Config) *LocalStorage {
 		}
 
 		localStorage = &LocalStorage{
-			account: cfg.Private().AccountPrvKey,
-			secrets: []*TssSecret{NewTssSecret(data, loadParams(), nil)},
+			account:     cfg.Private().AccountPrvKey,
+			TrialPrvKey: cfg.Private().PrivateKey,
+			secrets:     []*TssSecret{NewTssSecret(data, loadParams(), nil)},
 		}
 	}
 
@@ -64,6 +67,10 @@ func (l *LocalStorage) GetTssSecret() *TssSecret {
 		return l.secrets[len(l.secrets)-1]
 	}
 	return nil
+}
+
+func (l *LocalStorage) GetTrialPrivateKey() *ecdsa.PrivateKey {
+	return l.TrialPrvKey
 }
 
 func (l *LocalStorage) SetTssSecret(secret *TssSecret) error {

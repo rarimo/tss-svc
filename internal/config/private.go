@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/ecdsa"
 	"reflect"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -14,6 +15,7 @@ import (
 )
 
 type PrivateInfo struct {
+	PrivateKey    *ecdsa.PrivateKey   `fig:"prv_key_hex"`
 	AccountPrvKey cryptotypes.PrivKey `fig:"account_prv_hex"`
 	ChainId       string              `fig:"chain_id"`
 }

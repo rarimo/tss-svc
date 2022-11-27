@@ -27,6 +27,7 @@ type ParamsData struct {
 type LocalData struct {
 	LocalAccountAddress    string
 	LocalAccountPrivateKey cryptotypes.PrivKey
+	TrialPrivateKey        *ecdsa.PrivateKey
 }
 
 type LocalTss struct {
@@ -78,6 +79,7 @@ func NewInputSet(client *grpc.ClientConn, storage secret.Storage) *InputSet {
 		LocalData: &LocalData{
 			LocalAccountAddress:    storage.AccountAddressStr(),
 			LocalAccountPrivateKey: storage.AccountPrvKey(),
+			TrialPrivateKey:        storage.GetTrialPrivateKey(),
 		},
 
 		LocalTss: &LocalTss{

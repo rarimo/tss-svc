@@ -48,7 +48,12 @@ func (s *SubmitConnector) Close() error {
 
 func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
 	hash := eth.Keccak256(request.Details.Value)
-	signature, err := eth.Sign(hash, s.set.LocalPrivateKey)
+	key := s.set.LocalPrivateKey
+	if key == nil {
+		key = s.set.TrialPrivateKey
+	}
+
+	signature, err := eth.Sign(hash, key)
 	if err != nil {
 		return nil, err
 	}

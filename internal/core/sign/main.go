@@ -7,7 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/sign/controllers"
+	"gitlab.com/rarify-protocol/tss-svc/internal/core/controllers"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
