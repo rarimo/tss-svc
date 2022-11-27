@@ -42,6 +42,10 @@ func (t *TssSecret) PubKeyStr() string {
 	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.Prv.X, t.Prv.Y))
 }
 
+func (t *TssSecret) GlobalPubKeyStr() string {
+	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.Data.ECDSAPub.X(), t.Data.ECDSAPub.Y()))
+}
+
 func (t *TssSecret) Previous() *TssSecret {
 	return t.prev
 }

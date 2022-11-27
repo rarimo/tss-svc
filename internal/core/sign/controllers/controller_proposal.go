@@ -72,6 +72,7 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 				p.mu.Lock()
 				defer p.mu.Unlock()
 				p.data.SessionType = types.SessionType_DefaultSession
+				p.data.Processing = true
 				p.data.Root = data.Root
 				p.data.Indexes = data.Indexes
 			}()
@@ -88,6 +89,7 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 				p.mu.Lock()
 				defer p.mu.Unlock()
 				p.data.SessionType = types.SessionType_ReshareSession
+				p.data.Processing = true
 			}()
 		}
 	}
@@ -105,8 +107,21 @@ func (p *ProposalController) WaitFor() {
 }
 
 func (p *ProposalController) Next() IController {
-	//TODO implement me
-	panic("implement me")
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	switch p.data.SessionType {
+	case types.SessionType_DefaultSession:
+		if p.data.Processing {
+			return p.factory.GetAcceptanceController()
+		}
+	case types.SessionType_ReshareSession:
+		if p.data.Processing {
+			return p.factory.GetAcceptanceController()
+		}
+	}
+
+	return p.factory.GetFinishController()
 }
 
 func (p *ProposalController) Type() types.ControllerType {

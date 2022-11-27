@@ -50,22 +50,32 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 	}
 }
 
+// Used always for old params
+// if it's a default session there is no difference
+// otherwise we should sign with old keys
+
 func (c *ControllerFactory) GetSignRootController() IController {
 	return &SignatureController{
+		mu:        &sync.Mutex{},
 		data:      c.data,
-		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
-		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		broadcast: connectors.NewBroadcastConnector(c.data.Old, c.log),
+		auth:      core.NewRequestAuthorizer(c.data.Old, c.log),
 		log:       c.log,
 		party:     nil,
 		factory:   c,
 	}
 }
 
+// Used always for old params
+// if it's a default session there is no difference
+// otherwise we should sign with old keys
+
 func (c *ControllerFactory) GetSignKeyController() IController {
 	return &SignatureController{
+		mu:        &sync.Mutex{},
 		data:      c.data,
-		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
-		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		broadcast: connectors.NewBroadcastConnector(c.data.Old, c.log),
+		auth:      core.NewRequestAuthorizer(c.data.Old, c.log),
 		log:       c.log,
 		party:     nil,
 		factory:   c,
@@ -74,6 +84,7 @@ func (c *ControllerFactory) GetSignKeyController() IController {
 
 func (c *ControllerFactory) GetReshareController() IController {
 	return &ReshareController{
+		mu:        &sync.Mutex{},
 		data:      c.data,
 		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
 		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
@@ -86,13 +97,11 @@ func (c *ControllerFactory) GetReshareController() IController {
 
 func (c *ControllerFactory) GetFinishController() IController {
 	return &FinishController{
-		wg:        &sync.WaitGroup{},
-		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
-		core:      connectors.NewCoreConnector(c.client, c.data.New.LocalData, c.log),
-		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
-		log:       c.log,
-		data:      c.data,
-		proposer:  c.proposer,
-		factory:   c,
+		wg:       &sync.WaitGroup{},
+		core:     connectors.NewCoreConnector(c.client, c.data.New.LocalData, c.log),
+		log:      c.log,
+		data:     c.data,
+		proposer: c.proposer,
+		factory:  c,
 	}
 }

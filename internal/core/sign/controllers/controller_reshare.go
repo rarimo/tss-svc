@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
@@ -12,6 +13,7 @@ import (
 )
 
 type ReshareController struct {
+	mu   *sync.Mutex
 	data *LocalSessionData
 
 	broadcast *connectors.BroadcastConnector
@@ -47,7 +49,25 @@ func (r *ReshareController) Run(ctx context.Context) {
 	r.party.Run(ctx)
 
 	<-ctx.Done()
-	r.party.Result()
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	result := r.party.Result()
+	if result == nil {
+		r.data.Processing = false
+		return
+	}
+
+	err := r.storage.SetTssSecret(secret.NewTssSecret(result, r.storage.GetTssSecret().Params, r.storage.GetTssSecret()))
+	r.data.New.LocalTss.LocalData = r.storage.GetTssSecret().Data
+	r.data.New.LocalPrivateKey = r.storage.GetTssSecret().Prv
+	r.data.New.LocalPubKey = r.storage.GetTssSecret().PubKeyStr()
+	r.data.New.GlobalPubKey = r.storage.GetTssSecret().GlobalPubKeyStr()
+	r.data.NewGlobalPublicKey = r.data.New.GlobalPubKey
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (r *ReshareController) WaitFor() {
@@ -55,7 +75,14 @@ func (r *ReshareController) WaitFor() {
 }
 
 func (r *ReshareController) Next() IController {
-	return nil
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.data.Processing {
+		return r.factory.GetSignKeyController()
+	}
+
+	return r.factory.GetFinishController()
 }
 
 func (r *ReshareController) Type() types.ControllerType {

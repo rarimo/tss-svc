@@ -13,10 +13,8 @@ import (
 type FinishController struct {
 	wg *sync.WaitGroup
 
-	broadcast *connectors.BroadcastConnector
-	core      *connectors.CoreConnector
-	auth      *core.RequestAuthorizer
-	log       *logan.Entry
+	core *connectors.CoreConnector
+	log  *logan.Entry
 
 	data *LocalSessionData
 

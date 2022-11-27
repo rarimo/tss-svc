@@ -74,7 +74,11 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 		}
 
 		if checkSet(details.New, a.data.New) {
+			a.mu.Lock()
+			defer a.mu.Unlock()
 
+			a.log.Infof("Received acceptance from %s for reshare", sender.Account)
+			a.data.Acceptances[sender.Account] = struct{}{}
 		}
 	}
 
@@ -86,7 +90,19 @@ func (a *AcceptanceController) WaitFor() {
 }
 
 func (a *AcceptanceController) Next() IController {
-	return nil
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.data.Processing {
+		switch a.data.SessionType {
+		case types.SessionType_DefaultSession:
+			return a.factory.GetSignRootController()
+		case types.SessionType_ReshareSession:
+			return a.factory.GetReshareController()
+		}
+	}
+
+	return a.factory.GetFinishController()
 }
 
 func (a *AcceptanceController) Type() types.ControllerType {
@@ -124,6 +140,17 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	//a.result.Accepted[a.storage.AccountAddressStr()] = struct{}{}
-	//a.log.Infof("Acceptances: %v", a.result.Accepted)
+	a.data.Acceptances[a.data.New.LocalAccountAddress] = struct{}{}
+	a.log.Infof("Acceptances: %v", a.data.Acceptances)
+
+	switch a.data.SessionType {
+	case types.SessionType_DefaultSession:
+		if len(a.data.Acceptances) <= a.data.New.T {
+			a.data.Processing = false
+		}
+	case types.SessionType_ReshareSession:
+		if len(a.data.Acceptances) < a.data.New.N {
+			a.data.Processing = false
+		}
+	}
 }

@@ -27,6 +27,7 @@ type (
 
 	LocalSessionData struct {
 		SessionId          uint64
+		Processing         bool
 		SessionType        types.SessionType
 		Proposer           rarimo.Party
 		Old                *core.InputSet

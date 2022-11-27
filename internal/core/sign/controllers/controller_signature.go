@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/gogo/protobuf/proto"
@@ -14,7 +15,9 @@ import (
 )
 
 type SignatureController struct {
-	data *LocalSessionData
+	mu          *sync.Mutex
+	data        *LocalSessionData
+	isKeySigner bool
 
 	broadcast *connectors.BroadcastConnector
 	auth      *core.RequestAuthorizer
@@ -56,9 +59,20 @@ func (s *SignatureController) Run(ctx context.Context) {
 
 	<-ctx.Done()
 
-	if result := s.party.Result(); result != nil {
-		s.data.OperationSignature = hexutil.Encode(append(result.Signature, result.SignatureRecovery...))
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	result := s.party.Result()
+	if result == nil {
+		s.data.Processing = false
+		return
 	}
+
+	signature := hexutil.Encode(append(result.Signature, result.SignatureRecovery...))
+	if s.isKeySigner {
+		s.data.KeySignature = signature
+	}
+	s.data.OperationSignature = signature
 }
 
 func (s *SignatureController) WaitFor() {
@@ -66,7 +80,13 @@ func (s *SignatureController) WaitFor() {
 }
 
 func (s *SignatureController) Next() IController {
-	return nil
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.data.SessionType == types.SessionType_ReshareSession && s.data.Processing && s.isKeySigner {
+		return s.factory.GetSignRootController()
+	}
+	return s.factory.GetFinishController()
 }
 
 func (s *SignatureController) Type() types.ControllerType {
