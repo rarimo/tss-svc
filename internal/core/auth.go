@@ -16,14 +16,14 @@ var (
 )
 
 type RequestAuthorizer struct {
-	params *ParamsSnapshot
-	log    *logan.Entry
+	log *logan.Entry
+	set *InputSet
 }
 
-func NewRequestAuthorizer(params *ParamsSnapshot, log *logan.Entry) *RequestAuthorizer {
+func NewRequestAuthorizer(set *InputSet, log *logan.Entry) *RequestAuthorizer {
 	return &RequestAuthorizer{
-		params: params,
-		log:    log,
+		set: set,
+		log: log,
 	}
 }
 
@@ -42,7 +42,7 @@ func (r *RequestAuthorizer) Auth(request *types.MsgSubmitRequest) (rarimo.Party,
 		return rarimo.Party{}, ErrInvalidSignature
 	}
 
-	party, ok := r.params.Party(hexutil.Encode(pub))
+	party, ok := r.set.PartyByKey(hexutil.Encode(pub))
 	if !ok {
 		return rarimo.Party{}, ErrSignerNotAParty
 	}

@@ -8,7 +8,6 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/old"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

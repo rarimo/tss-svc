@@ -9,11 +9,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	merkle "gitlab.com/rarify-protocol/go-merkle"
+	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
@@ -21,15 +22,15 @@ import (
 const MaxPoolSize = 32
 
 type ProposalController struct {
-	*defaultController
 	mu *sync.Mutex
 	wg *sync.WaitGroup
 
-	bounds *core.Bounds
-	data   LocalSessionData
-	result LocalProposalData
+	data *LocalSessionData
 
-	storage secret.Storage
+	broadcast *connectors.BroadcastConnector
+	auth      *core.RequestAuthorizer
+	log       *logan.Entry
+
 	client  *grpc.ClientConn
 	pool    *pool.Pool
 	factory *ControllerFactory
@@ -59,13 +60,36 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 		return errors.Wrap(err, "error unmarshalling request")
 	}
 
-	if proposal.Type != types.SessionType_ReshareSession {
-		return ErrInvalidRequestType
-	}
+	switch proposal.Type {
+	case types.SessionType_DefaultSession:
+		data := new(types.DefaultSessionProposalData)
+		if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
+			return errors.Wrap(err, "error unmarshalling details")
+		}
 
-	data := new(types.ReshareSessionProposalData)
-	if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
-		return errors.Wrap(err, "error unmarshalling details")
+		if p.validateDefaultProposal(data) {
+			func() {
+				p.mu.Lock()
+				defer p.mu.Unlock()
+				p.data.SessionType = types.SessionType_DefaultSession
+				p.data.Root = data.Root
+				p.data.Indexes = data.Indexes
+			}()
+
+		}
+	case types.SessionType_ReshareSession:
+		data := new(types.ReshareSessionProposalData)
+		if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
+			return errors.Wrap(err, "error unmarshalling details")
+		}
+
+		if p.validateReshareProposal(data) {
+			func() {
+				p.mu.Lock()
+				defer p.mu.Unlock()
+				p.data.SessionType = types.SessionType_ReshareSession
+			}()
+		}
 	}
 
 	return nil
@@ -81,31 +105,20 @@ func (p *ProposalController) WaitFor() {
 }
 
 func (p *ProposalController) Next() IController {
-	if len(p.result.Indexes) == 0 {
-		bounds := core.NewBounds(p.bounds.Finish+1,
-			p.params.Step(AcceptingIndex).Duration+
-				1+p.params.Step(SigningIndex).Duration+
-				1+p.params.Step(FinishingIndex).Duration,
-		)
-
-		data := LocalSignatureData{}
-		data.LocalSessionData = p.data
-		return p.factory.GetFinishController(bounds, data)
-	}
-
-	return p.factory.GetAcceptanceController(core.NewBounds(p.bounds.Finish+1, p.params.Step(AcceptingIndex).Duration), p.result)
+	//TODO implement me
+	panic("implement me")
 }
 
-func (p *ProposalController) Bounds() *core.Bounds {
-	return p.bounds
+func (p *ProposalController) Type() types.ControllerType {
+	return types.ControllerType_CONTROLLER_PROPOSAL
 }
 
-func (p *ProposalController) validate(indexes []string, root string) bool {
-	if len(indexes) == 0 {
+func (p *ProposalController) validateDefaultProposal(data *types.DefaultSessionProposalData) bool {
+	if len(data.Indexes) == 0 {
 		return true
 	}
 
-	ops, err := GetOperations(p.client, indexes...)
+	ops, err := GetOperations(p.client, data.Indexes...)
 	if err != nil {
 		return false
 	}
@@ -115,7 +128,15 @@ func (p *ProposalController) validate(indexes []string, root string) bool {
 		return false
 	}
 
-	return hexutil.Encode(merkle.NewTree(eth.Keccak256, contents...).Root()) == root
+	return hexutil.Encode(merkle.NewTree(eth.Keccak256, contents...).Root()) == data.Root
+}
+
+func (p *ProposalController) validateReshareProposal(data *types.ReshareSessionProposalData) bool {
+	if p.data.Old.Equals(p.data.New) {
+		return false
+	}
+
+	return checkSet(data.Old, p.data.Old) && checkSet(data.New, p.data.New)
 }
 
 func (p *ProposalController) run(ctx context.Context) {
@@ -124,11 +145,20 @@ func (p *ProposalController) run(ctx context.Context) {
 		p.wg.Done()
 	}()
 
-	if p.data.Proposer.Account != p.storage.AccountAddressStr() {
+	if p.data.Proposer.Account != p.data.New.LocalAccountAddress {
 		p.log.Info("Proposer is another party")
 		return
 	}
 
+	if p.data.Old.Equals(p.data.New) {
+		p.makeSignProposal(ctx)
+		return
+	}
+
+	p.makeReshareProposal(ctx)
+}
+
+func (p *ProposalController) makeSignProposal(ctx context.Context) {
 	ids, root, err := p.getNewPool()
 	if err != nil {
 		p.log.WithError(err).Error("Error preparing pool to propose")
@@ -139,8 +169,9 @@ func (p *ProposalController) run(ctx context.Context) {
 		p.mu.Lock()
 		defer p.mu.Unlock()
 
-		p.result.Indexes = ids
-		p.result.Root = root
+		p.data.SessionType = types.SessionType_DefaultSession
+		p.data.Root = root
+		p.data.Indexes = ids
 	}()
 
 	if len(ids) == 0 {
@@ -166,6 +197,11 @@ func (p *ProposalController) run(ctx context.Context) {
 		IsBroadcast: true,
 		Details:     details,
 	})
+}
+
+func (p *ProposalController) makeReshareProposal(ctx context.Context) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (p *ProposalController) getNewPool() ([]string, string, error) {

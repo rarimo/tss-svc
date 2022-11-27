@@ -9,14 +9,6 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
-const (
-	ProposingIndex = 0
-	AcceptingIndex = 1
-	SigningIndex   = 2
-	FinishingIndex = 3
-	ReshareIndex   = 4
-)
-
 var (
 	ErrSenderIsNotProposer  = goerr.New("party is not proposer")
 	ErrUnsupportedContent   = goerr.New("unsupported content")
@@ -24,33 +16,26 @@ var (
 	ErrSenderHasNotAccepted = goerr.New("sender has not accepted proposal")
 )
 
-type IController interface {
-	Receive(request *types.MsgSubmitRequest) error
-	Run(ctx context.Context)
-	WaitFor()
-	Next() IController
-	Bounds() *core.Bounds
-}
-
 type (
+	IController interface {
+		Receive(request *types.MsgSubmitRequest) error
+		Run(ctx context.Context)
+		WaitFor()
+		Next() IController
+		Type() types.ControllerType
+	}
+
 	LocalSessionData struct {
-		Proposer  rarimo.Party
-		SessionId uint64
-	}
-
-	LocalProposalData struct {
-		LocalSessionData
-		Indexes []string
-		Root    string
-	}
-
-	LocalAcceptanceData struct {
-		LocalProposalData
-		Accepted map[string]struct{}
-	}
-
-	LocalSignatureData struct {
-		LocalAcceptanceData
-		Signature string
+		SessionId          uint64
+		SessionType        types.SessionType
+		Proposer           rarimo.Party
+		Old                *core.InputSet
+		New                *core.InputSet
+		Indexes            []string
+		Root               string
+		Acceptances        map[string]struct{}
+		NewGlobalPublicKey string
+		OperationSignature string
+		KeySignature       string
 	}
 )

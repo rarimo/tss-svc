@@ -7,21 +7,16 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core/sign/controllers"
-	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
-	"google.golang.org/grpc"
 )
 
 type Session struct {
 	log    *logan.Entry
 	mu     *sync.Mutex
 	id     uint64
-	bounds *core.Bounds
+	bounds *core.BoundsManager
 
-	client    *grpc.ClientConn
 	factory   *controllers.ControllerFactory
 	current   controllers.IController
 	isStarted bool
@@ -31,51 +26,20 @@ type Session struct {
 var _ core.ISession = &Session{}
 
 func NewSession(cfg config.Config) *Session {
-	params, err := core.NewParamsSnapshot(cfg.Cosmos())
-	if err != nil {
-		panic(err)
-	}
-
-	factory := controllers.NewControllerFactory(
-		connectors.NewCoreConnector(cfg),
-		secret.NewLocalStorage(cfg),
-		params,
-		cfg.Cosmos(),
-		pool.NewPool(cfg),
-		cfg.Log(),
-		core.NewProposer(cfg).WithParams(params),
-	)
-
-	if err != nil {
-		return &Session{
-			mu:     &sync.Mutex{},
-			log:    cfg.Log(),
-			id:     cfg.Session().StartSessionId,
-			client: cfg.Cosmos(),
-			// TODO
-			factory: factory,
-			bounds:  core.NewBounds(cfg.Session().StartBlock, 0),
-		}
-	}
+	factory := &controllers.ControllerFactory{}
 
 	return &Session{
-		mu:     &sync.Mutex{},
-		log:    cfg.Log(),
-		id:     cfg.Session().StartSessionId,
-		client: cfg.Cosmos(),
-		// TODO
-		bounds:  core.NewBounds(cfg.Session().StartBlock, 0),
+		mu:      &sync.Mutex{},
+		log:     cfg.Log(),
+		id:      cfg.Session().StartSessionId,
+		bounds:  &core.BoundsManager{},
 		factory: factory,
-		current: factory.GetProposalController(cfg.Session().StartSessionId, core.NewBounds(cfg.Session().StartBlock, params.Step(controllers.ProposingIndex).Duration)),
+		current: factory.GetProposalController(),
 	}
 }
 
 func (s *Session) ID() uint64 {
 	return s.id
-}
-
-func (s *Session) Bounds() *core.Bounds {
-	return s.bounds
 }
 
 func (s *Session) Receive(request *types.MsgSubmitRequest) error {
@@ -93,7 +57,7 @@ func (s *Session) NewBlock(height uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.bounds.Finish <= height {
+	if s.bounds.SessionEnd <= height {
 		s.stopController()
 		return
 	}
@@ -103,7 +67,7 @@ func (s *Session) NewBlock(height uint64) {
 			s.runController()
 		}
 
-		if s.current.Bounds().Finish <= height {
+		if s.bounds.GetBounds(s.current.Type()).End <= height {
 			s.stopController()
 			s.current = s.current.Next()
 			s.isStarted = false
@@ -113,32 +77,20 @@ func (s *Session) NewBlock(height uint64) {
 }
 
 func (s *Session) NextSession() core.ISession {
-	params, err := core.NewParamsSnapshot(s.client)
-	factory := s.factory.NewWithParams(params)
-	if err != nil {
-		return &Session{
-			mu:     &sync.Mutex{},
-			log:    s.log,
-			id:     s.id + 1,
-			client: s.client,
-			// TODO
-			factory: factory,
-			bounds:  core.NewBounds(s.bounds.Finish+1, 0),
-		}
-	}
-
-	// TODO check params active
-
+	factory := s.factory.NextFactory()
 	return &Session{
-		mu:     &sync.Mutex{},
-		log:    s.log,
-		id:     s.id + 1,
-		client: s.client,
+		mu:  &sync.Mutex{},
+		log: s.log,
+		id:  s.id + 1,
 		// TODO
-		bounds:  core.NewBounds(s.bounds.Finish+1, 0),
+		bounds:  &core.BoundsManager{},
 		factory: factory,
-		current: factory.GetProposalController(s.id+1, core.NewBounds(s.bounds.Finish+1, params.Step(controllers.ProposingIndex).Duration)),
+		current: factory.GetProposalController(),
 	}
+}
+
+func (s *Session) End() uint64 {
+	return s.bounds.SessionEnd
 }
 
 func (s *Session) runController() {

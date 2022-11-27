@@ -18,11 +18,12 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
+	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"google.golang.org/grpc"
 )
 
 const (
+	chainId       = "rarimo"
 	coinName      = "stake"
 	successTxCode = 0
 	minGasPrice   = 1
@@ -31,28 +32,26 @@ const (
 
 // CoreConnector submits signed confirmations to the rarimo core
 type CoreConnector struct {
-	storage  secret.Storage
 	txclient client.ServiceClient
 	auth     authtypes.QueryClient
 	txConfig sdkclient.TxConfig
-	chainId  string
+	data     *core.LocalData
 	log      *logan.Entry
 }
 
-func NewCoreConnector(cfg config.Config) *CoreConnector {
+func NewCoreConnector(cli *grpc.ClientConn, data *core.LocalData, log *logan.Entry) *CoreConnector {
 	return &CoreConnector{
-		storage:  secret.NewLocalStorage(cfg),
-		txclient: client.NewServiceClient(cfg.Cosmos()),
-		auth:     authtypes.NewQueryClient(cfg.Cosmos()),
+		txclient: client.NewServiceClient(cli),
+		auth:     authtypes.NewQueryClient(cli),
 		txConfig: tx.NewTxConfig(codec.NewProtoCodec(codectypes.NewInterfaceRegistry()), []signing.SignMode{signing.SignMode_SIGN_MODE_DIRECT}),
-		chainId:  cfg.Private().ChainId,
-		log:      cfg.Log(),
+		data:     data,
+		log:      log,
 	}
 }
 
 func (c *CoreConnector) SubmitChangeSet(set []*rarimo.Party, sig string) error {
 	msg := &rarimo.MsgCreateChangePartiesOp{
-		Creator:   c.storage.AccountAddressStr(),
+		Creator:   c.data.LocalAccountAddress,
 		NewSet:    set,
 		Signature: sig,
 	}
@@ -62,7 +61,7 @@ func (c *CoreConnector) SubmitChangeSet(set []*rarimo.Party, sig string) error {
 
 func (c *CoreConnector) SubmitConfirmation(indexes []string, root string, signature string) error {
 	msg := &rarimo.MsgCreateConfirmation{
-		Creator:        c.storage.AccountAddressStr(),
+		Creator:        c.data.LocalAccountAddress,
 		Root:           root,
 		Indexes:        indexes,
 		SignatureECDSA: signature,
@@ -81,7 +80,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	builder.SetGasLimit(gasLimit)
 	builder.SetFeeAmount(types.Coins{types.NewInt64Coin(coinName, int64(gasLimit*minGasPrice))})
 
-	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.storage.AccountAddressStr()})
+	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.data.LocalAccountAddress})
 	if err != nil {
 		panic(err)
 	}
@@ -93,7 +92,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	}
 
 	err = builder.SetSignatures(signing.SignatureV2{
-		PubKey: c.storage.AccountPubKey(),
+		PubKey: c.data.LocalAccountPrivateKey.PubKey(),
 		Data: &signing.SingleSignatureData{
 			SignMode:  c.txConfig.SignModeHandler().DefaultMode(),
 			Signature: nil,
@@ -105,14 +104,14 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	}
 
 	signerData := xauthsigning.SignerData{
-		ChainID:       c.chainId,
+		ChainID:       chainId,
 		AccountNumber: account.AccountNumber,
 		Sequence:      account.Sequence,
 	}
 
 	sigV2, err := clienttx.SignWithPrivKey(
 		c.txConfig.SignModeHandler().DefaultMode(), signerData,
-		builder, c.storage.AccountPrvKey(), c.txConfig, account.Sequence,
+		builder, c.data.LocalAccountPrivateKey, c.txConfig, account.Sequence,
 	)
 
 	err = builder.SetSignatures(sigV2)

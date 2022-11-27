@@ -3,21 +3,24 @@ package controllers
 import (
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/sign/controllers"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
 type ReshareController struct {
-	*defaultController
+	data *LocalSessionData
 
-	bounds    *core.Bounds
-	sessionId uint64
-	data      LocalAcceptanceData
+	broadcast *connectors.BroadcastConnector
+	auth      *core.RequestAuthorizer
+	log       *logan.Entry
 
-	party   tss.ReshareParty
-	factory *controllers.ControllerFactory
+	party   *tss.ReshareParty
+	storage secret.Storage
+	factory *ControllerFactory
 }
 
 var _ IController = &ReshareController{}
@@ -28,11 +31,11 @@ func (r *ReshareController) Receive(request *types.MsgSubmitRequest) error {
 		return err
 	}
 
-	if _, ok := r.data.Accepted[sender.Address]; !ok {
+	if _, ok := r.data.Acceptances[sender.Address]; !ok {
 		return ErrSenderHasNotAccepted
 	}
 
-	if request.Type != types.RequestType_Sign {
+	if request.Type != types.RequestType_Reshare {
 		return ErrInvalidRequestType
 	}
 
@@ -55,6 +58,6 @@ func (r *ReshareController) Next() IController {
 	return nil
 }
 
-func (r *ReshareController) Bounds() *core.Bounds {
-	return r.bounds
+func (r *ReshareController) Type() types.ControllerType {
+	return types.ControllerType_CONTROLLER_RESHARE
 }

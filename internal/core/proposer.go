@@ -11,7 +11,7 @@ import (
 
 type Proposer struct {
 	lastSignature string
-	params        *ParamsSnapshot
+	set           *InputSet
 }
 
 func NewProposer(cfg config.Config) *Proposer {
@@ -25,7 +25,7 @@ func (p *Proposer) NextProposer(sessionId uint64) rarimo.Party {
 	idBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(idBytes, sessionId)
 	hash := eth.Keccak256(sigBytes, idBytes)
-	return *p.params.Parties()[int(hash[len(hash)-1])%p.params.N()]
+	return *p.set.Parties[int(hash[len(hash)-1])%p.set.N]
 }
 
 func (p *Proposer) WithSignature(signature string) *Proposer {
@@ -33,7 +33,7 @@ func (p *Proposer) WithSignature(signature string) *Proposer {
 	return p
 }
 
-func (p *Proposer) WithParams(params *ParamsSnapshot) *Proposer {
-	p.params = params
+func (p *Proposer) WithInputSet(set *InputSet) *Proposer {
+	p.set = set
 	return p
 }

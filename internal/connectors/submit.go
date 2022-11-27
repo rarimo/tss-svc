@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
+	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
@@ -26,14 +26,14 @@ type con struct {
 type SubmitConnector struct {
 	mu       sync.Mutex
 	isClosed bool
-	secret   *secret.TssSecret
+	set      *core.InputSet
 	clients  map[string]*con
 }
 
-func NewSubmitConnector(secret *secret.TssSecret) *SubmitConnector {
+func NewSubmitConnector(set *core.InputSet) *SubmitConnector {
 	c := &SubmitConnector{
 		isClosed: false,
-		secret:   secret,
+		set:      set,
 		clients:  make(map[string]*con),
 	}
 
@@ -48,7 +48,7 @@ func (s *SubmitConnector) Close() error {
 
 func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
 	hash := eth.Keccak256(request.Details.Value)
-	signature, err := eth.Sign(hash, s.secret.Prv)
+	signature, err := eth.Sign(hash, s.set.LocalPrivateKey)
 	if err != nil {
 		return nil, err
 	}

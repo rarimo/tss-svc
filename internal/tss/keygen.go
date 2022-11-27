@@ -14,33 +14,30 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/connectors"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
+	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
+	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
 type KeygenParty struct {
 	wg *sync.WaitGroup
 
-	con *connectors.BroadcastConnector
 	log *logan.Entry
-	set *PartiesSetData
 
-	storage secret.Storage
-	parties tss.SortedPartyIDs
-	secret  *secret.TssSecret
-	party   tss.Party
-	result  bool
+	set    *core.InputSet
+	party  tss.Party
+	con    *connectors.BroadcastConnector
+	result *keygen.LocalPartySaveData
 }
 
-func (k *KeygenParty) Result() bool {
+func (k *KeygenParty) Result() *keygen.LocalPartySaveData {
 	return k.result
 }
 
 func (k *KeygenParty) Receive(sender rarimo.Party, isBroadcast bool, details []byte) {
 	k.log.Infof("Received keygen request from %s", sender.Account)
 	_, data, _ := bech32.DecodeAndConvert(sender.Account)
-	_, err := k.party.UpdateFromBytes(details, k.parties.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
+	_, err := k.party.UpdateFromBytes(details, k.set.SortedPartyIDs.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 	if err != nil {
 		k.log.WithError(err).Debug("error updating party")
 	}
@@ -50,11 +47,10 @@ func (k *KeygenParty) Receive(sender rarimo.Party, isBroadcast bool, details []b
 func (k *KeygenParty) Run(ctx context.Context) {
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1)
-	peerCtx := tss.NewPeerContext(k.parties)
-	localId := k.parties.FindByKey(k.storage.PartyKey())
-	params := tss.NewParameters(s256k1.S256(), peerCtx, localId, k.set.N, k.set.T)
+	peerCtx := tss.NewPeerContext(k.set.SortedPartyIDs)
+	params := tss.NewParameters(s256k1.S256(), peerCtx, k.set.LocalParty(), k.set.N, k.set.T)
 
-	k.party = keygen.NewLocalParty(params, out, end, *k.secret.Params)
+	k.party = keygen.NewLocalParty(params, out, end, *k.set.LocalParams)
 	go func() {
 		err := k.party.Start()
 		if err != nil {
@@ -84,10 +80,10 @@ func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveD
 		}
 
 		k.log.Infof("Pub key: %s", hexutil.Encode(elliptic.Marshal(s256k1.S256(), result.ECDSAPub.X(), result.ECDSAPub.Y())))
-		if err := k.storage.SetTssSecret(secret.NewTssSecret(&result, k.secret.Params, k.secret)); err != nil {
-			k.log.WithError(err).Error("failed to set tss params")
-		}
-		k.result = true
+		//if err := k.storage.SetTssSecret(secret.NewTssSecret(&result, k.secret.Params, k.secret)); err != nil {
+		//	k.log.WithError(err).Error("failed to set tss params")
+		//}
+		k.result = &result
 	default:
 		k.log.Info("Reshare process has not been finished yet or has some errors")
 	}
@@ -116,9 +112,9 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 			k.log.Infof("Sending to %v", msg.GetTo())
 			for _, to := range msg.GetTo() {
 				k.log.Infof("Sending message to %s", to.Id)
-				party, _ := Find(k.set.Set, to.Id)
+				party, _ := k.set.PartyByAccount(to.Id)
 
-				if party.Account == k.storage.AccountAddressStr() {
+				if party.Account == k.set.LocalAccountAddress {
 					k.log.Info("Sending to self")
 					k.Receive(party, msg.IsBroadcast(), request.Details.Value)
 					continue

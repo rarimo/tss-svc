@@ -14,28 +14,28 @@ import (
 // Is request submission fails, there will be ONE retry after last party submission.
 type BroadcastConnector struct {
 	*SubmitConnector
-	params *core.ParamsSnapshot
-	log    *logan.Entry
+	set *core.InputSet
+	log *logan.Entry
 }
 
-func NewBroadcastConnector(params *core.ParamsSnapshot, submit *SubmitConnector, log *logan.Entry) *BroadcastConnector {
+func NewBroadcastConnector(set *core.InputSet, log *logan.Entry) *BroadcastConnector {
 	return &BroadcastConnector{
-		SubmitConnector: submit,
-		params:          params,
+		SubmitConnector: NewSubmitConnector(set),
+		set:             set,
 		log:             log,
 	}
 }
 
 func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSubmitRequest) {
-	retry := b.SubmitTo(ctx, request, b.params.Parties()...)
+	retry := b.SubmitTo(ctx, request, b.set.Parties...)
 	b.SubmitTo(ctx, request, retry...)
 }
 
 func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
-	failed := make([]*rarimo.Party, 0, b.params.N())
+	failed := make([]*rarimo.Party, 0, b.set.N)
 
 	for _, party := range parties {
-		if party.PubKey != b.secret.PubKeyStr() {
+		if party.PubKey != b.set.LocalPubKey {
 			_, err := b.Submit(ctx, *party, request)
 
 			if err != nil {
@@ -51,7 +51,7 @@ func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSub
 func (b *BroadcastConnector) MustSubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) {
 	for _, party := range parties {
 		retry = 0
-		if party.PubKey != b.secret.PubKeyStr() {
+		if party.PubKey != b.set.LocalPubKey {
 			for {
 				if _, err := b.Submit(ctx, *party, request); err != nil {
 					b.logErr(err)

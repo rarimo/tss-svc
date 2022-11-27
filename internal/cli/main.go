@@ -8,7 +8,6 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/params"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/service/grpc"
-	"gitlab.com/rarify-protocol/tss-svc/internal/service/old"
 	"gitlab.com/rarify-protocol/tss-svc/internal/timer"
 )
 

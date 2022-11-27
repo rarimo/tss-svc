@@ -8,7 +8,9 @@ import (
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
+	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
 
@@ -100,4 +102,17 @@ func GetChangePartiesContent(client *grpc.ClientConn, op *rarimo.Operation) (mer
 
 	// TODO check
 	return pkg.GetChangePartiesContent(change)
+}
+
+func checkSet(proposal *types.Set, input *core.InputSet) bool {
+	if len(proposal.Parties) != len(input.Parties) || int(proposal.N) != input.N || int(proposal.T) != input.T {
+		return false
+	}
+
+	for i := range proposal.Parties {
+		if proposal.Parties[i] != input.Parties[i].Account {
+			return false
+		}
+	}
+	return true
 }

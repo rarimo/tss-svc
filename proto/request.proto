@@ -32,6 +32,20 @@ message ProposalRequest {
   google.protobuf.Any details = 2;
 }
 
+message DefaultSessionAcceptanceData {
+  string root = 1;
+}
+
+message ReshareSessionAcceptanceData {
+  Set new = 1;
+}
+
 message AcceptanceRequest {
-  string dataToSign = 1;
+  SessionType type = 1;
+  google.protobuf.Any details = 2;
+}
+
+message SignRequest {
+  string data = 1;
+  google.protobuf.Any details = 2;
 }

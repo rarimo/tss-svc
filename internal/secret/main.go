@@ -3,7 +3,6 @@ package secret
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"math/big"
 
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
@@ -49,11 +48,8 @@ func (t *TssSecret) Previous() *TssSecret {
 
 type Storage interface {
 	// Core account management
-	AccountPubKey() cryptotypes.PubKey
 	AccountAddressStr() string
 	AccountPrvKey() cryptotypes.PrivKey
-
-	PartyKey() *big.Int
 
 	// TSS account management
 	GetTssSecret() *TssSecret

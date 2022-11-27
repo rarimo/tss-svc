@@ -3,7 +3,6 @@ package secret
 import (
 	"encoding/json"
 	goerr "errors"
-	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -49,10 +48,6 @@ func NewLocalStorage(cfg config.Config) *LocalStorage {
 
 var _ Storage = &LocalStorage{}
 
-func (l *LocalStorage) AccountPubKey() cryptotypes.PubKey {
-	return l.account.PubKey()
-}
-
 func (l *LocalStorage) AccountAddressStr() string {
 	address, _ := bech32.ConvertAndEncode(AccountPrefix, l.account.PubKey().Address().Bytes())
 	return address
@@ -60,10 +55,6 @@ func (l *LocalStorage) AccountAddressStr() string {
 
 func (l *LocalStorage) AccountPrvKey() cryptotypes.PrivKey {
 	return l.account
-}
-
-func (l *LocalStorage) PartyKey() *big.Int {
-	return new(big.Int).SetBytes(l.account.PubKey().Address().Bytes())
 }
 
 func (l *LocalStorage) GetTssSecret() *TssSecret {

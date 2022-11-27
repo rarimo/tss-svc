@@ -272,15 +272,104 @@ func (m *ProposalRequest) GetDetails() *types.Any {
 	return nil
 }
 
+type DefaultSessionAcceptanceData struct {
+	Root string `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+}
+
+func (m *DefaultSessionAcceptanceData) Reset()         { *m = DefaultSessionAcceptanceData{} }
+func (m *DefaultSessionAcceptanceData) String() string { return proto.CompactTextString(m) }
+func (*DefaultSessionAcceptanceData) ProtoMessage()    {}
+func (*DefaultSessionAcceptanceData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7f73548e33e655fe, []int{4}
+}
+func (m *DefaultSessionAcceptanceData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DefaultSessionAcceptanceData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DefaultSessionAcceptanceData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DefaultSessionAcceptanceData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DefaultSessionAcceptanceData.Merge(m, src)
+}
+func (m *DefaultSessionAcceptanceData) XXX_Size() int {
+	return m.Size()
+}
+func (m *DefaultSessionAcceptanceData) XXX_DiscardUnknown() {
+	xxx_messageInfo_DefaultSessionAcceptanceData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DefaultSessionAcceptanceData proto.InternalMessageInfo
+
+func (m *DefaultSessionAcceptanceData) GetRoot() string {
+	if m != nil {
+		return m.Root
+	}
+	return ""
+}
+
+type ReshareSessionAcceptanceData struct {
+	New *Set `protobuf:"bytes,1,opt,name=new,proto3" json:"new,omitempty"`
+}
+
+func (m *ReshareSessionAcceptanceData) Reset()         { *m = ReshareSessionAcceptanceData{} }
+func (m *ReshareSessionAcceptanceData) String() string { return proto.CompactTextString(m) }
+func (*ReshareSessionAcceptanceData) ProtoMessage()    {}
+func (*ReshareSessionAcceptanceData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7f73548e33e655fe, []int{5}
+}
+func (m *ReshareSessionAcceptanceData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ReshareSessionAcceptanceData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ReshareSessionAcceptanceData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ReshareSessionAcceptanceData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReshareSessionAcceptanceData.Merge(m, src)
+}
+func (m *ReshareSessionAcceptanceData) XXX_Size() int {
+	return m.Size()
+}
+func (m *ReshareSessionAcceptanceData) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReshareSessionAcceptanceData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReshareSessionAcceptanceData proto.InternalMessageInfo
+
+func (m *ReshareSessionAcceptanceData) GetNew() *Set {
+	if m != nil {
+		return m.New
+	}
+	return nil
+}
+
 type AcceptanceRequest struct {
-	DataToSign string `protobuf:"bytes,1,opt,name=dataToSign,proto3" json:"dataToSign,omitempty"`
+	Type    SessionType `protobuf:"varint,1,opt,name=type,proto3,enum=SessionType" json:"type,omitempty"`
+	Details *types.Any  `protobuf:"bytes,2,opt,name=details,proto3" json:"details,omitempty"`
 }
 
 func (m *AcceptanceRequest) Reset()         { *m = AcceptanceRequest{} }
 func (m *AcceptanceRequest) String() string { return proto.CompactTextString(m) }
 func (*AcceptanceRequest) ProtoMessage()    {}
 func (*AcceptanceRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f73548e33e655fe, []int{4}
+	return fileDescriptor_7f73548e33e655fe, []int{6}
 }
 func (m *AcceptanceRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -309,11 +398,70 @@ func (m *AcceptanceRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_AcceptanceRequest proto.InternalMessageInfo
 
-func (m *AcceptanceRequest) GetDataToSign() string {
+func (m *AcceptanceRequest) GetType() SessionType {
 	if m != nil {
-		return m.DataToSign
+		return m.Type
+	}
+	return SessionType_DefaultSession
+}
+
+func (m *AcceptanceRequest) GetDetails() *types.Any {
+	if m != nil {
+		return m.Details
+	}
+	return nil
+}
+
+type SignRequest struct {
+	Data    string     `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Details *types.Any `protobuf:"bytes,2,opt,name=details,proto3" json:"details,omitempty"`
+}
+
+func (m *SignRequest) Reset()         { *m = SignRequest{} }
+func (m *SignRequest) String() string { return proto.CompactTextString(m) }
+func (*SignRequest) ProtoMessage()    {}
+func (*SignRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7f73548e33e655fe, []int{7}
+}
+func (m *SignRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *SignRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_SignRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *SignRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SignRequest.Merge(m, src)
+}
+func (m *SignRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *SignRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SignRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SignRequest proto.InternalMessageInfo
+
+func (m *SignRequest) GetData() string {
+	if m != nil {
+		return m.Data
 	}
 	return ""
+}
+
+func (m *SignRequest) GetDetails() *types.Any {
+	if m != nil {
+		return m.Details
+	}
+	return nil
 }
 
 func init() {
@@ -322,38 +470,43 @@ func init() {
 	proto.RegisterType((*DefaultSessionProposalData)(nil), "DefaultSessionProposalData")
 	proto.RegisterType((*ReshareSessionProposalData)(nil), "ReshareSessionProposalData")
 	proto.RegisterType((*ProposalRequest)(nil), "ProposalRequest")
+	proto.RegisterType((*DefaultSessionAcceptanceData)(nil), "DefaultSessionAcceptanceData")
+	proto.RegisterType((*ReshareSessionAcceptanceData)(nil), "ReshareSessionAcceptanceData")
 	proto.RegisterType((*AcceptanceRequest)(nil), "AcceptanceRequest")
+	proto.RegisterType((*SignRequest)(nil), "SignRequest")
 }
 
 func init() { proto.RegisterFile("request.proto", fileDescriptor_7f73548e33e655fe) }
 
 var fileDescriptor_7f73548e33e655fe = []byte{
-	// 391 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x90, 0x41, 0x6f, 0xd3, 0x30,
-	0x1c, 0xc5, 0xeb, 0xb5, 0x62, 0xea, 0x7f, 0xdd, 0x18, 0x16, 0x42, 0xa1, 0x87, 0xa8, 0xca, 0xa9,
-	0x42, 0xcc, 0x91, 0x36, 0x71, 0xe2, 0x34, 0x34, 0x71, 0x80, 0xcb, 0xe4, 0xee, 0xc4, 0xcd, 0x75,
-	0xfe, 0x0d, 0x16, 0xc6, 0x36, 0xb6, 0xcb, 0xc8, 0xb7, 0xe0, 0x63, 0x71, 0xdc, 0x91, 0x23, 0x6a,
-	0xbf, 0x08, 0x8a, 0x93, 0xa0, 0x55, 0xe2, 0x96, 0xf7, 0xfe, 0xd1, 0xfb, 0x3d, 0x3f, 0x38, 0xf5,
-	0xf8, 0x6d, 0x8b, 0x21, 0x32, 0xe7, 0x6d, 0xb4, 0xf3, 0x97, 0xb5, 0xb5, 0xb5, 0xc6, 0x32, 0xa9,
-	0xf5, 0x76, 0x53, 0x0a, 0xd3, 0x74, 0xa7, 0xe2, 0x2d, 0x8c, 0x57, 0x18, 0x69, 0x06, 0xc7, 0x4e,
-	0xf8, 0xa8, 0x30, 0x64, 0x64, 0x31, 0x5e, 0x4e, 0xf9, 0x20, 0xe9, 0x0c, 0x88, 0xc9, 0x8e, 0x16,
-	0x64, 0x79, 0xca, 0x89, 0x69, 0x55, 0xcc, 0xc6, 0x9d, 0x8a, 0xc5, 0x07, 0x98, 0xdf, 0xe0, 0x46,
-	0x6c, 0x75, 0x5c, 0x61, 0x08, 0xca, 0x9a, 0x5b, 0x6f, 0x9d, 0x0d, 0x42, 0xdf, 0x88, 0x28, 0xda,
-	0x4c, 0x65, 0x2a, 0xfc, 0x81, 0x21, 0x3b, 0xea, 0x32, 0x7b, 0x49, 0x29, 0x4c, 0xbc, 0xb5, 0x5d,
-	0xd0, 0x94, 0xa7, 0xef, 0xc2, 0xc1, 0x9c, 0x63, 0xf8, 0x2c, 0x3c, 0xfe, 0x2f, 0xeb, 0x05, 0x8c,
-	0xad, 0xae, 0x32, 0xb2, 0x20, 0xcb, 0x93, 0xcb, 0x09, 0x5b, 0x61, 0xe4, 0xad, 0xd1, 0xfa, 0x06,
-	0xef, 0x53, 0xbf, 0x7f, 0xbe, 0xc1, 0x7b, 0x5a, 0xc0, 0xcc, 0xea, 0xea, 0x76, 0xbb, 0xd6, 0x4a,
-	0x7e, 0xc4, 0xa6, 0x27, 0x1d, 0x78, 0x85, 0x84, 0xa7, 0x03, 0x83, 0x77, 0x73, 0xd1, 0x05, 0x4c,
-	0x62, 0xe3, 0x30, 0x71, 0xce, 0x2e, 0x67, 0xac, 0xaf, 0x72, 0xd7, 0x38, 0xe4, 0xe9, 0x42, 0x19,
-	0x1c, 0x57, 0x18, 0x85, 0xd2, 0xa1, 0x87, 0x3e, 0x67, 0xdd, 0xb8, 0x6c, 0x18, 0x97, 0x5d, 0x9b,
-	0x86, 0x0f, 0x3f, 0x15, 0x57, 0xf0, 0xec, 0x5a, 0x4a, 0x74, 0x51, 0x18, 0x89, 0x03, 0x26, 0x07,
-	0xa8, 0x44, 0x14, 0x77, 0x76, 0xa5, 0x6a, 0x93, 0x60, 0x53, 0xfe, 0xc8, 0x79, 0xf5, 0x06, 0x4e,
-	0x1e, 0x91, 0x29, 0x85, 0xb3, 0xc3, 0x99, 0xcf, 0x47, 0xad, 0x77, 0x38, 0xd7, 0x39, 0x79, 0xf7,
-	0xfe, 0xd7, 0x2e, 0x27, 0x0f, 0xbb, 0x9c, 0xfc, 0xd9, 0xe5, 0xe4, 0xe7, 0x3e, 0x1f, 0x3d, 0xec,
-	0xf3, 0xd1, 0xef, 0x7d, 0x3e, 0xfa, 0xf4, 0xba, 0x56, 0x51, 0x8b, 0x35, 0x93, 0xf6, 0x6b, 0xe9,
-	0x85, 0x57, 0x9b, 0xe6, 0x22, 0xd5, 0x95, 0x56, 0x97, 0x31, 0x84, 0x8b, 0xf0, 0x5d, 0x96, 0xee,
-	0x4b, 0x5d, 0xb6, 0x4f, 0x0c, 0xeb, 0x27, 0xe9, 0x76, 0xf5, 0x37, 0x00, 0x00, 0xff, 0xff, 0x73,
-	0x50, 0x86, 0x37, 0x46, 0x02, 0x00, 0x00,
+	// 426 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x90, 0xc1, 0x6f, 0xd3, 0x30,
+	0x14, 0xc6, 0xeb, 0xb5, 0x62, 0xda, 0x6b, 0x37, 0x86, 0x85, 0x50, 0xa8, 0xa6, 0xa8, 0xca, 0xa9,
+	0x42, 0x2c, 0x91, 0x8a, 0xe0, 0xc2, 0x69, 0x68, 0xe2, 0x00, 0x97, 0x91, 0x72, 0xe2, 0xe6, 0x3a,
+	0xaf, 0xc1, 0xc2, 0xd8, 0xc6, 0x76, 0x19, 0xf9, 0x2f, 0xf8, 0xb3, 0x38, 0xee, 0xc8, 0x11, 0xb5,
+	0xff, 0x08, 0x8a, 0x93, 0xc0, 0x52, 0x71, 0xe1, 0xb0, 0x5b, 0xde, 0xf7, 0x9c, 0xef, 0x7b, 0xdf,
+	0x0f, 0x8e, 0x2d, 0x7e, 0xd9, 0xa0, 0xf3, 0xa9, 0xb1, 0xda, 0xeb, 0xe9, 0xe3, 0x52, 0xeb, 0x52,
+	0x62, 0x16, 0xa6, 0xd5, 0x66, 0x9d, 0x31, 0x55, 0x35, 0xab, 0xe4, 0x25, 0x0c, 0x97, 0xe8, 0x69,
+	0x04, 0x87, 0x86, 0x59, 0x2f, 0xd0, 0x45, 0x64, 0x36, 0x9c, 0x1f, 0xe5, 0xdd, 0x48, 0x27, 0x40,
+	0x54, 0x74, 0x30, 0x23, 0xf3, 0xe3, 0x9c, 0xa8, 0x7a, 0xf2, 0xd1, 0xb0, 0x99, 0x7c, 0xf2, 0x06,
+	0xa6, 0x97, 0xb8, 0x66, 0x1b, 0xe9, 0x97, 0xe8, 0x9c, 0xd0, 0xea, 0xca, 0x6a, 0xa3, 0x1d, 0x93,
+	0x97, 0xcc, 0xb3, 0xda, 0x53, 0xa8, 0x02, 0xbf, 0xa1, 0x8b, 0x0e, 0x1a, 0xcf, 0x76, 0xa4, 0x14,
+	0x46, 0x56, 0xeb, 0xc6, 0xe8, 0x28, 0x0f, 0xdf, 0x89, 0x81, 0x69, 0x8e, 0xee, 0x23, 0xb3, 0xf8,
+	0x2f, 0xaf, 0x47, 0x30, 0xd4, 0xb2, 0x88, 0xc8, 0x8c, 0xcc, 0xc7, 0x8b, 0x51, 0xba, 0x44, 0x9f,
+	0xd7, 0x42, 0xad, 0x2b, 0xbc, 0x0e, 0xf7, 0xfd, 0xd1, 0x15, 0x5e, 0xd3, 0x04, 0x26, 0x5a, 0x16,
+	0x57, 0x9b, 0x95, 0x14, 0xfc, 0x2d, 0x56, 0x6d, 0x52, 0x4f, 0x4b, 0x38, 0xdc, 0xef, 0x32, 0xf2,
+	0x06, 0x17, 0x9d, 0xc1, 0xc8, 0x57, 0x06, 0x43, 0xce, 0xc9, 0x62, 0x92, 0xb6, 0xa7, 0xbc, 0xaf,
+	0x0c, 0xe6, 0x61, 0x43, 0x53, 0x38, 0x2c, 0xd0, 0x33, 0x21, 0x5d, 0x1b, 0xfa, 0x30, 0x6d, 0xe0,
+	0xa6, 0x1d, 0xdc, 0xf4, 0x42, 0x55, 0x79, 0xf7, 0x28, 0x59, 0xc0, 0x59, 0x1f, 0xd1, 0x05, 0xe7,
+	0x68, 0x3c, 0x53, 0x1c, 0x43, 0xb1, 0x0e, 0x05, 0xb9, 0x85, 0xe2, 0x05, 0x9c, 0xf5, 0x51, 0xec,
+	0xfd, 0xd3, 0x96, 0x26, 0x7b, 0xa5, 0x13, 0x84, 0x07, 0x7f, 0x5f, 0xde, 0x5d, 0xa5, 0x77, 0x30,
+	0x5e, 0x8a, 0x52, 0x75, 0x01, 0x14, 0x46, 0x05, 0xf3, 0xac, 0x6b, 0x50, 0x7f, 0xff, 0xaf, 0xe5,
+	0x93, 0xe7, 0x30, 0xbe, 0x75, 0x17, 0xa5, 0x70, 0xd2, 0x87, 0x76, 0x3a, 0xa8, 0xb5, 0x3e, 0x94,
+	0x53, 0xf2, 0xea, 0xf5, 0x8f, 0x6d, 0x4c, 0x6e, 0xb6, 0x31, 0xf9, 0xb5, 0x8d, 0xc9, 0xf7, 0x5d,
+	0x3c, 0xb8, 0xd9, 0xc5, 0x83, 0x9f, 0xbb, 0x78, 0xf0, 0xe1, 0x69, 0x29, 0xbc, 0x64, 0xab, 0x94,
+	0xeb, 0xcf, 0x99, 0x65, 0x56, 0xac, 0xab, 0xf3, 0x90, 0xcc, 0xb5, 0xcc, 0xbc, 0x73, 0xe7, 0xee,
+	0x2b, 0xcf, 0xcc, 0xa7, 0x32, 0xab, 0x01, 0xb8, 0xd5, 0xbd, 0xb0, 0x7b, 0xf6, 0x3b, 0x00, 0x00,
+	0xff, 0xff, 0x95, 0x0a, 0x69, 0x11, 0x37, 0x03, 0x00, 0x00,
 }
 
 func (m *Set) Marshal() (dAtA []byte, err error) {
@@ -531,6 +684,71 @@ func (m *ProposalRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *DefaultSessionAcceptanceData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DefaultSessionAcceptanceData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DefaultSessionAcceptanceData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Root) > 0 {
+		i -= len(m.Root)
+		copy(dAtA[i:], m.Root)
+		i = encodeVarintRequest(dAtA, i, uint64(len(m.Root)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReshareSessionAcceptanceData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReshareSessionAcceptanceData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ReshareSessionAcceptanceData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.New != nil {
+		{
+			size, err := m.New.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRequest(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AcceptanceRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -551,10 +769,62 @@ func (m *AcceptanceRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.DataToSign) > 0 {
-		i -= len(m.DataToSign)
-		copy(dAtA[i:], m.DataToSign)
-		i = encodeVarintRequest(dAtA, i, uint64(len(m.DataToSign)))
+	if m.Details != nil {
+		{
+			size, err := m.Details.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRequest(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Type != 0 {
+		i = encodeVarintRequest(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SignRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SignRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SignRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Details != nil {
+		{
+			size, err := m.Details.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRequest(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Data) > 0 {
+		i -= len(m.Data)
+		copy(dAtA[i:], m.Data)
+		i = encodeVarintRequest(dAtA, i, uint64(len(m.Data)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -649,14 +919,60 @@ func (m *ProposalRequest) Size() (n int) {
 	return n
 }
 
+func (m *DefaultSessionAcceptanceData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Root)
+	if l > 0 {
+		n += 1 + l + sovRequest(uint64(l))
+	}
+	return n
+}
+
+func (m *ReshareSessionAcceptanceData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.New != nil {
+		l = m.New.Size()
+		n += 1 + l + sovRequest(uint64(l))
+	}
+	return n
+}
+
 func (m *AcceptanceRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.DataToSign)
+	if m.Type != 0 {
+		n += 1 + sovRequest(uint64(m.Type))
+	}
+	if m.Details != nil {
+		l = m.Details.Size()
+		n += 1 + l + sovRequest(uint64(l))
+	}
+	return n
+}
+
+func (m *SignRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Data)
 	if l > 0 {
+		n += 1 + l + sovRequest(uint64(l))
+	}
+	if m.Details != nil {
+		l = m.Details.Size()
 		n += 1 + l + sovRequest(uint64(l))
 	}
 	return n
@@ -1161,6 +1477,174 @@ func (m *ProposalRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *DefaultSessionAcceptanceData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRequest
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DefaultSessionAcceptanceData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DefaultSessionAcceptanceData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Root = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRequest(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ReshareSessionAcceptanceData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRequest
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReshareSessionAcceptanceData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReshareSessionAcceptanceData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field New", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.New == nil {
+				m.New = &Set{}
+			}
+			if err := m.New.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRequest(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *AcceptanceRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1191,8 +1675,113 @@ func (m *AcceptanceRequest) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= SessionType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DataToSign", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Details", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Details == nil {
+				m.Details = &types.Any{}
+			}
+			if err := m.Details.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRequest(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SignRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRequest
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SignRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SignRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1220,7 +1809,43 @@ func (m *AcceptanceRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DataToSign = string(dAtA[iNdEx:postIndex])
+			m.Data = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Details", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Details == nil {
+				m.Details = &types.Any{}
+			}
+			if err := m.Details.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

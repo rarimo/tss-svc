@@ -4,121 +4,95 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
-	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
 	"google.golang.org/grpc"
 )
 
-type defaultController struct {
-	log       *logan.Entry
-	broadcast *connectors.BroadcastConnector
-	auth      *core.RequestAuthorizer
-	params    *core.ParamsSnapshot
-}
-
 type ControllerFactory struct {
-	def      *defaultController
+	data     *LocalSessionData
 	client   *grpc.ClientConn
-	core     *connectors.CoreConnector
-	storage  secret.Storage
 	pool     *pool.Pool
 	proposer *core.Proposer
+	storage  secret.Storage
+	log      *logan.Entry
 }
 
-func NewControllerFactory(
-	con *connectors.CoreConnector,
-	storage secret.Storage,
-	params *core.ParamsSnapshot,
-	client *grpc.ClientConn,
-	pool *pool.Pool,
-	log *logan.Entry,
-	proposer *core.Proposer,
-) *ControllerFactory {
-	return &ControllerFactory{
-		def: &defaultController{
-			log:       log,
-			broadcast: connectors.NewBroadcastConnector(params, connectors.NewSubmitConnector(storage.GetTssSecret()), log),
-			auth:      core.NewRequestAuthorizer(params, log),
-			params:    params,
-		},
-		client:   client,
-		core:     con,
-		storage:  storage,
-		pool:     pool,
-		proposer: proposer,
-	}
+func (c *ControllerFactory) NextFactory() *ControllerFactory {
+	return &ControllerFactory{}
 }
 
-func (c *ControllerFactory) NewWithParams(params *core.ParamsSnapshot) *ControllerFactory {
-	return &ControllerFactory{
-		def: &defaultController{
-			log:       c.def.log,
-			broadcast: connectors.NewBroadcastConnector(params, connectors.NewSubmitConnector(c.storage.GetTssSecret()), c.def.log),
-			auth:      core.NewRequestAuthorizer(params, c.def.log),
-			params:    params,
-		},
-		client:   c.client,
-		core:     c.core,
-		storage:  c.storage,
-		pool:     c.pool,
-		proposer: c.proposer.WithParams(params),
-	}
-}
-
-func (c *ControllerFactory) GetProposalController(sessionId uint64, bounds *core.Bounds) IController {
-	data := LocalSessionData{
-		Proposer:  c.proposer.NextProposer(sessionId),
-		SessionId: sessionId,
-	}
-
+func (c *ControllerFactory) GetProposalController() IController {
 	return &ProposalController{
-		defaultController: c.def,
-		mu:                &sync.Mutex{},
-		wg:                &sync.WaitGroup{},
-		bounds:            bounds,
-		storage:           c.storage,
-		client:            c.client,
-		pool:              c.pool,
-		factory:           c,
-		result:            LocalProposalData{LocalSessionData: data},
+		mu:        &sync.Mutex{},
+		wg:        &sync.WaitGroup{},
+		data:      c.data,
+		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
+		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		log:       c.log,
+		client:    c.client,
+		pool:      c.pool,
+		factory:   c,
 	}
 }
 
-func (c *ControllerFactory) GetAcceptanceController(bounds *core.Bounds, data LocalProposalData) IController {
+func (c *ControllerFactory) GetAcceptanceController() IController {
 	return &AcceptanceController{
-		defaultController: c.def,
-		mu:                &sync.Mutex{},
-		wg:                &sync.WaitGroup{},
-		bounds:            bounds,
-		data:              data,
-		storage:           c.storage,
-		factory:           c,
-		result:            LocalAcceptanceData{LocalProposalData: data},
+		mu:        &sync.Mutex{},
+		wg:        &sync.WaitGroup{},
+		data:      c.data,
+		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
+		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		log:       c.log,
+		factory:   c,
 	}
 }
 
-func (c *ControllerFactory) GetSignController(bounds *core.Bounds, data LocalAcceptanceData) IController {
+func (c *ControllerFactory) GetSignRootController() IController {
 	return &SignatureController{
-		defaultController: c.def,
-		bounds:            bounds,
-		data:              data,
-		party:             tss.NewSignParty(data.Root, data.SessionId, c.storage, c.storage.GetTssSecret(), tss.NewPartiesSetData(c.def.params.Parties()), c.def.broadcast, c.def.log),
-		factory:           c,
-		result:            LocalSignatureData{LocalAcceptanceData: data},
+		data:      c.data,
+		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
+		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		log:       c.log,
+		party:     nil,
+		factory:   c,
 	}
 }
 
-func (c *ControllerFactory) GetFinishController(bounds *core.Bounds, data LocalSignatureData) IController {
+func (c *ControllerFactory) GetSignKeyController() IController {
+	return &SignatureController{
+		data:      c.data,
+		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
+		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		log:       c.log,
+		party:     nil,
+		factory:   c,
+	}
+}
+
+func (c *ControllerFactory) GetReshareController() IController {
+	return &ReshareController{
+		data:      c.data,
+		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
+		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		log:       c.log,
+		party:     nil,
+		storage:   c.storage,
+		factory:   c,
+	}
+}
+
+func (c *ControllerFactory) GetFinishController() IController {
 	return &FinishController{
-		defaultController: c.def,
-		wg:                &sync.WaitGroup{},
-		bounds:            bounds,
-		data:              data,
-		core:              c.core,
-		proposer:          c.proposer,
-		factory:           c,
+		wg:        &sync.WaitGroup{},
+		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
+		core:      connectors.NewCoreConnector(c.client, c.data.New.LocalData, c.log),
+		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		log:       c.log,
+		data:      c.data,
+		proposer:  c.proposer,
+		factory:   c,
 	}
 }

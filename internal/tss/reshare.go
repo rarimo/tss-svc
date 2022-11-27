@@ -15,64 +15,31 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/connectors"
-	"gitlab.com/rarify-protocol/tss-svc/internal/params"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
+	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
+	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
-
-type PartiesSetData struct {
-	N       int
-	T       int
-	Set     []*rarimo.Party
-	Parties tss.SortedPartyIDs
-}
-
-func NewPartiesSetData(set []*rarimo.Party) *PartiesSetData {
-	return &PartiesSetData{
-		N:       len(set),
-		T:       T(len(set)),
-		Parties: PartyIds(set),
-	}
-}
 
 type ReshareParty struct {
 	wg *sync.WaitGroup
 
+	log *logan.Entry
+
+	old    *core.InputSet
+	new    *core.InputSet
+	party  tss.Party
 	con    *connectors.BroadcastConnector
-	params *params.Params
-	log    *logan.Entry
-
-	old *PartiesSetData
-	new *PartiesSetData
-
-	storage secret.Storage
-	secret  *secret.TssSecret
-	party   tss.Party
-	result  bool
+	result *keygen.LocalPartySaveData
 }
 
-func NewReshareParty(old, new *PartiesSetData, storage secret.Storage, secret *secret.TssSecret, params *params.Params, con *connectors.BroadcastConnector, log *logan.Entry) *ReshareParty {
-	return &ReshareParty{
-		wg:      &sync.WaitGroup{},
-		con:     con,
-		params:  params,
-		log:     log,
-		old:     old,
-		new:     new,
-		storage: storage,
-		secret:  secret,
-	}
-}
-
-func (r *ReshareParty) Result() bool {
+func (r *ReshareParty) Result() *keygen.LocalPartySaveData {
 	return r.result
 }
 
 func (r *ReshareParty) Receive(sender rarimo.Party, isBroadcast bool, details []byte) {
 	r.log.Infof("Received reshare request from %s ", sender.Account)
 	_, data, _ := bech32.DecodeAndConvert(sender.Account)
-	_, err := r.party.UpdateFromBytes(details, r.new.Parties.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
+	_, err := r.party.UpdateFromBytes(details, r.new.SortedPartyIDs.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 	if err != nil {
 		r.log.WithError(err).Debug("error updating party")
 	}
@@ -81,17 +48,14 @@ func (r *ReshareParty) Receive(sender rarimo.Party, isBroadcast bool, details []
 func (r *ReshareParty) Run(ctx context.Context) {
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1)
-	localId := r.new.Parties.FindByKey(r.storage.PartyKey())
 
-	data := r.secret.Data
-	if data == nil {
-		empty := keygen.NewLocalPartySaveData(r.old.N)
-		data = &empty
-		data.LocalPreParams = *r.secret.Params
+	if r.new.LocalTss.LocalData == nil {
+		empty := keygen.NewLocalPartySaveData(r.new.N)
+		r.new.LocalTss.LocalData = &empty
 	}
 
-	params := tss.NewReSharingParameters(s256k1.S256(), tss.NewPeerContext(r.old.Parties), tss.NewPeerContext(r.new.Parties), localId, r.old.N, r.old.T, r.new.N, r.new.T)
-	r.party = resharing.NewLocalParty(params, *data, out, end)
+	params := tss.NewReSharingParameters(s256k1.S256(), tss.NewPeerContext(r.old.SortedPartyIDs), tss.NewPeerContext(r.new.SortedPartyIDs), r.new.LocalParty(), r.old.N, r.old.T, r.new.N, r.new.T)
+	r.party = resharing.NewLocalParty(params, *r.new.LocalTss.LocalData, out, end)
 
 	go func() {
 		err := r.party.Start()
@@ -122,10 +86,7 @@ func (r *ReshareParty) run(ctx context.Context, end <-chan keygen.LocalPartySave
 		}
 
 		r.log.Infof("Pub key: %s", hexutil.Encode(elliptic.Marshal(s256k1.S256(), result.ECDSAPub.X(), result.ECDSAPub.Y())))
-		if err := r.storage.SetTssSecret(secret.NewTssSecret(&result, r.secret.Params, r.secret)); err != nil {
-			r.log.WithError(err).Error("failed to set tss params")
-		}
-		r.result = true
+		r.result = &result
 	default:
 		r.log.Info("Reshare process has not been finished yet or has some errors")
 	}
@@ -153,9 +114,8 @@ func (r *ReshareParty) listenOutput(ctx context.Context, out <-chan tss.Message)
 			r.log.Infof("Sending to %v", msg.GetTo())
 			for _, to := range msg.GetTo() {
 				r.log.Infof("Sending message to %s", to.Id)
-				party, _ := Find(r.new.Set, to.Id)
-
-				if party.Account == r.storage.AccountAddressStr() {
+				party, _ := r.new.PartyByAccount(to.Id)
+				if party.Account == r.new.LocalAccountAddress {
 					r.log.Info("Sending to self")
 					r.Receive(party, msg.IsBroadcast(), request.Details.Value)
 					continue

@@ -11,21 +11,9 @@ var (
 	ErrInvalidSessionID = goerr.New("invalid session ID")
 )
 
-type Bounds struct {
-	Start  uint64
-	Finish uint64
-}
-
-func NewBounds(start, duration uint64) *Bounds {
-	return &Bounds{
-		Start:  start,
-		Finish: start + duration,
-	}
-}
-
 type ISession interface {
 	ID() uint64
-	Bounds() *Bounds
+	End() uint64
 	Receive(request *types.MsgSubmitRequest) error
 	NewBlock(height uint64)
 	NextSession() ISession
@@ -52,7 +40,7 @@ func (s *SessionManager) NewBlock(height uint64) {
 	defer s.mu.Unlock()
 
 	s.currentSession.NewBlock(height)
-	if s.currentSession.Bounds().Finish <= height {
+	if s.currentSession.End() <= height {
 		s.currentSession = s.currentSession.NextSession()
 	}
 }
