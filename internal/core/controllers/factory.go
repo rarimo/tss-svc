@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
@@ -20,11 +21,70 @@ type ControllerFactory struct {
 	log      *logan.Entry
 }
 
+func NewControllerFactory(cfg config.Config) *ControllerFactory {
+	set := core.NewInputSet(cfg.Cosmos(), secret.NewLocalStorage(cfg))
+	return &ControllerFactory{
+		data: &LocalSessionData{
+			SessionId: cfg.Session().StartSessionId,
+			Old:       set,
+			New:       set,
+		},
+		client:   cfg.Cosmos(),
+		pool:     pool.NewPool(cfg),
+		proposer: core.NewProposer(cfg).WithInputSet(set),
+		storage:  secret.NewLocalStorage(cfg),
+		log:      cfg.Log(),
+	}
+}
+
 func (c *ControllerFactory) NextFactory() *ControllerFactory {
-	return &ControllerFactory{}
+	set := core.NewInputSet(c.client, c.storage)
+	if c.data.New.Equals(c.data.Old) {
+		return &ControllerFactory{
+			data: &LocalSessionData{
+				SessionId: c.data.SessionId + 1,
+				Old:       c.data.New,
+				New:       set,
+			},
+			client:   c.client,
+			pool:     c.pool,
+			proposer: c.proposer.WithInputSet(set),
+			storage:  c.storage,
+			log:      c.log,
+		}
+	}
+
+	if c.data.New.Equals(set) {
+		return &ControllerFactory{
+			data: &LocalSessionData{
+				SessionId: c.data.SessionId + 1,
+				Old:       set,
+				New:       set,
+			},
+			client:   c.client,
+			pool:     c.pool,
+			proposer: c.proposer.WithInputSet(set),
+			storage:  c.storage,
+			log:      c.log,
+		}
+	}
+
+	return &ControllerFactory{
+		data: &LocalSessionData{
+			SessionId: c.data.SessionId + 1,
+			Old:       c.data.Old,
+			New:       set,
+		},
+		client:   c.client,
+		pool:     c.pool,
+		proposer: c.proposer.WithInputSet(set),
+		storage:  c.storage,
+		log:      c.log,
+	}
 }
 
 func (c *ControllerFactory) GetProposalController() IController {
+	c.data.Proposer = c.proposer.NextProposer(c.data.SessionId)
 	return &ProposalController{
 		mu:        &sync.Mutex{},
 		wg:        &sync.WaitGroup{},

@@ -116,3 +116,16 @@ func checkSet(proposal *types.Set, input *core.InputSet) bool {
 	}
 	return true
 }
+
+func getSet(input *core.InputSet) *types.Set {
+	res := &types.Set{
+		Parties: make([]string, 0, input.N),
+		N:       uint32(input.N),
+		T:       uint32(input.T),
+	}
+
+	for _, p := range input.Parties {
+		res.Parties = append(res.Parties, p.Account)
+	}
+	return res
+}

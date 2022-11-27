@@ -112,6 +112,8 @@ func (p *ProposalController) Next() IController {
 
 	switch p.data.SessionType {
 	case types.SessionType_DefaultSession:
+		// We're definitely working on the old set
+		p.data.New = p.data.Old
 		if p.data.Processing {
 			return p.factory.GetAcceptanceController()
 		}
@@ -180,27 +182,18 @@ func (p *ProposalController) makeSignProposal(ctx context.Context) {
 		return
 	}
 
-	func() {
-		p.mu.Lock()
-		defer p.mu.Unlock()
-
-		p.data.SessionType = types.SessionType_DefaultSession
-		p.data.Root = root
-		p.data.Indexes = ids
-	}()
-
 	if len(ids) == 0 {
 		p.log.Info("Empty pool. Skipping.")
 		return
 	}
 
-	data, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionProposalData{Indexes: ids, Root: root})
+	details, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionProposalData{Indexes: ids, Root: root})
 	if err != nil {
 		p.log.WithError(err).Error("Error parsing data")
 		return
 	}
 
-	details, err := cosmostypes.NewAnyWithValue(&types.ProposalRequest{Type: types.SessionType_DefaultSession, Details: data})
+	details, err = cosmostypes.NewAnyWithValue(&types.ProposalRequest{Type: types.SessionType_DefaultSession, Details: details})
 	if err != nil {
 		p.log.WithError(err).Error("Error parsing details")
 		return
@@ -212,11 +205,45 @@ func (p *ProposalController) makeSignProposal(ctx context.Context) {
 		IsBroadcast: true,
 		Details:     details,
 	})
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.data.SessionType = types.SessionType_DefaultSession
+	p.data.Root = root
+	p.data.Indexes = ids
+	p.data.Processing = true
 }
 
 func (p *ProposalController) makeReshareProposal(ctx context.Context) {
-	//TODO implement me
-	panic("implement me")
+	data := &types.ReshareSessionProposalData{
+		Old:          getSet(p.data.Old),
+		New:          getSet(p.data.New),
+		OldPublicKey: p.data.Old.GlobalPubKey,
+	}
+
+	details, err := cosmostypes.NewAnyWithValue(data)
+	if err != nil {
+		p.log.WithError(err).Error("Error parsing data")
+		return
+	}
+
+	details, err = cosmostypes.NewAnyWithValue(&types.ProposalRequest{Type: types.SessionType_ReshareSession, Details: details})
+	if err != nil {
+		p.log.WithError(err).Error("Error parsing details")
+		return
+	}
+
+	p.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+		Id:          p.data.SessionId,
+		Type:        types.RequestType_Proposal,
+		IsBroadcast: true,
+		Details:     details,
+	})
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.data.SessionType = types.SessionType_ReshareSession
+	p.data.Processing = true
 }
 
 func (p *ProposalController) getNewPool() ([]string, string, error) {
