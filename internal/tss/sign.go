@@ -38,6 +38,17 @@ type SignParty struct {
 	result *common.SignatureData
 }
 
+func NewSignParty(data string, id uint64, set *core.InputSet, log *logan.Entry) *SignParty {
+	return &SignParty{
+		wg:   &sync.WaitGroup{},
+		log:  log,
+		set:  set,
+		con:  connectors.NewBroadcastConnector(set, log),
+		data: data,
+		id:   id,
+	}
+}
+
 func (p *SignParty) Run(ctx context.Context) {
 	out := make(chan tss.Message, 1000)
 	end := make(chan common.SignatureData, 1)

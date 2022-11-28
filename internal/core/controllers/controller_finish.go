@@ -45,6 +45,8 @@ func (f *FinishController) Run(ctx context.Context) {
 		f.finishDefaultSession()
 	case types.SessionType_ReshareSession:
 		f.finishReshareSession()
+	case types.SessionType_KeygenSession:
+		f.finishKeygenSession()
 	}
 }
 
@@ -57,10 +59,20 @@ func (f *FinishController) Next() IController {
 }
 
 func (f *FinishController) Type() types.ControllerType {
-	if f.data.SessionType == types.SessionType_DefaultSession {
-		return types.ControllerType_CONTROLLER_FINISH_DEFAULT
+	return types.ControllerType_CONTROLLER_FINISH
+}
+
+func (f *FinishController) finishKeygenSession() {
+	msg := &rarimo.MsgSetupInitial{
+		Creator:   f.data.New.LocalAccountAddress,
+		Set:       f.data.New.Parties,
+		Signature: f.data.OperationSignature,
 	}
-	return types.ControllerType_CONTROLLER_FINISH_RESHARE
+
+	if err := f.core.Submit(msg); err != nil {
+		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
+	}
+	f.proposer.WithSignature(f.data.OperationSignature)
 }
 
 func (f *FinishController) finishReshareSession() {

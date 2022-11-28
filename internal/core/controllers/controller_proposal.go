@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/anyswap/FastMulThreshold-DSA/crypto"
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
@@ -266,5 +265,5 @@ func (p *ProposalController) getNewPool() ([]string, string, error) {
 		return nil, "", err
 	}
 
-	return ids, hexutil.Encode(merkle.NewTree(crypto.Keccak256, contents...).Root()), nil
+	return ids, hexutil.Encode(merkle.NewTree(eth.Keccak256, contents...).Root()), nil
 }

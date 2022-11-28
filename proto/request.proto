@@ -8,6 +8,7 @@ import "google/protobuf/any.proto";
 enum SessionType {
   DefaultSession = 0;
   ReshareSession = 1;
+  KeygenSession = 2;
 }
 
 message Set {

@@ -32,6 +32,16 @@ type ReshareParty struct {
 	result *keygen.LocalPartySaveData
 }
 
+func NewReshareParty(old, new *core.InputSet, log *logan.Entry) *ReshareParty {
+	return &ReshareParty{
+		wg:  &sync.WaitGroup{},
+		log: log,
+		old: old,
+		new: new,
+		con: connectors.NewBroadcastConnector(new, log),
+	}
+}
+
 func (r *ReshareParty) Result() *keygen.LocalPartySaveData {
 	return r.result
 }

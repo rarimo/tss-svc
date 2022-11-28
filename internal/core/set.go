@@ -20,7 +20,6 @@ type ParamsData struct {
 	GlobalPubKey string
 	N, T         int
 	Parties      []*rarimo.Party
-	Steps        []*rarimo.Step
 	Chains       map[string]*token.ChainParams
 }
 
@@ -72,7 +71,6 @@ func NewInputSet(client *grpc.ClientConn, storage secret.Storage) *InputSet {
 			N:            len(tssP.Params.Parties),
 			T:            int(tssP.Params.Threshold),
 			Parties:      tssP.Params.Parties,
-			Steps:        tssP.Params.Steps,
 			Chains:       tokenP.Params.Networks,
 		},
 
@@ -122,16 +120,6 @@ func (p *ParamsData) PartyByAccount(acc string) (rarimo.Party, bool) {
 	}
 
 	return rarimo.Party{}, false
-}
-
-func (p *ParamsData) StepDuration(step rarimo.StepType) uint64 {
-	for _, s := range p.Steps {
-		if s.Type == step {
-			return s.Duration
-		}
-	}
-
-	panic("unknown step")
 }
 
 func (l *LocalData) PartyKey() *big.Int {

@@ -26,13 +26,24 @@ type Session struct {
 var _ core.ISession = &Session{}
 
 func NewSession(cfg config.Config) *Session {
-	factory := &controllers.ControllerFactory{}
+	factory := controllers.NewControllerFactory(cfg)
 
 	return &Session{
 		mu:      &sync.Mutex{},
 		log:     cfg.Log(),
 		id:      cfg.Session().StartSessionId,
-		bounds:  &core.BoundsManager{},
+		bounds:  core.NewBoundsManager(cfg.Session().StartBlock),
+		factory: factory,
+		current: factory.GetProposalController(),
+	}
+}
+
+func NewSessionWithData(id, start uint64, factory *controllers.ControllerFactory, log *logan.Entry) *Session {
+	return &Session{
+		log:     log,
+		mu:      &sync.Mutex{},
+		id:      id,
+		bounds:  core.NewBoundsManager(start),
 		factory: factory,
 		current: factory.GetProposalController(),
 	}
@@ -67,7 +78,7 @@ func (s *Session) NewBlock(height uint64) {
 			s.runController()
 		}
 
-		if s.bounds.GetBounds(s.current.Type()).End <= height {
+		if s.bounds.Current().End <= height {
 			s.stopController()
 			s.current = s.current.Next()
 			s.isStarted = false
@@ -79,11 +90,10 @@ func (s *Session) NewBlock(height uint64) {
 func (s *Session) NextSession() core.ISession {
 	factory := s.factory.NextFactory()
 	return &Session{
-		mu:  &sync.Mutex{},
-		log: s.log,
-		id:  s.id + 1,
-		// TODO
-		bounds:  &core.BoundsManager{},
+		mu:      &sync.Mutex{},
+		log:     s.log,
+		id:      s.id + 1,
+		bounds:  core.NewBoundsManager(s.End() + 1),
 		factory: factory,
 		current: factory.GetProposalController(),
 	}
@@ -99,6 +109,7 @@ func (s *Session) runController() {
 		ctx, s.cancel = context.WithCancel(context.TODO())
 		s.current.Run(ctx)
 		s.isStarted = true
+		s.bounds.NextController(s.current.Type())
 	}
 }
 

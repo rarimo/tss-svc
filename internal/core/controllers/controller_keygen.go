@@ -4,8 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
+	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
@@ -17,9 +18,8 @@ type KeygenController struct {
 
 	data *LocalSessionData
 
-	broadcast *connectors.BroadcastConnector
-	auth      *core.RequestAuthorizer
-	log       *logan.Entry
+	auth *core.RequestAuthorizer
+	log  *logan.Entry
 
 	storage secret.Storage
 	party   *tss.KeygenParty
@@ -62,6 +62,7 @@ func (k *KeygenController) Run(ctx context.Context) {
 		panic(err)
 	}
 
+	k.data.SessionType = types.SessionType_KeygenSession
 	k.data.New.LocalTss.LocalData = k.storage.GetTssSecret().Data
 	k.data.New.LocalPrivateKey = k.storage.GetTssSecret().Prv
 	k.data.New.LocalPubKey = k.storage.GetTssSecret().PubKeyStr()
@@ -73,9 +74,8 @@ func (k *KeygenController) WaitFor() {
 	k.party.WaitFor()
 }
 
-func (k *KeygenController) Next() IController { // TODO
-
-	return nil
+func (k *KeygenController) Next() IController {
+	return k.factory.GetSignController(hexutil.Encode(crypto.GetPartiesHash(k.data.New.Parties)))
 }
 
 func (k *KeygenController) Type() types.ControllerType {

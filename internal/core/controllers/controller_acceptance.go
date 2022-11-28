@@ -96,7 +96,7 @@ func (a *AcceptanceController) Next() IController {
 	if a.data.Processing {
 		switch a.data.SessionType {
 		case types.SessionType_DefaultSession:
-			return a.factory.GetSignRootController()
+			return a.factory.GetSignController(a.data.Root)
 		case types.SessionType_ReshareSession:
 			return a.factory.GetReshareController()
 		}
@@ -115,25 +115,12 @@ func (a *AcceptanceController) run(ctx context.Context) {
 		a.wg.Done()
 	}()
 
-	// TODO
-	details, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionAcceptanceData{Root: ""})
-	if err != nil {
-		a.log.WithError(err).Error("error parsing details")
-		return
+	switch a.data.SessionType {
+	case types.SessionType_DefaultSession:
+		a.shareDefaultAcceptance(ctx)
+	case types.SessionType_ReshareSession:
+		a.shareReshareAcceptance(ctx)
 	}
-
-	details, err = cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Type: types.SessionType_DefaultSession, Details: details})
-	if err != nil {
-		a.log.WithError(err).Error("error parsing details")
-		return
-	}
-
-	a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
-		Id:          0,
-		Type:        types.RequestType_Acceptance,
-		IsBroadcast: true,
-		Details:     details,
-	})
 
 	<-ctx.Done()
 
@@ -153,4 +140,46 @@ func (a *AcceptanceController) run(ctx context.Context) {
 			a.data.Processing = false
 		}
 	}
+}
+
+func (a *AcceptanceController) shareDefaultAcceptance(ctx context.Context) {
+	details, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionAcceptanceData{Root: a.data.Root})
+	if err != nil {
+		a.log.WithError(err).Error("error parsing details")
+		return
+	}
+
+	details, err = cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Type: types.SessionType_DefaultSession, Details: details})
+	if err != nil {
+		a.log.WithError(err).Error("error parsing details")
+		return
+	}
+
+	a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+		Id:          a.data.SessionId,
+		Type:        types.RequestType_Acceptance,
+		IsBroadcast: true,
+		Details:     details,
+	})
+}
+
+func (a *AcceptanceController) shareReshareAcceptance(ctx context.Context) {
+	details, err := cosmostypes.NewAnyWithValue(&types.ReshareSessionAcceptanceData{New: getSet(a.data.New)})
+	if err != nil {
+		a.log.WithError(err).Error("error parsing details")
+		return
+	}
+
+	details, err = cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Type: types.SessionType_ReshareSession, Details: details})
+	if err != nil {
+		a.log.WithError(err).Error("error parsing details")
+		return
+	}
+
+	a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+		Id:          a.data.SessionId,
+		Type:        types.RequestType_Acceptance,
+		IsBroadcast: true,
+		Details:     details,
+	})
 }

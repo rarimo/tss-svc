@@ -30,6 +30,15 @@ type KeygenParty struct {
 	result *keygen.LocalPartySaveData
 }
 
+func NewKeygenParty(set *core.InputSet, log *logan.Entry) *KeygenParty {
+	return &KeygenParty{
+		wg:  &sync.WaitGroup{},
+		log: log,
+		set: set,
+		con: connectors.NewBroadcastConnector(set, log),
+	}
+}
+
 func (k *KeygenParty) Result() *keygen.LocalPartySaveData {
 	return k.result
 }

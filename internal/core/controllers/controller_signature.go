@@ -10,7 +10,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
@@ -21,9 +20,8 @@ type SignatureController struct {
 	data        *LocalSessionData
 	isKeySigner bool
 
-	broadcast *connectors.BroadcastConnector
-	auth      *core.RequestAuthorizer
-	log       *logan.Entry
+	auth *core.RequestAuthorizer
+	log  *logan.Entry
 
 	party   *tss.SignParty
 	factory *ControllerFactory
@@ -93,7 +91,7 @@ func (s *SignatureController) Next() IController {
 		content, _ := pkg.GetChangePartiesContent(op)
 		s.data.Root = hexutil.Encode(content.CalculateHash())
 		s.data.Indexes = []string{s.data.Root}
-		return s.factory.GetSignRootController()
+		return s.factory.GetSignController(s.data.Root)
 	}
 	return s.factory.GetFinishController()
 }

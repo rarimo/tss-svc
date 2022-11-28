@@ -9,6 +9,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
+	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
 	"google.golang.org/grpc"
 )
 
@@ -114,44 +115,26 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 // if it's a default session there is no difference
 // otherwise we should sign with old keys
 
-func (c *ControllerFactory) GetSignRootController() IController {
+func (c *ControllerFactory) GetSignController(hash string) IController {
 	return &SignatureController{
-		mu:        &sync.Mutex{},
-		data:      c.data,
-		broadcast: connectors.NewBroadcastConnector(c.data.Old, c.log),
-		auth:      core.NewRequestAuthorizer(c.data.Old, c.log),
-		log:       c.log,
-		party:     nil,
-		factory:   c,
-	}
-}
-
-// Used always for old params
-// if it's a default session there is no difference
-// otherwise we should sign with old keys
-
-func (c *ControllerFactory) GetSignKeyController() IController {
-	return &SignatureController{
-		mu:        &sync.Mutex{},
-		data:      c.data,
-		broadcast: connectors.NewBroadcastConnector(c.data.Old, c.log),
-		auth:      core.NewRequestAuthorizer(c.data.Old, c.log),
-		log:       c.log,
-		party:     nil,
-		factory:   c,
+		mu:      &sync.Mutex{},
+		data:    c.data,
+		auth:    core.NewRequestAuthorizer(c.data.Old, c.log),
+		log:     c.log,
+		party:   tss.NewSignParty(hash, c.data.SessionId, c.data.Old, c.log),
+		factory: c,
 	}
 }
 
 func (c *ControllerFactory) GetReshareController() IController {
 	return &ReshareController{
-		mu:        &sync.Mutex{},
-		data:      c.data,
-		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
-		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
-		log:       c.log,
-		party:     nil,
-		storage:   c.storage,
-		factory:   c,
+		mu:      &sync.Mutex{},
+		data:    c.data,
+		auth:    core.NewRequestAuthorizer(c.data.New, c.log),
+		log:     c.log,
+		party:   tss.NewReshareParty(c.data.Old, c.data.New, c.log),
+		storage: c.storage,
+		factory: c,
 	}
 }
 
@@ -163,5 +146,17 @@ func (c *ControllerFactory) GetFinishController() IController {
 		data:     c.data,
 		proposer: c.proposer,
 		factory:  c,
+	}
+}
+
+func (c *ControllerFactory) GetKeygenController() IController {
+	return &KeygenController{
+		mu:      &sync.Mutex{},
+		data:    c.data,
+		auth:    core.NewRequestAuthorizer(c.data.New, c.log),
+		log:     c.log,
+		storage: c.storage,
+		party:   tss.NewKeygenParty(c.data.New, c.log),
+		factory: nil,
 	}
 }

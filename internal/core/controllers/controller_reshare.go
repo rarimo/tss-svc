@@ -4,8 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	eth "github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
@@ -16,9 +17,8 @@ type ReshareController struct {
 	mu   *sync.Mutex
 	data *LocalSessionData
 
-	broadcast *connectors.BroadcastConnector
-	auth      *core.RequestAuthorizer
-	log       *logan.Entry
+	auth *core.RequestAuthorizer
+	log  *logan.Entry
 
 	party   *tss.ReshareParty
 	storage secret.Storage
@@ -80,7 +80,7 @@ func (r *ReshareController) Next() IController {
 	defer r.mu.Unlock()
 
 	if r.data.Processing {
-		return r.factory.GetSignKeyController()
+		return r.factory.GetSignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewGlobalPublicKey))))
 	}
 
 	return r.factory.GetFinishController()

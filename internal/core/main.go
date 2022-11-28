@@ -24,6 +24,13 @@ type SessionManager struct {
 	currentSession ISession
 }
 
+func NewSessionManager(session ISession) *SessionManager {
+	return &SessionManager{
+		mu:             &sync.Mutex{},
+		currentSession: session,
+	}
+}
+
 func (s *SessionManager) Receive(request *types.MsgSubmitRequest) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -35,7 +42,7 @@ func (s *SessionManager) Receive(request *types.MsgSubmitRequest) error {
 	return s.currentSession.Receive(request)
 }
 
-func (s *SessionManager) NewBlock(height uint64) {
+func (s *SessionManager) NewBlock(height uint64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -43,4 +50,5 @@ func (s *SessionManager) NewBlock(height uint64) {
 	if s.currentSession.End() <= height {
 		s.currentSession = s.currentSession.NextSession()
 	}
+	return nil
 }
