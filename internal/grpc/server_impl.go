@@ -24,9 +24,9 @@ type ServerImpl struct {
 	pool     *pool.Pool
 }
 
-func NewServer(cfg config.Config) *ServerImpl {
+func NewServer(manager *core.SessionManager, cfg config.Config) *ServerImpl {
 	return &ServerImpl{
-		manager:  nil,
+		manager:  manager,
 		log:      cfg.Log(),
 		listener: cfg.Listener(),
 		storage:  cfg.Storage(),

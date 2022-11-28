@@ -20,13 +20,12 @@ type ISession interface {
 }
 
 type SessionManager struct {
-	mu             *sync.Mutex
+	mu             sync.Mutex
 	currentSession ISession
 }
 
 func NewSessionManager(session ISession) *SessionManager {
 	return &SessionManager{
-		mu:             &sync.Mutex{},
 		currentSession: session,
 	}
 }

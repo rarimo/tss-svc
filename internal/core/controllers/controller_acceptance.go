@@ -14,7 +14,7 @@ import (
 )
 
 type AcceptanceController struct {
-	mu *sync.Mutex
+	mu sync.Mutex
 	wg *sync.WaitGroup
 
 	data *LocalSessionData
@@ -29,6 +29,7 @@ type AcceptanceController struct {
 var _ IController = &AcceptanceController{}
 
 func (a *AcceptanceController) Run(ctx context.Context) {
+	a.log.Infof("Starting %s", a.Type().String())
 	a.wg.Add(1)
 	go a.run(ctx)
 }
@@ -96,7 +97,7 @@ func (a *AcceptanceController) Next() IController {
 	if a.data.Processing {
 		switch a.data.SessionType {
 		case types.SessionType_DefaultSession:
-			return a.factory.GetSignController(a.data.Root)
+			return a.factory.GetSignController(a.data.Root, a.data.Old)
 		case types.SessionType_ReshareSession:
 			return a.factory.GetReshareController()
 		}
@@ -111,7 +112,7 @@ func (a *AcceptanceController) Type() types.ControllerType {
 
 func (a *AcceptanceController) run(ctx context.Context) {
 	defer func() {
-		a.log.Info("Acceptance controller finished")
+		a.log.Infof("%s finished", a.Type().String())
 		a.wg.Done()
 	}()
 

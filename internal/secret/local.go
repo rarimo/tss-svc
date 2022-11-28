@@ -26,7 +26,7 @@ var ErrNoTssDataPath = goerr.New("tss data path is empty")
 var localStorage *LocalStorage
 
 type LocalStorage struct {
-	mu          *sync.Mutex
+	mu          sync.Mutex
 	account     cryptotypes.PrivKey
 	TrialPrvKey *ecdsa.PrivateKey
 	secrets     []*TssSecret

@@ -21,7 +21,7 @@ import (
 const MaxPoolSize = 32
 
 type ProposalController struct {
-	mu *sync.Mutex
+	mu sync.Mutex
 	wg *sync.WaitGroup
 
 	data *LocalSessionData
@@ -97,6 +97,7 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (p *ProposalController) Run(ctx context.Context) {
+	p.log.Infof("Starting %s", p.Type().String())
 	p.wg.Add(1)
 	go p.run(ctx)
 }
@@ -131,7 +132,7 @@ func (p *ProposalController) Type() types.ControllerType {
 
 func (p *ProposalController) validateDefaultProposal(data *types.DefaultSessionProposalData) bool {
 	if len(data.Indexes) == 0 {
-		return true
+		return false
 	}
 
 	ops, err := GetOperations(p.client, data.Indexes...)
@@ -157,7 +158,7 @@ func (p *ProposalController) validateReshareProposal(data *types.ReshareSessionP
 
 func (p *ProposalController) run(ctx context.Context) {
 	defer func() {
-		p.log.Info("Proposal controller finished")
+		p.log.Infof("%s finished", p.Type().String())
 		p.wg.Done()
 	}()
 

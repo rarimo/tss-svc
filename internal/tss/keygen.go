@@ -24,14 +24,17 @@ type KeygenParty struct {
 
 	log *logan.Entry
 
-	set    *core.InputSet
-	party  tss.Party
-	con    *connectors.BroadcastConnector
+	set   *core.InputSet
+	party tss.Party
+	con   *connectors.BroadcastConnector
+
+	id     uint64
 	result *keygen.LocalPartySaveData
 }
 
-func NewKeygenParty(set *core.InputSet, log *logan.Entry) *KeygenParty {
+func NewKeygenParty(id uint64, set *core.InputSet, log *logan.Entry) *KeygenParty {
 	return &KeygenParty{
+		id:  id,
 		wg:  &sync.WaitGroup{},
 		log: log,
 		set: set,
@@ -54,6 +57,7 @@ func (k *KeygenParty) Receive(sender rarimo.Party, isBroadcast bool, details []b
 }
 
 func (k *KeygenParty) Run(ctx context.Context) {
+	k.log.Infof("Running TSS key generation on set: %v", k.set.Parties)
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1)
 	peerCtx := tss.NewPeerContext(k.set.SortedPartyIDs)
@@ -89,9 +93,6 @@ func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveD
 		}
 
 		k.log.Infof("Pub key: %s", hexutil.Encode(elliptic.Marshal(s256k1.S256(), result.ECDSAPub.X(), result.ECDSAPub.Y())))
-		//if err := k.storage.SetTssSecret(secret.NewTssSecret(&result, k.secret.Params, k.secret)); err != nil {
-		//	k.log.WithError(err).Error("failed to set tss params")
-		//}
 		k.result = &result
 	default:
 		k.log.Info("Reshare process has not been finished yet or has some errors")
@@ -113,13 +114,19 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 			}
 
 			request := &types.MsgSubmitRequest{
+				Id:          k.id,
 				Type:        types.RequestType_Keygen,
 				IsBroadcast: msg.IsBroadcast(),
 				Details:     details,
 			}
 
-			k.log.Infof("Sending to %v", msg.GetTo())
-			for _, to := range msg.GetTo() {
+			to := msg.GetTo()
+			if msg.IsBroadcast() {
+				to = k.set.SortedPartyIDs
+			}
+
+			k.log.Infof("Sending to %v", to)
+			for _, to := range to {
 				k.log.Infof("Sending message to %s", to.Id)
 				party, _ := k.set.PartyByAccount(to.Id)
 

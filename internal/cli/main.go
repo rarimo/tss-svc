@@ -49,14 +49,14 @@ func Run(args []string) bool {
 
 		manager := core.NewSessionManager(sign.NewSession(cfg))
 		timer.NewTimer(cfg).SubscribeToBlocks("session-manager", manager.NewBlock)
-		err = grpc.NewServer(cfg).Run()
+		err = grpc.NewServer(manager, cfg).Run()
 	case keygenCmd.FullCommand():
 		go timer.NewBlockSubscriber(cfg).Run()
 		go pool.NewTransferOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
 		manager := core.NewSessionManager(keygen.NewSession(cfg))
 		timer.NewTimer(cfg).SubscribeToBlocks("session-manager", manager.NewBlock)
-		err = grpc.NewServer(cfg).Run()
+		err = grpc.NewServer(manager, cfg).Run()
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():

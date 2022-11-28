@@ -14,7 +14,7 @@ import (
 
 type Session struct {
 	log    *logan.Entry
-	mu     *sync.Mutex
+	mu     sync.Mutex
 	id     uint64
 	bounds *core.BoundsManager
 
@@ -30,7 +30,6 @@ func NewSession(cfg config.Config) *Session {
 	factory := controllers.NewControllerFactory(cfg)
 
 	return &Session{
-		mu:      &sync.Mutex{},
 		log:     cfg.Log(),
 		id:      cfg.Session().StartSessionId,
 		bounds:  core.NewBoundsManager(cfg.Session().StartBlock),
@@ -57,6 +56,12 @@ func (s *Session) Receive(request *types.MsgSubmitRequest) error {
 func (s *Session) NewBlock(height uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if s.bounds.SessionStart > height {
+		return
+	}
+
+	s.log.Infof("Running next block on keygen session #%d", s.id)
 
 	if s.bounds.SessionEnd <= height {
 		s.stopController()

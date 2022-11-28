@@ -16,7 +16,8 @@ import (
 )
 
 type SignatureController struct {
-	mu          *sync.Mutex
+	mu          sync.Mutex
+	wg          *sync.WaitGroup
 	data        *LocalSessionData
 	isKeySigner bool
 
@@ -55,24 +56,10 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (s *SignatureController) Run(ctx context.Context) {
+	s.log.Infof("Starting %s controller", s.Type().String())
 	s.party.Run(ctx)
-
-	<-ctx.Done()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	result := s.party.Result()
-	if result == nil {
-		s.data.Processing = false
-		return
-	}
-
-	signature := hexutil.Encode(append(result.Signature, result.SignatureRecovery...))
-	if s.isKeySigner {
-		s.data.KeySignature = signature
-	}
-	s.data.OperationSignature = signature
+	s.wg.Add(1)
+	go s.run(ctx)
 }
 
 func (s *SignatureController) WaitFor() {
@@ -91,11 +78,35 @@ func (s *SignatureController) Next() IController {
 		content, _ := pkg.GetChangePartiesContent(op)
 		s.data.Root = hexutil.Encode(content.CalculateHash())
 		s.data.Indexes = []string{s.data.Root}
-		return s.factory.GetSignController(s.data.Root)
+		return s.factory.GetSignController(s.data.Root, s.data.Old)
 	}
 	return s.factory.GetFinishController()
 }
 
 func (s *SignatureController) Type() types.ControllerType {
 	return types.ControllerType_CONTROLLER_SIGN
+}
+
+func (s *SignatureController) run(ctx context.Context) {
+	defer func() {
+		s.log.Infof("%s finished", s.Type().String())
+		s.wg.Done()
+	}()
+
+	<-ctx.Done()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	result := s.party.Result()
+	if result == nil {
+		s.data.Processing = false
+		return
+	}
+
+	signature := hexutil.Encode(append(result.Signature, result.SignatureRecovery...))
+	if s.isKeySigner {
+		s.data.KeySignature = signature
+	}
+	s.data.OperationSignature = signature
 }

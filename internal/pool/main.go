@@ -26,7 +26,7 @@ var pool *Pool
 type Pool struct {
 	rarimo *grpc.ClientConn
 	log    *logan.Entry
-	mu     *sync.Mutex
+	mu     sync.Mutex
 	// Stores the order of operations to be included to the next sign,
 	// but without actual information about signed status.
 	rawOrder chan string
@@ -38,7 +38,6 @@ type Pool struct {
 func NewPool(cfg config.Config) *Pool {
 	if pool == nil {
 		pool = &Pool{
-			mu:       &sync.Mutex{},
 			rarimo:   cfg.Cosmos(),
 			log:      cfg.Log(),
 			rawOrder: make(chan string, poolSz),

@@ -50,10 +50,11 @@ func NewSignParty(data string, id uint64, set *core.InputSet, log *logan.Entry) 
 }
 
 func (p *SignParty) Run(ctx context.Context) {
+	p.log.Infof("Running TSS signing on set: %v", p.set.Parties)
 	out := make(chan tss.Message, 1000)
 	end := make(chan common.SignatureData, 1)
 	peerCtx := tss.NewPeerContext(p.set.SortedPartyIDs)
-	tssParams := tss.NewParameters(s256k1.S256(), peerCtx, p.set.LocalParty(), p.set.N, p.set.N)
+	tssParams := tss.NewParameters(s256k1.S256(), peerCtx, p.set.LocalParty(), p.set.N, p.set.T)
 
 	p.party = signing.NewLocalParty(new(big.Int).SetBytes(hexutil.MustDecode(p.data)), tssParams, *p.set.LocalTss.LocalData, out, end)
 	go func() {
@@ -132,8 +133,13 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				Details:     details,
 			}
 
-			p.log.Infof("Sending to %v", msg.GetTo())
-			for _, to := range msg.GetTo() {
+			to := msg.GetTo()
+			if msg.IsBroadcast() {
+				to = p.set.SortedPartyIDs
+			}
+
+			p.log.Infof("Sending to %v", to)
+			for _, to := range to {
 				p.log.Infof("Sending message to %s", to.Id)
 				party, _ := p.set.PartyByAccount(to.Id)
 

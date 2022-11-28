@@ -25,15 +25,18 @@ type ReshareParty struct {
 
 	log *logan.Entry
 
-	old    *core.InputSet
-	new    *core.InputSet
-	party  tss.Party
-	con    *connectors.BroadcastConnector
+	old   *core.InputSet
+	new   *core.InputSet
+	party tss.Party
+	con   *connectors.BroadcastConnector
+
+	id     uint64
 	result *keygen.LocalPartySaveData
 }
 
-func NewReshareParty(old, new *core.InputSet, log *logan.Entry) *ReshareParty {
+func NewReshareParty(id uint64, old, new *core.InputSet, log *logan.Entry) *ReshareParty {
 	return &ReshareParty{
+		id:  id,
 		wg:  &sync.WaitGroup{},
 		log: log,
 		old: old,
@@ -56,6 +59,7 @@ func (r *ReshareParty) Receive(sender rarimo.Party, isBroadcast bool, details []
 }
 
 func (r *ReshareParty) Run(ctx context.Context) {
+	r.log.Infof("Running TSS key re-generation on new set: %v", r.new.Parties)
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1)
 
@@ -116,6 +120,7 @@ func (r *ReshareParty) listenOutput(ctx context.Context, out <-chan tss.Message)
 			}
 
 			request := &types.MsgSubmitRequest{
+				Id:          r.id,
 				Type:        types.RequestType_Reshare,
 				IsBroadcast: msg.IsBroadcast(),
 				Details:     details,

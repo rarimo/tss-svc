@@ -23,7 +23,7 @@ func NewTssSecret(data *keygen.LocalPartySaveData, params *keygen.LocalPreParams
 		err error
 	)
 
-	if data != nil {
+	if data != nil && data.Xi != nil {
 		prv, err = eth.ToECDSA(data.Xi.Bytes())
 		if err != nil {
 			panic(err)
@@ -39,6 +39,10 @@ func NewTssSecret(data *keygen.LocalPartySaveData, params *keygen.LocalPreParams
 }
 
 func (t *TssSecret) PubKeyStr() string {
+	if t.Prv == nil {
+		return ""
+	}
+
 	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.Prv.X, t.Prv.Y))
 }
 

@@ -1,6 +1,10 @@
 package core
 
-import "gitlab.com/rarify-protocol/tss-svc/pkg/types"
+import (
+	"sync"
+
+	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+)
 
 const (
 	SessionDuration    = 40
@@ -28,6 +32,7 @@ type Bounds struct {
 }
 
 type BoundsManager struct {
+	mu           sync.Mutex
 	SessionStart uint64
 	SessionEnd   uint64
 	bounds       []*Bounds

@@ -14,7 +14,8 @@ import (
 )
 
 type ReshareController struct {
-	mu   *sync.Mutex
+	mu   sync.Mutex
+	wg   *sync.WaitGroup
 	data *LocalSessionData
 
 	auth *core.RequestAuthorizer
@@ -46,7 +47,37 @@ func (r *ReshareController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (r *ReshareController) Run(ctx context.Context) {
+	r.log.Infof("Starting %s", r.Type().String())
 	r.party.Run(ctx)
+	r.wg.Add(1)
+	go r.run(ctx)
+}
+
+func (r *ReshareController) WaitFor() {
+	r.party.WaitFor()
+	r.wg.Wait()
+}
+
+func (r *ReshareController) Next() IController {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.data.Processing {
+		return r.factory.GetSignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewGlobalPublicKey))), r.data.Old)
+	}
+
+	return r.factory.GetFinishController()
+}
+
+func (r *ReshareController) Type() types.ControllerType {
+	return types.ControllerType_CONTROLLER_RESHARE
+}
+
+func (r *ReshareController) run(ctx context.Context) {
+	defer func() {
+		r.log.Infof("%s finished", r.Type().String())
+		r.wg.Done()
+	}()
 
 	<-ctx.Done()
 
@@ -68,24 +99,6 @@ func (r *ReshareController) Run(ctx context.Context) {
 	r.data.New.LocalPrivateKey = r.storage.GetTssSecret().Prv
 	r.data.New.LocalPubKey = r.storage.GetTssSecret().PubKeyStr()
 	r.data.New.GlobalPubKey = r.storage.GetTssSecret().GlobalPubKeyStr()
+	r.data.New.T = ((r.data.New.N + 2) / 3) * 2
 	r.data.NewGlobalPublicKey = r.data.New.GlobalPubKey
-}
-
-func (r *ReshareController) WaitFor() {
-	r.party.WaitFor()
-}
-
-func (r *ReshareController) Next() IController {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.data.Processing {
-		return r.factory.GetSignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewGlobalPublicKey))))
-	}
-
-	return r.factory.GetFinishController()
-}
-
-func (r *ReshareController) Type() types.ControllerType {
-	return types.ControllerType_CONTROLLER_RESHARE
 }

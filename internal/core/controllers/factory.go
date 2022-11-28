@@ -87,7 +87,6 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 func (c *ControllerFactory) GetProposalController() IController {
 	c.data.Proposer = c.proposer.NextProposer(c.data.SessionId)
 	return &ProposalController{
-		mu:        &sync.Mutex{},
 		wg:        &sync.WaitGroup{},
 		data:      c.data,
 		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
@@ -101,7 +100,6 @@ func (c *ControllerFactory) GetProposalController() IController {
 
 func (c *ControllerFactory) GetAcceptanceController() IController {
 	return &AcceptanceController{
-		mu:        &sync.Mutex{},
 		wg:        &sync.WaitGroup{},
 		data:      c.data,
 		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
@@ -115,24 +113,24 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 // if it's a default session there is no difference
 // otherwise we should sign with old keys
 
-func (c *ControllerFactory) GetSignController(hash string) IController {
+func (c *ControllerFactory) GetSignController(hash string, set *core.InputSet) IController {
 	return &SignatureController{
-		mu:      &sync.Mutex{},
+		wg:      &sync.WaitGroup{},
 		data:    c.data,
-		auth:    core.NewRequestAuthorizer(c.data.Old, c.log),
+		auth:    core.NewRequestAuthorizer(set, c.log),
 		log:     c.log,
-		party:   tss.NewSignParty(hash, c.data.SessionId, c.data.Old, c.log),
+		party:   tss.NewSignParty(hash, c.data.SessionId, set, c.log),
 		factory: c,
 	}
 }
 
 func (c *ControllerFactory) GetReshareController() IController {
 	return &ReshareController{
-		mu:      &sync.Mutex{},
+		wg:      &sync.WaitGroup{},
 		data:    c.data,
 		auth:    core.NewRequestAuthorizer(c.data.New, c.log),
 		log:     c.log,
-		party:   tss.NewReshareParty(c.data.Old, c.data.New, c.log),
+		party:   tss.NewReshareParty(c.data.SessionId, c.data.Old, c.data.New, c.log),
 		storage: c.storage,
 		factory: c,
 	}
@@ -151,12 +149,12 @@ func (c *ControllerFactory) GetFinishController() IController {
 
 func (c *ControllerFactory) GetKeygenController() IController {
 	return &KeygenController{
-		mu:      &sync.Mutex{},
+		wg:      &sync.WaitGroup{},
 		data:    c.data,
 		auth:    core.NewRequestAuthorizer(c.data.New, c.log),
 		log:     c.log,
 		storage: c.storage,
-		party:   tss.NewKeygenParty(c.data.New, c.log),
-		factory: nil,
+		party:   tss.NewKeygenParty(c.data.SessionId, c.data.New, c.log),
+		factory: c,
 	}
 }

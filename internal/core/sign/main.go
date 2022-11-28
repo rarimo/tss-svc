@@ -13,7 +13,7 @@ import (
 
 type Session struct {
 	log    *logan.Entry
-	mu     *sync.Mutex
+	mu     sync.Mutex
 	id     uint64
 	bounds *core.BoundsManager
 
@@ -29,7 +29,6 @@ func NewSession(cfg config.Config) *Session {
 	factory := controllers.NewControllerFactory(cfg)
 
 	return &Session{
-		mu:      &sync.Mutex{},
 		log:     cfg.Log(),
 		id:      cfg.Session().StartSessionId,
 		bounds:  core.NewBoundsManager(cfg.Session().StartBlock),
@@ -41,7 +40,6 @@ func NewSession(cfg config.Config) *Session {
 func NewSessionWithData(id, start uint64, factory *controllers.ControllerFactory, log *logan.Entry) *Session {
 	return &Session{
 		log:     log,
-		mu:      &sync.Mutex{},
 		id:      id,
 		bounds:  core.NewBoundsManager(start),
 		factory: factory,
@@ -68,6 +66,12 @@ func (s *Session) NewBlock(height uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.bounds.SessionStart > height {
+		return
+	}
+
+	s.log.Infof("Running next block on sign session #%d", s.id)
+
 	if s.bounds.SessionEnd <= height {
 		s.stopController()
 		return
@@ -90,7 +94,6 @@ func (s *Session) NewBlock(height uint64) {
 func (s *Session) NextSession() core.ISession {
 	factory := s.factory.NextFactory()
 	return &Session{
-		mu:      &sync.Mutex{},
 		log:     s.log,
 		id:      s.id + 1,
 		bounds:  core.NewBoundsManager(s.End() + 1),

@@ -30,9 +30,10 @@ func (f *FinishController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (f *FinishController) Run(ctx context.Context) {
+	f.log.Infof("Starting %s", f.Type().String())
 	f.wg.Add(1)
 	func() {
-		f.log.Info("Finish controller finished")
+		f.log.Infof("%s controller", f.Type().String())
 		f.wg.Done()
 	}()
 

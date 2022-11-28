@@ -14,7 +14,8 @@ import (
 )
 
 type KeygenController struct {
-	mu *sync.Mutex
+	mu sync.Mutex
+	wg *sync.WaitGroup
 
 	data *LocalSessionData
 
@@ -44,7 +45,30 @@ func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (k *KeygenController) Run(ctx context.Context) {
+	k.log.Infof("Starting %s", k.Type().String())
 	k.party.Run(ctx)
+	k.wg.Add(1)
+	go k.run(ctx)
+}
+
+func (k *KeygenController) WaitFor() {
+	k.party.WaitFor()
+	k.wg.Wait()
+}
+
+func (k *KeygenController) Next() IController {
+	return k.factory.GetSignController(hexutil.Encode(crypto.GetPartiesHash(k.data.New.Parties)), k.data.New)
+}
+
+func (k *KeygenController) Type() types.ControllerType {
+	return types.ControllerType_CONTROLLER_KEYGEN
+}
+
+func (k *KeygenController) run(ctx context.Context) {
+	defer func() {
+		k.log.Infof("%s finished", k.Type().String())
+		k.wg.Done()
+	}()
 
 	<-ctx.Done()
 
@@ -67,17 +91,6 @@ func (k *KeygenController) Run(ctx context.Context) {
 	k.data.New.LocalPrivateKey = k.storage.GetTssSecret().Prv
 	k.data.New.LocalPubKey = k.storage.GetTssSecret().PubKeyStr()
 	k.data.New.GlobalPubKey = k.storage.GetTssSecret().GlobalPubKeyStr()
+	k.data.New.T = ((k.data.New.N + 2) / 3) * 2
 	k.data.NewGlobalPublicKey = k.data.New.GlobalPubKey
-}
-
-func (k *KeygenController) WaitFor() {
-	k.party.WaitFor()
-}
-
-func (k *KeygenController) Next() IController {
-	return k.factory.GetSignController(hexutil.Encode(crypto.GetPartiesHash(k.data.New.Parties)))
-}
-
-func (k *KeygenController) Type() types.ControllerType {
-	return types.ControllerType_CONTROLLER_KEYGEN
 }
