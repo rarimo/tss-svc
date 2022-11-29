@@ -25,7 +25,6 @@ type ControllerFactory struct {
 
 func NewControllerFactory(cfg config.Config) *ControllerFactory {
 	set := core.NewInputSet(cfg.Cosmos(), secret.NewLocalStorage(cfg))
-	cfg.Log().Debugf("Loaded parties: %v", set.Parties)
 	return &ControllerFactory{
 		data: &LocalSessionData{
 			SessionId:   cfg.Session().StartSessionId,
@@ -44,6 +43,7 @@ func NewControllerFactory(cfg config.Config) *ControllerFactory {
 func (c *ControllerFactory) NextFactory() *ControllerFactory {
 	set := core.NewInputSet(c.client, c.storage)
 	if c.data.New.Equals(c.data.Old) {
+		c.log.Debug("Previous session old and new are equal")
 		return &ControllerFactory{
 			data: &LocalSessionData{
 				SessionId:   c.data.SessionId + 1,
@@ -60,6 +60,7 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 	}
 
 	if c.data.New.Equals(set) {
+		c.log.Debug("Previous session new and current new are equal")
 		return &ControllerFactory{
 			data: &LocalSessionData{
 				SessionId:   c.data.SessionId + 1,
@@ -75,6 +76,7 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 		}
 	}
 
+	c.log.Debug("Sut upping with previous session old and current new")
 	return &ControllerFactory{
 		data: &LocalSessionData{
 			SessionId:   c.data.SessionId + 1,

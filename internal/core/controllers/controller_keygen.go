@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
@@ -58,9 +57,6 @@ func (k *KeygenController) WaitFor() {
 }
 
 func (k *KeygenController) Next() IController {
-	if len(k.data.AcceptedPartyIds) > 0 {
-		return k.factory.GetSignController(hexutil.Encode(crypto.GetPartiesHash(k.data.New.Parties)))
-	}
 	return k.factory.GetFinishController()
 }
 
@@ -92,18 +88,11 @@ func (k *KeygenController) run(ctx context.Context) {
 	}
 
 	k.data.SessionType = types.SessionType_KeygenSession
-	k.data.New.LocalTss.LocalData = k.storage.GetTssSecret().Data
-	k.data.New.LocalPrivateKey = k.storage.GetTssSecret().Prv
 	k.data.New.LocalPubKey = k.storage.GetTssSecret().PubKeyStr()
 	k.data.New.GlobalPubKey = k.storage.GetTssSecret().GlobalPubKeyStr()
 	k.data.New.T = ((k.data.New.N + 2) / 3) * 2
-	k.data.NewGlobalPublicKey = k.data.New.GlobalPubKey
-	k.data.AcceptedPartyIds = k.data.New.SortedPartyIDs
+	k.data.New.IsActive = true
 	k.data.Processing = true
-
-	for _, p := range k.data.New.Parties {
-		k.data.Acceptances[p.Account] = struct{}{}
-	}
 
 	for i := range result.Ks {
 		partyId := k.data.New.SortedPartyIDs.FindByKey(result.Ks[i])

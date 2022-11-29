@@ -109,7 +109,7 @@ func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
 		}
 
 		p.result = &result
-		p.log.Infof("Signed data %s signature %", p.data, p.result.Signature)
+		p.log.Infof("Signed data %s signature %s", p.data, hexutil.Encode(append(p.result.Signature, p.result.SignatureRecovery...)))
 	default:
 		p.log.Info("Signature process has not been finished yet or has some errors")
 	}

@@ -66,22 +66,22 @@ func (f *FinishController) Type() types.ControllerType {
 
 func (f *FinishController) finishKeygenSession() {
 	msg := &rarimo.MsgSetupInitial{
-		Creator:   f.data.New.LocalAccountAddress,
-		Set:       f.data.New.Parties,
-		Signature: f.data.OperationSignature,
+		Creator:        f.data.New.LocalAccountAddress,
+		NewPublicKey:   f.data.New.GlobalPubKey,
+		PartyPublicKey: f.data.New.LocalPubKey,
 	}
 
 	if err := f.core.Submit(msg); err != nil {
-		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
+		panic(err)
 	}
-	f.proposer.WithSignature(f.data.OperationSignature)
 }
 
 func (f *FinishController) finishReshareSession() {
 	msg1 := &rarimo.MsgCreateChangePartiesOp{
-		Creator:   f.data.New.LocalAccountAddress,
-		NewSet:    f.data.New.Parties,
-		Signature: f.data.KeySignature,
+		Creator:      f.data.New.LocalAccountAddress,
+		NewSet:       f.data.New.Parties,
+		Signature:    f.data.KeySignature,
+		NewPublicKey: f.data.NewGlobalPublicKey,
 	}
 
 	msg2 := &rarimo.MsgCreateConfirmation{
