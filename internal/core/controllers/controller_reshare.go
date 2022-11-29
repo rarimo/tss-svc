@@ -101,6 +101,7 @@ func (r *ReshareController) run(ctx context.Context) {
 	r.data.New.LocalPubKey = r.storage.GetTssSecret().PubKeyStr()
 	r.data.New.GlobalPubKey = r.storage.GetTssSecret().GlobalPubKeyStr()
 	r.data.New.T = ((r.data.New.N + 2) / 3) * 2
+	r.data.New.IsActive = true
 	r.data.NewGlobalPublicKey = r.data.New.GlobalPubKey
 
 	for i := range result.Ks {

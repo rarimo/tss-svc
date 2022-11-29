@@ -27,18 +27,18 @@ type (
 	}
 
 	LocalSessionData struct {
-		SessionId          uint64
-		Processing         bool
-		SessionType        types.SessionType
-		Proposer           rarimo.Party
-		Old                *core.InputSet
-		New                *core.InputSet
-		Indexes            []string
-		Root               string
-		Acceptances        map[string]struct{}
-		AcceptedPartyIds   tss.SortedPartyIDs
-		NewGlobalPublicKey string
-		OperationSignature string
-		KeySignature       string
+		SessionId               uint64
+		Processing              bool
+		SessionType             types.SessionType
+		Proposer                rarimo.Party
+		Old                     *core.InputSet
+		New                     *core.InputSet
+		Indexes                 []string
+		Root                    string
+		Acceptances             map[string]struct{}
+		AcceptedSigningPartyIds tss.SortedPartyIDs
+		NewGlobalPublicKey      string
+		OperationSignature      string
+		KeySignature            string
 	}
 )

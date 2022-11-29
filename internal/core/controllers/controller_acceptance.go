@@ -23,9 +23,7 @@ type AcceptanceController struct {
 	broadcast *connectors.BroadcastConnector
 	auth      *core.RequestAuthorizer
 	log       *logan.Entry
-
-	accepted []*rarimo.Party
-	factory  *ControllerFactory
+	factory   *ControllerFactory
 }
 
 var _ IController = &AcceptanceController{}
@@ -67,11 +65,7 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 			defer a.mu.Unlock()
 
 			a.log.Infof("Received acceptance from %s for root %s", sender.Account, details.Root)
-			if _, ok := a.data.Acceptances[sender.Account]; !ok {
-				a.data.Acceptances[sender.Account] = struct{}{}
-				a.accepted = append(a.accepted, &sender)
-			}
-
+			a.data.Acceptances[sender.Account] = struct{}{}
 		}
 
 	case types.SessionType_ReshareSession:
@@ -134,16 +128,16 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
+	// adding self
 	a.data.Acceptances[a.data.New.LocalAccountAddress] = struct{}{}
-	for _, p := range a.data.New.Parties {
-		// adding self
-		if p.Account == a.data.New.LocalAccountAddress {
-			a.accepted = append(a.accepted, p)
-			break
+
+	accepted := make([]*rarimo.Party, 0, a.data.Old.N)
+	for _, p := range a.data.Old.Parties {
+		if _, ok := a.data.Acceptances[p.Account]; ok {
+			accepted = append(accepted, p)
 		}
 	}
-
-	a.data.AcceptedPartyIds = core.PartyIds(a.accepted)
+	a.data.AcceptedSigningPartyIds = core.PartyIds(accepted)
 
 	a.log.Infof("Acceptances: %v", a.data.Acceptances)
 

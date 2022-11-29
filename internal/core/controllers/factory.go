@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
@@ -59,24 +58,7 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 		}
 	}
 
-	if c.data.New.Equals(set) {
-		c.log.Debug("Previous session new and current new are equal")
-		return &ControllerFactory{
-			data: &LocalSessionData{
-				SessionId:   c.data.SessionId + 1,
-				Old:         set,
-				New:         set,
-				Acceptances: make(map[string]struct{}),
-			},
-			client:   c.client,
-			pool:     c.pool,
-			proposer: c.proposer.WithInputSet(set),
-			storage:  c.storage,
-			log:      c.log,
-		}
-	}
-
-	c.log.Debug("Sut upping with previous session old and current new")
+	c.log.Debug("Previous session old and new are equal. Setting up with previous session old and current new")
 	return &ControllerFactory{
 		data: &LocalSessionData{
 			SessionId:   c.data.SessionId + 1,
@@ -112,7 +94,6 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 		data:      c.data,
 		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
 		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
-		accepted:  make([]*rarimo.Party, 0, c.data.New.N),
 		log:       c.log,
 		factory:   c,
 	}
@@ -128,7 +109,7 @@ func (c *ControllerFactory) GetSignController(hash string) IController {
 		data:    c.data,
 		auth:    core.NewRequestAuthorizer(c.data.Old, c.log),
 		log:     c.log,
-		party:   tss.NewSignParty(hash, c.data.SessionId, c.data.AcceptedPartyIds, c.data.Old, c.log),
+		party:   tss.NewSignParty(hash, c.data.SessionId, c.data.AcceptedSigningPartyIds, c.data.Old, c.log),
 		factory: c,
 	}
 }
