@@ -8,7 +8,6 @@ import (
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	"github.com/bnb-chain/tss-lib/tss"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/types/bech32"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
@@ -54,16 +53,6 @@ func NewInputSet(client *grpc.ClientConn, storage secret.Storage) *InputSet {
 		panic(err)
 	}
 
-	partyIds := make([]*tss.PartyID, 0, len(tssP.Params.Parties))
-	for _, party := range tssP.Params.Parties {
-		_, data, err := bech32.DecodeAndConvert(party.Account)
-		if err != nil {
-			panic(err)
-		}
-
-		partyIds = append(partyIds, tss.NewPartyID(party.Account, "", new(big.Int).SetBytes(data)))
-	}
-
 	return &InputSet{
 		ParamsData: &ParamsData{
 			IsActive:     !tssP.Params.IsUpdateRequired,
@@ -82,7 +71,7 @@ func NewInputSet(client *grpc.ClientConn, storage secret.Storage) *InputSet {
 
 		LocalTss: &LocalTss{
 			LocalPubKey:     storage.GetTssSecret().PubKeyStr(),
-			SortedPartyIDs:  tss.SortPartyIDs(partyIds),
+			SortedPartyIDs:  PartyIds(tssP.Params.Parties),
 			LocalPrivateKey: storage.GetTssSecret().Prv,
 			LocalData:       storage.GetTssSecret().Data,
 			LocalParams:     storage.GetTssSecret().Params,

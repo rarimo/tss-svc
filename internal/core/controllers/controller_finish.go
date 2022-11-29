@@ -32,12 +32,13 @@ func (f *FinishController) Receive(request *types.MsgSubmitRequest) error {
 func (f *FinishController) Run(ctx context.Context) {
 	f.log.Infof("Starting %s", f.Type().String())
 	f.wg.Add(1)
-	func() {
-		f.log.Infof("%s controller", f.Type().String())
+	defer func() {
+		f.log.Infof("%s finished", f.Type().String())
 		f.wg.Done()
 	}()
 
 	if !f.data.Processing {
+		f.log.Info("Unsuccessful session")
 		return
 	}
 

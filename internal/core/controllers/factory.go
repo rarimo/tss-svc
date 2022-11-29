@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
@@ -24,11 +25,13 @@ type ControllerFactory struct {
 
 func NewControllerFactory(cfg config.Config) *ControllerFactory {
 	set := core.NewInputSet(cfg.Cosmos(), secret.NewLocalStorage(cfg))
+	cfg.Log().Debugf("Loaded parties: %v", set.Parties)
 	return &ControllerFactory{
 		data: &LocalSessionData{
-			SessionId: cfg.Session().StartSessionId,
-			Old:       set,
-			New:       set,
+			SessionId:   cfg.Session().StartSessionId,
+			Old:         set,
+			New:         set,
+			Acceptances: make(map[string]struct{}),
 		},
 		client:   cfg.Cosmos(),
 		pool:     pool.NewPool(cfg),
@@ -43,9 +46,10 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 	if c.data.New.Equals(c.data.Old) {
 		return &ControllerFactory{
 			data: &LocalSessionData{
-				SessionId: c.data.SessionId + 1,
-				Old:       c.data.New,
-				New:       set,
+				SessionId:   c.data.SessionId + 1,
+				Old:         c.data.New,
+				New:         set,
+				Acceptances: make(map[string]struct{}),
 			},
 			client:   c.client,
 			pool:     c.pool,
@@ -58,9 +62,10 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 	if c.data.New.Equals(set) {
 		return &ControllerFactory{
 			data: &LocalSessionData{
-				SessionId: c.data.SessionId + 1,
-				Old:       set,
-				New:       set,
+				SessionId:   c.data.SessionId + 1,
+				Old:         set,
+				New:         set,
+				Acceptances: make(map[string]struct{}),
 			},
 			client:   c.client,
 			pool:     c.pool,
@@ -72,9 +77,10 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 
 	return &ControllerFactory{
 		data: &LocalSessionData{
-			SessionId: c.data.SessionId + 1,
-			Old:       c.data.Old,
-			New:       set,
+			SessionId:   c.data.SessionId + 1,
+			Old:         c.data.Old,
+			New:         set,
+			Acceptances: make(map[string]struct{}),
 		},
 		client:   c.client,
 		pool:     c.pool,
@@ -104,6 +110,7 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 		data:      c.data,
 		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
 		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
+		accepted:  make([]*rarimo.Party, 0, c.data.New.N),
 		log:       c.log,
 		factory:   c,
 	}
@@ -113,13 +120,13 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 // if it's a default session there is no difference
 // otherwise we should sign with old keys
 
-func (c *ControllerFactory) GetSignController(hash string, set *core.InputSet) IController {
+func (c *ControllerFactory) GetSignController(hash string) IController {
 	return &SignatureController{
 		wg:      &sync.WaitGroup{},
 		data:    c.data,
-		auth:    core.NewRequestAuthorizer(set, c.log),
+		auth:    core.NewRequestAuthorizer(c.data.Old, c.log),
 		log:     c.log,
-		party:   tss.NewSignParty(hash, c.data.SessionId, set, c.log),
+		party:   tss.NewSignParty(hash, c.data.SessionId, c.data.AcceptedPartyIds, c.data.Old, c.log),
 		factory: c,
 	}
 }

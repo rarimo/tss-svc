@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"crypto/elliptic"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -54,7 +55,6 @@ func (r *ReshareController) Run(ctx context.Context) {
 }
 
 func (r *ReshareController) WaitFor() {
-	r.party.WaitFor()
 	r.wg.Wait()
 }
 
@@ -63,7 +63,7 @@ func (r *ReshareController) Next() IController {
 	defer r.mu.Unlock()
 
 	if r.data.Processing {
-		return r.factory.GetSignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewGlobalPublicKey))), r.data.Old)
+		return r.factory.GetSignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewGlobalPublicKey))))
 	}
 
 	return r.factory.GetFinishController()
@@ -80,6 +80,7 @@ func (r *ReshareController) run(ctx context.Context) {
 	}()
 
 	<-ctx.Done()
+	r.party.WaitFor()
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -101,4 +102,14 @@ func (r *ReshareController) run(ctx context.Context) {
 	r.data.New.GlobalPubKey = r.storage.GetTssSecret().GlobalPubKeyStr()
 	r.data.New.T = ((r.data.New.N + 2) / 3) * 2
 	r.data.NewGlobalPublicKey = r.data.New.GlobalPubKey
+
+	for i := range result.Ks {
+		partyId := r.data.New.SortedPartyIDs.FindByKey(result.Ks[i])
+		for j := range r.data.New.Parties {
+			if r.data.New.Parties[j].Account == partyId.Id {
+				r.data.New.Parties[j].PubKey = hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y()))
+				break
+			}
+		}
+	}
 }

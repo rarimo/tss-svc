@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"context"
+	"crypto/elliptic"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	eth "github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
@@ -52,12 +54,14 @@ func (k *KeygenController) Run(ctx context.Context) {
 }
 
 func (k *KeygenController) WaitFor() {
-	k.party.WaitFor()
 	k.wg.Wait()
 }
 
 func (k *KeygenController) Next() IController {
-	return k.factory.GetSignController(hexutil.Encode(crypto.GetPartiesHash(k.data.New.Parties)), k.data.New)
+	if len(k.data.AcceptedPartyIds) > 0 {
+		return k.factory.GetSignController(hexutil.Encode(crypto.GetPartiesHash(k.data.New.Parties)))
+	}
+	return k.factory.GetFinishController()
 }
 
 func (k *KeygenController) Type() types.ControllerType {
@@ -71,6 +75,7 @@ func (k *KeygenController) run(ctx context.Context) {
 	}()
 
 	<-ctx.Done()
+	k.party.WaitFor()
 
 	k.mu.Lock()
 	defer k.mu.Unlock()
@@ -93,4 +98,20 @@ func (k *KeygenController) run(ctx context.Context) {
 	k.data.New.GlobalPubKey = k.storage.GetTssSecret().GlobalPubKeyStr()
 	k.data.New.T = ((k.data.New.N + 2) / 3) * 2
 	k.data.NewGlobalPublicKey = k.data.New.GlobalPubKey
+	k.data.AcceptedPartyIds = k.data.New.SortedPartyIDs
+	k.data.Processing = true
+
+	for _, p := range k.data.New.Parties {
+		k.data.Acceptances[p.Account] = struct{}{}
+	}
+
+	for i := range result.Ks {
+		partyId := k.data.New.SortedPartyIDs.FindByKey(result.Ks[i])
+		for j := range k.data.New.Parties {
+			if k.data.New.Parties[j].Account == partyId.Id {
+				k.data.New.Parties[j].PubKey = hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y()))
+				break
+			}
+		}
+	}
 }

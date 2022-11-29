@@ -36,7 +36,7 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 		return err
 	}
 
-	if _, ok := s.data.Acceptances[sender.Address]; !ok {
+	if _, ok := s.data.Acceptances[sender.Account]; !ok {
 		return ErrSenderHasNotAccepted
 	}
 
@@ -63,7 +63,7 @@ func (s *SignatureController) Run(ctx context.Context) {
 }
 
 func (s *SignatureController) WaitFor() {
-	s.party.WaitFor()
+	s.wg.Wait()
 }
 
 func (s *SignatureController) Next() IController {
@@ -78,7 +78,7 @@ func (s *SignatureController) Next() IController {
 		content, _ := pkg.GetChangePartiesContent(op)
 		s.data.Root = hexutil.Encode(content.CalculateHash())
 		s.data.Indexes = []string{s.data.Root}
-		return s.factory.GetSignController(s.data.Root, s.data.Old)
+		return s.factory.GetSignController(s.data.Root)
 	}
 	return s.factory.GetFinishController()
 }
@@ -94,6 +94,8 @@ func (s *SignatureController) run(ctx context.Context) {
 	}()
 
 	<-ctx.Done()
+
+	s.party.WaitFor()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

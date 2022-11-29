@@ -33,19 +33,21 @@ type SignParty struct {
 	party tss.Party
 	con   *connectors.BroadcastConnector
 
-	data   string
-	id     uint64
-	result *common.SignatureData
+	data     string
+	id       uint64
+	partyIds tss.SortedPartyIDs
+	result   *common.SignatureData
 }
 
-func NewSignParty(data string, id uint64, set *core.InputSet, log *logan.Entry) *SignParty {
+func NewSignParty(data string, id uint64, parties tss.SortedPartyIDs, set *core.InputSet, log *logan.Entry) *SignParty {
 	return &SignParty{
-		wg:   &sync.WaitGroup{},
-		log:  log,
-		set:  set,
-		con:  connectors.NewBroadcastConnector(set, log),
-		data: data,
-		id:   id,
+		wg:       &sync.WaitGroup{},
+		log:      log,
+		set:      set,
+		con:      connectors.NewBroadcastConnector(set, log),
+		partyIds: parties,
+		data:     data,
+		id:       id,
 	}
 }
 
@@ -53,8 +55,9 @@ func (p *SignParty) Run(ctx context.Context) {
 	p.log.Infof("Running TSS signing on set: %v", p.set.Parties)
 	out := make(chan tss.Message, 1000)
 	end := make(chan common.SignatureData, 1)
-	peerCtx := tss.NewPeerContext(p.set.SortedPartyIDs)
-	tssParams := tss.NewParameters(s256k1.S256(), peerCtx, p.set.LocalParty(), p.set.N, p.set.T)
+	peerCtx := tss.NewPeerContext(p.partyIds)
+	local := p.partyIds.FindByKey(p.set.PartyKey())
+	tssParams := tss.NewParameters(s256k1.S256(), peerCtx, local, p.set.N, p.set.T)
 
 	p.party = signing.NewLocalParty(new(big.Int).SetBytes(hexutil.MustDecode(p.data)), tssParams, *p.set.LocalTss.LocalData, out, end)
 	go func() {
@@ -84,9 +87,9 @@ func (p *SignParty) Data() string {
 
 func (p *SignParty) Receive(sender rarimo.Party, isBroadcast bool, details []byte) {
 	if p.party != nil {
-		p.log.Infof("Received signing request from %s id: %s", sender.Account, p.id)
+		p.log.Infof("Received signing request from %s id: %d", sender.Account, p.id)
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
-		_, err := p.party.UpdateFromBytes(details, p.set.SortedPartyIDs.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
+		_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 		if err != nil {
 			p.log.WithError(err).Debug("error updating party")
 		}
@@ -126,16 +129,26 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				continue
 			}
 
+			sign, err := cosmostypes.NewAnyWithValue(&types.SignRequest{
+				Data:    p.data,
+				Details: details,
+			})
+
+			if err != nil {
+				p.log.WithError(err).Error("Failed to parse sign")
+				continue
+			}
+
 			request := &types.MsgSubmitRequest{
 				Id:          p.id,
 				Type:        types.RequestType_Sign,
 				IsBroadcast: msg.IsBroadcast(),
-				Details:     details,
+				Details:     sign,
 			}
 
 			to := msg.GetTo()
 			if msg.IsBroadcast() {
-				to = p.set.SortedPartyIDs
+				to = p.partyIds
 			}
 
 			p.log.Infof("Sending to %v", to)

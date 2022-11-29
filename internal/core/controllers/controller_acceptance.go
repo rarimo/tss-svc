@@ -8,6 +8,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
@@ -23,7 +24,8 @@ type AcceptanceController struct {
 	auth      *core.RequestAuthorizer
 	log       *logan.Entry
 
-	factory *ControllerFactory
+	accepted []*rarimo.Party
+	factory  *ControllerFactory
 }
 
 var _ IController = &AcceptanceController{}
@@ -65,7 +67,11 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 			defer a.mu.Unlock()
 
 			a.log.Infof("Received acceptance from %s for root %s", sender.Account, details.Root)
-			a.data.Acceptances[sender.Account] = struct{}{}
+			if _, ok := a.data.Acceptances[sender.Account]; !ok {
+				a.data.Acceptances[sender.Account] = struct{}{}
+				a.accepted = append(a.accepted, &sender)
+			}
+
 		}
 
 	case types.SessionType_ReshareSession:
@@ -97,7 +103,7 @@ func (a *AcceptanceController) Next() IController {
 	if a.data.Processing {
 		switch a.data.SessionType {
 		case types.SessionType_DefaultSession:
-			return a.factory.GetSignController(a.data.Root, a.data.Old)
+			return a.factory.GetSignController(a.data.Root)
 		case types.SessionType_ReshareSession:
 			return a.factory.GetReshareController()
 		}
@@ -129,6 +135,16 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	defer a.mu.Unlock()
 
 	a.data.Acceptances[a.data.New.LocalAccountAddress] = struct{}{}
+	for _, p := range a.data.New.Parties {
+		// adding self
+		if p.Account == a.data.New.LocalAccountAddress {
+			a.accepted = append(a.accepted, p)
+			break
+		}
+	}
+
+	a.data.AcceptedPartyIds = core.PartyIds(a.accepted)
+
 	a.log.Infof("Acceptances: %v", a.data.Acceptances)
 
 	switch a.data.SessionType {

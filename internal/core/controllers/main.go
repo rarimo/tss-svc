@@ -4,6 +4,7 @@ import (
 	"context"
 	goerr "errors"
 
+	"github.com/bnb-chain/tss-lib/tss"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
@@ -35,6 +36,7 @@ type (
 		Indexes            []string
 		Root               string
 		Acceptances        map[string]struct{}
+		AcceptedPartyIds   tss.SortedPartyIDs
 		NewGlobalPublicKey string
 		OperationSignature string
 		KeySignature       string
