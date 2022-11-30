@@ -8,6 +8,8 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core/controllers"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -18,6 +20,7 @@ type Session struct {
 	bounds *core.BoundsManager
 
 	factory   *controllers.ControllerFactory
+	data      *pg.Storage
 	current   controllers.IController
 	isStarted bool
 	cancel    context.CancelFunc
@@ -27,24 +30,29 @@ var _ core.ISession = &Session{}
 
 func NewSession(cfg config.Config) *Session {
 	factory := controllers.NewControllerFactory(cfg)
-
-	return &Session{
+	next := &Session{
 		log:     cfg.Log(),
 		id:      cfg.Session().StartSessionId,
 		bounds:  core.NewBoundsManager(cfg.Session().StartBlock),
 		factory: factory,
+		data:    cfg.Storage(),
 		current: factory.GetProposalController(),
 	}
+	next.initSessionData()
+	return next
 }
 
-func NewSessionWithData(id, start uint64, factory *controllers.ControllerFactory, log *logan.Entry) *Session {
-	return &Session{
+func NewSessionWithData(id, start uint64, factory *controllers.ControllerFactory, data *pg.Storage, log *logan.Entry) *Session {
+	next := &Session{
 		log:     log,
 		id:      id,
 		bounds:  core.NewBoundsManager(start),
 		factory: factory,
+		data:    data,
 		current: factory.GetProposalController(),
 	}
+	next.initSessionData()
+	return next
 }
 
 func (s *Session) ID() uint64 {
@@ -120,5 +128,26 @@ func (s *Session) stopController() {
 	if s.current != nil {
 		s.cancel()
 		s.current.WaitFor()
+	}
+}
+
+func (s *Session) initSessionData() {
+	session, err := s.data.SessionQ().SessionByID(int64(s.id), false)
+	if err != nil {
+		s.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		err := s.data.SessionQ().Insert(&data.Session{
+			ID:         int64(s.id),
+			Status:     int(types.SessionStatus_SessionProcessing),
+			BeginBlock: int64(s.bounds.SessionStart),
+			EndBlock:   int64(s.bounds.SessionEnd),
+		})
+
+		if err != nil {
+			s.log.WithError(err).Error("error crating session entry")
+		}
 	}
 }

@@ -3,12 +3,15 @@ package controllers
 import (
 	"context"
 	"crypto/elliptic"
+	"database/sql"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
@@ -25,6 +28,7 @@ type KeygenController struct {
 
 	storage secret.Storage
 	party   *tss.KeygenParty
+	pg      *pg.Storage
 	factory *ControllerFactory
 }
 
@@ -46,6 +50,10 @@ func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (k *KeygenController) Run(ctx context.Context) {
+	if k.storage.GetTssSecret().Prv != nil {
+		panic(ErrSecretDataAlreadyInitialized)
+	}
+
 	k.log.Infof("Starting %s", k.Type().String())
 	k.party.Run(ctx)
 	k.wg.Add(1)
@@ -102,5 +110,46 @@ func (k *KeygenController) run(ctx context.Context) {
 				break
 			}
 		}
+	}
+}
+
+func (k *KeygenController) updateSessionData() {
+	session, err := k.pg.SessionQ().SessionByID(int64(k.data.SessionId), false)
+	if err != nil {
+		k.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		k.log.Error("session entry is not initialized")
+		return
+	}
+
+	session.SessionType = sql.NullInt64{
+		Int64: int64(types.SessionType_KeygenSession),
+		Valid: true,
+	}
+
+	session.DataID = sql.NullInt64{
+		Int64: session.ID,
+		Valid: true,
+	}
+
+	err = k.pg.KeygenSessionDatumQ().Insert(&data.KeygenSessionDatum{
+		ID:      session.ID,
+		Parties: partyAccounts(k.data.New.Parties),
+		Key: sql.NullString{
+			String: k.data.New.GlobalPubKey,
+			Valid:  k.data.New.GlobalPubKey != "",
+		},
+	})
+
+	if err != nil {
+		k.log.WithError(err).Error("error creating session data entry")
+		return
+	}
+
+	if err = k.pg.SessionQ().Update(session); err != nil {
+		k.log.WithError(err).Error("error updating session entry")
 	}
 }

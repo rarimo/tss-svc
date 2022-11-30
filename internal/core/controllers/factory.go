@@ -7,6 +7,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
@@ -19,6 +20,7 @@ type ControllerFactory struct {
 	pool     *pool.Pool
 	proposer *core.Proposer
 	storage  secret.Storage
+	pg       *pg.Storage
 	log      *logan.Entry
 }
 
@@ -35,6 +37,7 @@ func NewControllerFactory(cfg config.Config) *ControllerFactory {
 		pool:     pool.NewPool(cfg),
 		proposer: core.NewProposer(cfg).WithInputSet(set),
 		storage:  secret.NewLocalStorage(cfg),
+		pg:       cfg.Storage(),
 		log:      cfg.Log(),
 	}
 }
@@ -54,11 +57,12 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 			pool:     c.pool,
 			proposer: c.proposer.WithInputSet(set),
 			storage:  c.storage,
+			pg:       c.pg,
 			log:      c.log,
 		}
 	}
 
-	c.log.Debug("Previous session old and new are equal. Setting up with previous session old and current new")
+	c.log.Debug("Previous session old and new are not equal. Setting up with previous session old and current new")
 	return &ControllerFactory{
 		data: &LocalSessionData{
 			SessionId:   c.data.SessionId + 1,
@@ -70,6 +74,7 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 		pool:     c.pool,
 		proposer: c.proposer.WithInputSet(set),
 		storage:  c.storage,
+		pg:       c.pg,
 		log:      c.log,
 	}
 }
@@ -84,6 +89,7 @@ func (c *ControllerFactory) GetProposalController() IController {
 		log:       c.log,
 		client:    c.client,
 		pool:      c.pool,
+		pg:        c.pg,
 		factory:   c,
 	}
 }
@@ -95,6 +101,7 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
 		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
 		log:       c.log,
+		pg:        c.pg,
 		factory:   c,
 	}
 }
@@ -103,14 +110,16 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 // if it's a default session there is no difference
 // otherwise we should sign with old keys
 
-func (c *ControllerFactory) GetSignController(hash string) IController {
+func (c *ControllerFactory) GetSignController(hash string, keySign bool) IController {
 	return &SignatureController{
-		wg:      &sync.WaitGroup{},
-		data:    c.data,
-		auth:    core.NewRequestAuthorizer(c.data.Old, c.log),
-		log:     c.log,
-		party:   tss.NewSignParty(hash, c.data.SessionId, c.data.AcceptedSigningPartyIds, c.data.Old, c.log),
-		factory: c,
+		wg:          &sync.WaitGroup{},
+		data:        c.data,
+		auth:        core.NewRequestAuthorizer(c.data.Old, c.log),
+		log:         c.log,
+		isKeySigner: keySign,
+		party:       tss.NewSignParty(hash, c.data.SessionId, c.data.AcceptedSigningPartyIds, c.data.Old, c.log),
+		pg:          c.pg,
+		factory:     c,
 	}
 }
 
@@ -122,6 +131,7 @@ func (c *ControllerFactory) GetReshareController() IController {
 		log:     c.log,
 		party:   tss.NewReshareParty(c.data.SessionId, c.data.Old, c.data.New, c.log),
 		storage: c.storage,
+		pg:      c.pg,
 		factory: c,
 	}
 }
@@ -133,6 +143,7 @@ func (c *ControllerFactory) GetFinishController() IController {
 		log:      c.log,
 		data:     c.data,
 		proposer: c.proposer,
+		pg:       c.pg,
 		factory:  c,
 	}
 }
@@ -145,6 +156,7 @@ func (c *ControllerFactory) GetKeygenController() IController {
 		log:     c.log,
 		storage: c.storage,
 		party:   tss.NewKeygenParty(c.data.SessionId, c.data.New, c.log),
+		pg:      c.pg,
 		factory: c,
 	}
 }

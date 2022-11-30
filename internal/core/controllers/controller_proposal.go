@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"database/sql"
 	"sync"
 
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -13,6 +14,8 @@ import (
 	merkle "gitlab.com/rarify-protocol/go-merkle"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
@@ -32,6 +35,7 @@ type ProposalController struct {
 
 	client  *grpc.ClientConn
 	pool    *pool.Pool
+	pg      *pg.Storage
 	factory *ControllerFactory
 }
 
@@ -159,6 +163,7 @@ func (p *ProposalController) validateReshareProposal(data *types.ReshareSessionP
 func (p *ProposalController) run(ctx context.Context) {
 	defer func() {
 		p.log.Infof("%s finished", p.Type().String())
+		p.updateSessionData()
 		p.wg.Done()
 	}()
 
@@ -267,4 +272,71 @@ func (p *ProposalController) getNewPool() ([]string, string, error) {
 	}
 
 	return ids, hexutil.Encode(merkle.NewTree(eth.Keccak256, contents...).Root()), nil
+}
+
+func (p *ProposalController) updateSessionData() {
+	session, err := p.pg.SessionQ().SessionByID(int64(p.data.SessionId), false)
+	if err != nil {
+		p.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		p.log.Error("session entry is not initialized")
+		return
+	}
+
+	switch p.data.SessionType {
+	case types.SessionType_DefaultSession:
+		session.SessionType = sql.NullInt64{
+			Int64: int64(types.SessionType_DefaultSession),
+			Valid: true,
+		}
+
+		err = p.pg.DefaultSessionDatumQ().Insert(&data.DefaultSessionDatum{
+			ID:      session.ID,
+			Parties: partyAccounts(p.data.New.Parties),
+			Proposer: sql.NullString{
+				String: p.data.Proposer.Account,
+				Valid:  true,
+			},
+			Indexes: p.data.Indexes,
+			Root: sql.NullString{
+				String: p.data.Root,
+				Valid:  p.data.Root != "",
+			},
+		})
+	case types.SessionType_ReshareSession:
+		session.SessionType = sql.NullInt64{
+			Int64: int64(types.SessionType_ReshareSession),
+			Valid: true,
+		}
+
+		err = p.pg.ReshareSessionDatumQ().Insert(&data.ReshareSessionDatum{
+			ID:      session.ID,
+			Parties: partyAccounts(p.data.New.Parties),
+			Proposer: sql.NullString{
+				String: p.data.Proposer.Account,
+				Valid:  true,
+			},
+			OldKey: sql.NullString{
+				String: p.data.Old.GlobalPubKey,
+				Valid:  true,
+			},
+		})
+	}
+
+	if err != nil {
+		p.log.WithError(err).Error("error creating session data entry")
+		return
+	}
+
+	session.DataID = sql.NullInt64{
+		Int64: session.ID,
+		Valid: true,
+	}
+
+	if err = p.pg.SessionQ().Update(session); err != nil {
+		p.log.WithError(err).Error("error updating session entry")
+	}
 }

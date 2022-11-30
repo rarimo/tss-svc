@@ -8,6 +8,8 @@ import (
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
+	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -20,6 +22,8 @@ type FinishController struct {
 	data *LocalSessionData
 
 	proposer *core.Proposer
+	pool     *pool.Pool
+	pg       *pg.Storage
 	factory  *ControllerFactory
 }
 
@@ -37,9 +41,35 @@ func (f *FinishController) Run(ctx context.Context) {
 		f.wg.Done()
 	}()
 
+	session, err := f.pg.SessionQ().SessionByID(int64(f.data.SessionId), false)
+	if err != nil {
+		f.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		f.log.Error("session entry is not initialized")
+		return
+	}
+
 	if !f.data.Processing {
 		f.log.Info("Unsuccessful session")
+		// try to return indexes back to the pool
+		for _, index := range f.data.Indexes {
+			f.pool.Add(index)
+		}
+
+		session.Status = int(types.SessionStatus_SessionFailed)
+		if err := f.pg.SessionQ().Update(session); err != nil {
+			f.log.Error("error updating session entry")
+		}
+
 		return
+	}
+
+	session.Status = int(types.SessionStatus_SessionSucceeded)
+	if err := f.pg.SessionQ().Update(session); err != nil {
+		f.log.Error("error updating session entry")
 	}
 
 	switch f.data.SessionType {
@@ -95,6 +125,7 @@ func (f *FinishController) finishReshareSession() {
 		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
 	}
 	f.proposer.WithSignature(f.data.OperationSignature)
+
 }
 
 func (f *FinishController) finishDefaultSession() {

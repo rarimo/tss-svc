@@ -211,9 +211,10 @@ func (m *MsgInfoRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgInfoRequest proto.InternalMessageInfo
 
 type MsgInfoResponse struct {
-	Id    uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Start uint64 `protobuf:"varint,2,opt,name=start,proto3" json:"start,omitempty"`
-	End   uint64 `protobuf:"varint,3,opt,name=end,proto3" json:"end,omitempty"`
+	LocalAccount     string   `protobuf:"bytes,1,opt,name=localAccount,proto3" json:"localAccount,omitempty"`
+	LocalPublicKey   string   `protobuf:"bytes,2,opt,name=localPublicKey,proto3" json:"localPublicKey,omitempty"`
+	CurrentSessionId uint64   `protobuf:"varint,3,opt,name=currentSessionId,proto3" json:"currentSessionId,omitempty"`
+	SessionData      *Session `protobuf:"bytes,4,opt,name=sessionData,proto3" json:"sessionData,omitempty"`
 }
 
 func (m *MsgInfoResponse) Reset()         { *m = MsgInfoResponse{} }
@@ -249,25 +250,32 @@ func (m *MsgInfoResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgInfoResponse proto.InternalMessageInfo
 
-func (m *MsgInfoResponse) GetId() uint64 {
+func (m *MsgInfoResponse) GetLocalAccount() string {
 	if m != nil {
-		return m.Id
+		return m.LocalAccount
+	}
+	return ""
+}
+
+func (m *MsgInfoResponse) GetLocalPublicKey() string {
+	if m != nil {
+		return m.LocalPublicKey
+	}
+	return ""
+}
+
+func (m *MsgInfoResponse) GetCurrentSessionId() uint64 {
+	if m != nil {
+		return m.CurrentSessionId
 	}
 	return 0
 }
 
-func (m *MsgInfoResponse) GetStart() uint64 {
+func (m *MsgInfoResponse) GetSessionData() *Session {
 	if m != nil {
-		return m.Start
+		return m.SessionData
 	}
-	return 0
-}
-
-func (m *MsgInfoResponse) GetEnd() uint64 {
-	if m != nil {
-		return m.End
-	}
-	return 0
+	return nil
 }
 
 type MsgSessionRequest struct {
@@ -315,13 +323,7 @@ func (m *MsgSessionRequest) GetId() uint64 {
 }
 
 type MsgSessionResponse struct {
-	Id        uint64   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Start     uint64   `protobuf:"varint,2,opt,name=start,proto3" json:"start,omitempty"`
-	End       uint64   `protobuf:"varint,3,opt,name=end,proto3" json:"end,omitempty"`
-	Root      string   `protobuf:"bytes,6,opt,name=root,proto3" json:"root,omitempty"`
-	Indexes   []string `protobuf:"bytes,7,rep,name=indexes,proto3" json:"indexes,omitempty"`
-	Accepted  []string `protobuf:"bytes,8,rep,name=accepted,proto3" json:"accepted,omitempty"`
-	Signature string   `protobuf:"bytes,9,opt,name=signature,proto3" json:"signature,omitempty"`
+	Data *Session `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (m *MsgSessionResponse) Reset()         { *m = MsgSessionResponse{} }
@@ -357,53 +359,11 @@ func (m *MsgSessionResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSessionResponse proto.InternalMessageInfo
 
-func (m *MsgSessionResponse) GetId() uint64 {
+func (m *MsgSessionResponse) GetData() *Session {
 	if m != nil {
-		return m.Id
-	}
-	return 0
-}
-
-func (m *MsgSessionResponse) GetStart() uint64 {
-	if m != nil {
-		return m.Start
-	}
-	return 0
-}
-
-func (m *MsgSessionResponse) GetEnd() uint64 {
-	if m != nil {
-		return m.End
-	}
-	return 0
-}
-
-func (m *MsgSessionResponse) GetRoot() string {
-	if m != nil {
-		return m.Root
-	}
-	return ""
-}
-
-func (m *MsgSessionResponse) GetIndexes() []string {
-	if m != nil {
-		return m.Indexes
+		return m.Data
 	}
 	return nil
-}
-
-func (m *MsgSessionResponse) GetAccepted() []string {
-	if m != nil {
-		return m.Accepted
-	}
-	return nil
-}
-
-func (m *MsgSessionResponse) GetSignature() string {
-	if m != nil {
-		return m.Signature
-	}
-	return ""
 }
 
 type MsgAddOperationRequest struct {
@@ -501,42 +461,43 @@ func init() {
 func init() { proto.RegisterFile("service.proto", fileDescriptor_a0b84a42fa06f626) }
 
 var fileDescriptor_a0b84a42fa06f626 = []byte{
-	// 552 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x53, 0x4d, 0x6e, 0xdb, 0x3c,
-	0x10, 0x35, 0x6d, 0xc5, 0x3f, 0xe3, 0xc4, 0x51, 0x98, 0xe0, 0x8b, 0x22, 0x7c, 0x10, 0x04, 0x75,
-	0xa3, 0x16, 0x0d, 0x05, 0xb8, 0x27, 0x70, 0x16, 0x05, 0x82, 0x22, 0x6d, 0x21, 0x77, 0xd5, 0x1d,
-	0x2d, 0xd1, 0x2a, 0x51, 0x47, 0x54, 0x49, 0x3a, 0xa8, 0x6e, 0xd1, 0xc3, 0xf4, 0x10, 0x5d, 0x66,
-	0xd9, 0x45, 0x17, 0x85, 0x7d, 0x91, 0xc2, 0x94, 0x9d, 0xca, 0x76, 0xb2, 0xea, 0x8e, 0x6f, 0x66,
-	0xc8, 0x99, 0x79, 0xef, 0x11, 0x8e, 0x14, 0x93, 0x77, 0x3c, 0x61, 0xa4, 0x90, 0x42, 0x0b, 0xf7,
-	0x48, 0xb2, 0x2f, 0x73, 0xa6, 0xf4, 0x1a, 0x5e, 0x64, 0x42, 0x64, 0x33, 0x16, 0x19, 0x34, 0x99,
-	0x4f, 0x23, 0x9a, 0x97, 0x55, 0x2a, 0xf8, 0x8e, 0xc0, 0xbe, 0x51, 0xd9, 0x78, 0x3e, 0xb9, 0xe5,
-	0x3a, 0xae, 0x6e, 0xe1, 0x01, 0x34, 0x79, 0xea, 0x20, 0x1f, 0x85, 0x56, 0xdc, 0xe4, 0x29, 0xfe,
-	0x1f, 0x7a, 0x8a, 0x67, 0x39, 0xd5, 0x73, 0xc9, 0x9c, 0xa6, 0x8f, 0xc2, 0x5e, 0xfc, 0x37, 0x80,
-	0x7d, 0xe8, 0x73, 0x75, 0x25, 0x05, 0x4d, 0x13, 0xaa, 0xb4, 0xd3, 0xf2, 0x51, 0xd8, 0x8d, 0xeb,
-	0x21, 0xec, 0x83, 0xa5, 0xcb, 0x82, 0x39, 0x96, 0x8f, 0xc2, 0xc1, 0xf0, 0x90, 0xac, 0xfb, 0x7c,
-	0x28, 0x0b, 0x16, 0x9b, 0x0c, 0x26, 0xd0, 0x49, 0x99, 0xa6, 0x7c, 0xa6, 0x9c, 0x03, 0x1f, 0x85,
-	0xfd, 0xe1, 0x19, 0xa9, 0x66, 0x26, 0x9b, 0x99, 0xc9, 0x28, 0x2f, 0xe3, 0x4d, 0x51, 0x70, 0x0a,
-	0x27, 0xb5, 0xa9, 0x55, 0x21, 0x72, 0xc5, 0x02, 0x1b, 0x06, 0x37, 0x2a, 0xbb, 0xce, 0xa7, 0x62,
-	0xdd, 0x20, 0xb8, 0x86, 0xe3, 0x87, 0x48, 0x55, 0xb4, 0xb7, 0xdb, 0x19, 0x1c, 0x28, 0x4d, 0xa5,
-	0x36, 0x7b, 0x59, 0x71, 0x05, 0xb0, 0x0d, 0x2d, 0x96, 0xa7, 0x66, 0x17, 0x2b, 0x5e, 0x1d, 0x83,
-	0x67, 0x55, 0x47, 0xa6, 0x14, 0x17, 0xf9, 0x13, 0x44, 0xad, 0xd8, 0xc4, 0xf5, 0xaa, 0x7f, 0xeb,
-	0x89, 0x31, 0x58, 0x52, 0x08, 0xed, 0xb4, 0x0d, 0xe5, 0xe6, 0x8c, 0x1d, 0xe8, 0xf0, 0x3c, 0x65,
-	0x5f, 0x99, 0x72, 0x3a, 0x7e, 0x2b, 0xec, 0xc5, 0x1b, 0x88, 0x5d, 0xe8, 0xd2, 0x24, 0x61, 0x85,
-	0x66, 0xa9, 0xd3, 0x35, 0xa9, 0x07, 0xbc, 0xad, 0x60, 0x6f, 0x47, 0xc1, 0x80, 0xc0, 0x7f, 0x37,
-	0x2a, 0x1b, 0xa5, 0xe9, 0xbb, 0x82, 0x49, 0xaa, 0x6b, 0x0b, 0x9e, 0xc1, 0x81, 0x79, 0xde, 0x0c,
-	0xdf, 0x8b, 0x2b, 0x10, 0x5c, 0xc0, 0xf9, 0x5e, 0x7d, 0xb5, 0xea, 0x8b, 0xb7, 0xd0, 0xaf, 0xa9,
-	0x8b, 0x0f, 0xa1, 0xfb, 0x5e, 0x8a, 0x42, 0x28, 0x3a, 0xb3, 0x1b, 0x78, 0x00, 0x30, 0x32, 0x13,
-	0xd1, 0x3c, 0x61, 0x36, 0xc2, 0x5d, 0xb0, 0xc6, 0x3c, 0xcb, 0xed, 0x26, 0xee, 0x43, 0x27, 0x66,
-	0xea, 0x13, 0x95, 0xcc, 0x6e, 0x61, 0x80, 0xf6, 0x1b, 0x56, 0x66, 0x2c, 0xb7, 0xad, 0xe1, 0x2f,
-	0x04, 0x9d, 0x71, 0xe5, 0x6d, 0x1c, 0x41, 0xbb, 0x52, 0x1c, 0x9f, 0x90, 0x5d, 0xcf, 0xba, 0x98,
-	0xec, 0x19, 0x02, 0x3f, 0x07, 0x6b, 0xa5, 0x3d, 0x3e, 0x26, 0xdb, 0xbe, 0x70, 0x6d, 0xb2, 0x6b,
-	0x8b, 0xe1, 0xaa, 0x8d, 0x51, 0x0d, 0x57, 0x2f, 0x6d, 0x09, 0xed, 0x9e, 0x92, 0x47, 0x64, 0x1d,
-	0xc1, 0x61, 0x9d, 0x03, 0x7c, 0x4e, 0x1e, 0x67, 0xd1, 0x75, 0xc8, 0x13, 0x74, 0x5d, 0xbd, 0xfe,
-	0xb1, 0xf0, 0xd0, 0xfd, 0xc2, 0x43, 0xbf, 0x17, 0x1e, 0xfa, 0xb6, 0xf4, 0x1a, 0xf7, 0x4b, 0xaf,
-	0xf1, 0x73, 0xe9, 0x35, 0x3e, 0xbe, 0xcc, 0xb8, 0x9e, 0xd1, 0x09, 0x49, 0xc4, 0x6d, 0x24, 0xa9,
-	0xe4, 0xd3, 0xf2, 0xd2, 0x7c, 0x85, 0x44, 0xcc, 0x22, 0xad, 0xd4, 0xa5, 0xba, 0x4b, 0xa2, 0xe2,
-	0x73, 0x16, 0xad, 0xbe, 0x8f, 0x9a, 0xb4, 0x4d, 0xee, 0xd5, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff,
-	0xe2, 0x7e, 0xb8, 0xe1, 0x08, 0x04, 0x00, 0x00,
+	// 566 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x53, 0xd1, 0x4e, 0xdb, 0x3c,
+	0x14, 0xae, 0x4b, 0x80, 0x72, 0x5a, 0x4a, 0x30, 0xe8, 0xa7, 0x54, 0x28, 0x8a, 0xf2, 0x4b, 0x53,
+	0x87, 0x86, 0x23, 0x65, 0x4f, 0x50, 0x34, 0x4d, 0x42, 0x88, 0x0d, 0xa5, 0xbb, 0xda, 0x9d, 0xeb,
+	0x98, 0xcc, 0x5a, 0xb0, 0x33, 0xdb, 0x41, 0xcb, 0x5b, 0xec, 0x61, 0xb6, 0x77, 0xd8, 0x25, 0x97,
+	0xbb, 0xd8, 0xc5, 0x04, 0x2f, 0x32, 0x35, 0x09, 0x5b, 0x28, 0xdd, 0xe5, 0xf9, 0xce, 0xd1, 0x77,
+	0xfc, 0x7d, 0xdf, 0x31, 0x6c, 0x1b, 0xae, 0x6f, 0x04, 0xe3, 0x24, 0xd7, 0xca, 0xaa, 0xf1, 0xb6,
+	0xe6, 0x9f, 0x0a, 0x6e, 0xec, 0x43, 0x69, 0xb8, 0x31, 0x42, 0xc9, 0xa6, 0x3c, 0x4c, 0x95, 0x4a,
+	0x33, 0x1e, 0x56, 0xd5, 0xbc, 0xb8, 0x0a, 0xa9, 0x2c, 0xeb, 0x56, 0xf0, 0x15, 0x81, 0x7b, 0x61,
+	0xd2, 0x59, 0x31, 0xbf, 0x16, 0x36, 0xae, 0x49, 0xf0, 0x10, 0xba, 0x22, 0x19, 0x21, 0x1f, 0x4d,
+	0x9c, 0xb8, 0x2b, 0x12, 0x7c, 0x04, 0x5b, 0x46, 0xa4, 0x92, 0xda, 0x42, 0xf3, 0x51, 0xd7, 0x47,
+	0x93, 0xad, 0xf8, 0x2f, 0x80, 0x7d, 0xe8, 0x0b, 0x73, 0xaa, 0x15, 0x4d, 0x18, 0x35, 0x76, 0xb4,
+	0xe6, 0xa3, 0x49, 0x2f, 0x6e, 0x43, 0xd8, 0x07, 0xc7, 0x96, 0x39, 0x1f, 0x39, 0x3e, 0x9a, 0x0c,
+	0xa3, 0x01, 0x69, 0xf6, 0xbc, 0x2b, 0x73, 0x1e, 0x57, 0x1d, 0x4c, 0x60, 0x33, 0xe1, 0x96, 0x8a,
+	0xcc, 0x8c, 0xd6, 0x7d, 0x34, 0xe9, 0x47, 0xfb, 0xa4, 0x7e, 0x33, 0x79, 0x78, 0x33, 0x99, 0xca,
+	0x32, 0x7e, 0x18, 0x0a, 0xf6, 0x60, 0xb7, 0xf5, 0x6a, 0x93, 0x2b, 0x69, 0x78, 0xe0, 0xc2, 0xf0,
+	0xc2, 0xa4, 0x67, 0xf2, 0x4a, 0x35, 0x0b, 0x82, 0x6f, 0x08, 0x76, 0xfe, 0x40, 0xf5, 0x14, 0x0e,
+	0x60, 0x90, 0x29, 0x46, 0xb3, 0x29, 0x63, 0xaa, 0x90, 0xb6, 0x92, 0xb9, 0x15, 0x3f, 0xc2, 0xf0,
+	0x33, 0x18, 0x56, 0xf5, 0x65, 0x31, 0xcf, 0x04, 0x3b, 0xe7, 0x65, 0xa3, 0x7a, 0x09, 0xc5, 0xc7,
+	0xe0, 0xb2, 0x42, 0x6b, 0x2e, 0xed, 0xac, 0x36, 0xfc, 0x2c, 0xa9, 0xf4, 0x3b, 0xf1, 0x13, 0x1c,
+	0x1f, 0x43, 0xbf, 0x49, 0xe5, 0x15, 0xb5, 0xb4, 0xf2, 0xa2, 0x1f, 0xf5, 0x48, 0x33, 0x10, 0xb7,
+	0x9b, 0xc1, 0xff, 0xb5, 0xbc, 0xa6, 0xb5, 0x3a, 0x95, 0x20, 0x02, 0xdc, 0x1e, 0x6a, 0xe4, 0x1d,
+	0x81, 0x93, 0x2c, 0xf8, 0xd1, 0x12, 0x7f, 0x85, 0x06, 0x04, 0xfe, 0xbb, 0x30, 0xe9, 0x34, 0x49,
+	0xde, 0xe6, 0x5c, 0x53, 0xdb, 0x62, 0xdf, 0x87, 0x75, 0x21, 0x13, 0xfe, 0xb9, 0xf1, 0xa3, 0x2e,
+	0x82, 0x43, 0x38, 0x78, 0x32, 0x5f, 0x2f, 0x3a, 0x7e, 0x03, 0xfd, 0x56, 0x8e, 0x78, 0x00, 0xbd,
+	0x4b, 0xad, 0x72, 0x65, 0x68, 0xe6, 0x76, 0xf0, 0x10, 0x60, 0xca, 0x18, 0xcf, 0x2d, 0x95, 0x8c,
+	0xbb, 0x08, 0xf7, 0xc0, 0x99, 0x89, 0x54, 0xba, 0x5d, 0xdc, 0x87, 0xcd, 0x98, 0x9b, 0x0f, 0x54,
+	0x73, 0x77, 0x0d, 0x03, 0x6c, 0x9c, 0xf3, 0x32, 0xe5, 0xd2, 0x75, 0xa2, 0x9f, 0x08, 0x36, 0x67,
+	0xf5, 0x51, 0xe3, 0x10, 0x36, 0xea, 0x6c, 0xf1, 0x2e, 0x59, 0xbe, 0xce, 0x31, 0x26, 0x4f, 0xa2,
+	0xc7, 0xcf, 0xc1, 0x59, 0x84, 0x8c, 0x77, 0xc8, 0xe3, 0x0b, 0x18, 0xbb, 0x64, 0x39, 0xff, 0x68,
+	0xb1, 0xa6, 0xf2, 0x04, 0xd7, 0x4c, 0x8f, 0x5c, 0x1e, 0xef, 0x91, 0x15, 0xa6, 0x4e, 0x61, 0xd0,
+	0xf6, 0x00, 0x1f, 0x90, 0xd5, 0x2e, 0x8e, 0x47, 0xe4, 0x1f, 0x76, 0x9d, 0xbe, 0xfe, 0x7e, 0xe7,
+	0xa1, 0xdb, 0x3b, 0x0f, 0xfd, 0xba, 0xf3, 0xd0, 0x97, 0x7b, 0xaf, 0x73, 0x7b, 0xef, 0x75, 0x7e,
+	0xdc, 0x7b, 0x9d, 0xf7, 0x2f, 0x52, 0x61, 0x33, 0x3a, 0x27, 0x4c, 0x5d, 0x87, 0x9a, 0x6a, 0x71,
+	0x55, 0x9e, 0x54, 0x47, 0xcf, 0x54, 0x16, 0x5a, 0x63, 0x4e, 0xcc, 0x0d, 0x0b, 0xf3, 0x8f, 0x69,
+	0xb8, 0xf8, 0x28, 0x66, 0xbe, 0x51, 0xf5, 0x5e, 0xfe, 0x0e, 0x00, 0x00, 0xff, 0xff, 0xf6, 0xf9,
+	0xc9, 0xc8, 0x01, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -855,20 +816,36 @@ func (m *MsgInfoResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.End != 0 {
-		i = encodeVarintService(dAtA, i, uint64(m.End))
+	if m.SessionData != nil {
+		{
+			size, err := m.SessionData.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintService(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.CurrentSessionId != 0 {
+		i = encodeVarintService(dAtA, i, uint64(m.CurrentSessionId))
 		i--
 		dAtA[i] = 0x18
 	}
-	if m.Start != 0 {
-		i = encodeVarintService(dAtA, i, uint64(m.Start))
+	if len(m.LocalPublicKey) > 0 {
+		i -= len(m.LocalPublicKey)
+		copy(dAtA[i:], m.LocalPublicKey)
+		i = encodeVarintService(dAtA, i, uint64(len(m.LocalPublicKey)))
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x12
 	}
-	if m.Id != 0 {
-		i = encodeVarintService(dAtA, i, uint64(m.Id))
+	if len(m.LocalAccount) > 0 {
+		i -= len(m.LocalAccount)
+		copy(dAtA[i:], m.LocalAccount)
+		i = encodeVarintService(dAtA, i, uint64(len(m.LocalAccount)))
 		i--
-		dAtA[i] = 0x8
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -921,52 +898,17 @@ func (m *MsgSessionResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Signature) > 0 {
-		i -= len(m.Signature)
-		copy(dAtA[i:], m.Signature)
-		i = encodeVarintService(dAtA, i, uint64(len(m.Signature)))
-		i--
-		dAtA[i] = 0x4a
-	}
-	if len(m.Accepted) > 0 {
-		for iNdEx := len(m.Accepted) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Accepted[iNdEx])
-			copy(dAtA[i:], m.Accepted[iNdEx])
-			i = encodeVarintService(dAtA, i, uint64(len(m.Accepted[iNdEx])))
-			i--
-			dAtA[i] = 0x42
+	if m.Data != nil {
+		{
+			size, err := m.Data.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintService(dAtA, i, uint64(size))
 		}
-	}
-	if len(m.Indexes) > 0 {
-		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Indexes[iNdEx])
-			copy(dAtA[i:], m.Indexes[iNdEx])
-			i = encodeVarintService(dAtA, i, uint64(len(m.Indexes[iNdEx])))
-			i--
-			dAtA[i] = 0x3a
-		}
-	}
-	if len(m.Root) > 0 {
-		i -= len(m.Root)
-		copy(dAtA[i:], m.Root)
-		i = encodeVarintService(dAtA, i, uint64(len(m.Root)))
 		i--
-		dAtA[i] = 0x32
-	}
-	if m.End != 0 {
-		i = encodeVarintService(dAtA, i, uint64(m.End))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.Start != 0 {
-		i = encodeVarintService(dAtA, i, uint64(m.Start))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Id != 0 {
-		i = encodeVarintService(dAtA, i, uint64(m.Id))
-		i--
-		dAtA[i] = 0x8
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1085,14 +1027,20 @@ func (m *MsgInfoResponse) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Id != 0 {
-		n += 1 + sovService(uint64(m.Id))
+	l = len(m.LocalAccount)
+	if l > 0 {
+		n += 1 + l + sovService(uint64(l))
 	}
-	if m.Start != 0 {
-		n += 1 + sovService(uint64(m.Start))
+	l = len(m.LocalPublicKey)
+	if l > 0 {
+		n += 1 + l + sovService(uint64(l))
 	}
-	if m.End != 0 {
-		n += 1 + sovService(uint64(m.End))
+	if m.CurrentSessionId != 0 {
+		n += 1 + sovService(uint64(m.CurrentSessionId))
+	}
+	if m.SessionData != nil {
+		l = m.SessionData.Size()
+		n += 1 + l + sovService(uint64(l))
 	}
 	return n
 }
@@ -1115,33 +1063,8 @@ func (m *MsgSessionResponse) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Id != 0 {
-		n += 1 + sovService(uint64(m.Id))
-	}
-	if m.Start != 0 {
-		n += 1 + sovService(uint64(m.Start))
-	}
-	if m.End != 0 {
-		n += 1 + sovService(uint64(m.End))
-	}
-	l = len(m.Root)
-	if l > 0 {
-		n += 1 + l + sovService(uint64(l))
-	}
-	if len(m.Indexes) > 0 {
-		for _, s := range m.Indexes {
-			l = len(s)
-			n += 1 + l + sovService(uint64(l))
-		}
-	}
-	if len(m.Accepted) > 0 {
-		for _, s := range m.Accepted {
-			l = len(s)
-			n += 1 + l + sovService(uint64(l))
-		}
-	}
-	l = len(m.Signature)
-	if l > 0 {
+	if m.Data != nil {
+		l = m.Data.Size()
 		n += 1 + l + sovService(uint64(l))
 	}
 	return n
@@ -1481,10 +1404,10 @@ func (m *MsgInfoResponse) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalAccount", wireType)
 			}
-			m.Id = 0
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowService
@@ -1494,16 +1417,29 @@ func (m *MsgInfoResponse) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Id |= uint64(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LocalAccount = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Start", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalPublicKey", wireType)
 			}
-			m.Start = 0
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowService
@@ -1513,16 +1449,29 @@ func (m *MsgInfoResponse) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Start |= uint64(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LocalPublicKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field End", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CurrentSessionId", wireType)
 			}
-			m.End = 0
+			m.CurrentSessionId = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowService
@@ -1532,11 +1481,47 @@ func (m *MsgInfoResponse) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.End |= uint64(b&0x7F) << shift
+				m.CurrentSessionId |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionData", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthService
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.SessionData == nil {
+				m.SessionData = &Session{}
+			}
+			if err := m.SessionData.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipService(dAtA[iNdEx:])
@@ -1657,67 +1642,10 @@ func (m *MsgSessionResponse) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
-			}
-			m.Id = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Id |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Start", wireType)
-			}
-			m.Start = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Start |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field End", wireType)
-			}
-			m.End = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.End |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowService
@@ -1727,119 +1655,27 @@ func (m *MsgSessionResponse) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthService
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthService
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Root = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Indexes", wireType)
+			if m.Data == nil {
+				m.Data = &Session{}
 			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
+			if err := m.Data.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthService
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Indexes = append(m.Indexes, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Accepted", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthService
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Accepted = append(m.Accepted, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 9:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthService
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Signature = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

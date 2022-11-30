@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
+
+import "google/protobuf/any.proto";
+
+enum SessionType {
+  DefaultSession = 0;
+  ReshareSession = 1;
+  KeygenSession = 2;
+}
+
+enum SessionStatus {
+  SessionProcessing = 0;
+  SessionFailed = 1;
+  SessionSucceeded = 3;
+}
+
+message Session {
+  uint64 id = 1;
+  SessionStatus status = 2;
+  uint64 startBlock = 3;
+  uint64 endBlock = 4;
+  SessionType type = 5;
+  google.protobuf.Any data = 6;
+}
+
+message DefaultSessionData {
+  repeated string parties = 1;
+  string proposer = 2;
+  repeated string indexes = 3;
+  string root = 4;
+  repeated string accepted = 5;
+  string signature = 6;
+}
+
+message ReshareSessionData {
+  repeated string parties = 1;
+  string proposer = 2;
+  string oldKey = 3;
+  string newKey = 4;
+  string keySignature = 5;
+  string signature = 6;
+  string root = 7;
+}
+
+message KeygenSessionData {
+  repeated string parties = 1;
+  string key = 2;
+}

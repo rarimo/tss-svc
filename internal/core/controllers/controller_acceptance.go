@@ -11,6 +11,7 @@ import (
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -23,6 +24,7 @@ type AcceptanceController struct {
 	broadcast *connectors.BroadcastConnector
 	auth      *core.RequestAuthorizer
 	log       *logan.Entry
+	pg        *pg.Storage
 	factory   *ControllerFactory
 }
 
@@ -97,7 +99,7 @@ func (a *AcceptanceController) Next() IController {
 	if a.data.Processing {
 		switch a.data.SessionType {
 		case types.SessionType_DefaultSession:
-			return a.factory.GetSignController(a.data.Root)
+			return a.factory.GetSignController(a.data.Root, false)
 		case types.SessionType_ReshareSession:
 			return a.factory.GetReshareController()
 		}
@@ -113,6 +115,7 @@ func (a *AcceptanceController) Type() types.ControllerType {
 func (a *AcceptanceController) run(ctx context.Context) {
 	defer func() {
 		a.log.Infof("%s finished", a.Type().String())
+		a.updateSessionData()
 		a.wg.Done()
 	}()
 
@@ -193,4 +196,35 @@ func (a *AcceptanceController) shareReshareAcceptance(ctx context.Context) {
 		IsBroadcast: true,
 		Details:     details,
 	})
+}
+
+func (a *AcceptanceController) updateSessionData() {
+	session, err := a.pg.SessionQ().SessionByID(int64(a.data.SessionId), false)
+	if err != nil {
+		a.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		a.log.Error("session entry is not initialized")
+		return
+	}
+
+	if a.data.SessionType == types.SessionType_DefaultSession {
+		data, err := a.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
+		if err != nil {
+			a.log.WithError(err).Error("error selecting session data")
+			return
+		}
+
+		if data == nil {
+			a.log.Error("session data is not initialized")
+			return
+		}
+
+		data.Accepted = acceptancesToArr(a.data.Acceptances)
+		if err = a.pg.DefaultSessionDatumQ().Update(data); err != nil {
+			a.log.WithError(err).Error("error updating session data entry")
+		}
+	}
 }

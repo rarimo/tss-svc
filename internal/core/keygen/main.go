@@ -84,7 +84,7 @@ func (s *Session) NewBlock(height uint64) {
 
 func (s *Session) NextSession() core.ISession {
 	factory := s.factory.NextFactory()
-	return sign.NewSessionWithData(s.id+1, s.End()+1, factory, s.log)
+	return sign.NewSessionWithData(s.id+1, s.End()+1, factory, nil, s.log)
 }
 
 func (s *Session) End() uint64 {

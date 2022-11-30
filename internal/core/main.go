@@ -51,3 +51,10 @@ func (s *SessionManager) NewBlock(height uint64) error {
 	}
 	return nil
 }
+
+func (s *SessionManager) ID() uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.currentSession.ID()
+}

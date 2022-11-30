@@ -3,6 +3,7 @@ syntax = "proto3";
 option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
 
 import "request.proto";
+import "session.proto";
 import "google/protobuf/any.proto";
 
 service Service {
@@ -30,12 +31,14 @@ message MsgSubmitRequest {
 
 message MsgSubmitResponse {}
 
+
 message MsgInfoRequest{}
 
 message MsgInfoResponse {
-  uint64 id = 1;
-  uint64 start = 2;
-  uint64 end = 3;
+  string localAccount = 1;
+  string localPublicKey = 2;
+  uint64 currentSessionId = 3;
+  Session sessionData = 4;
 }
 
 message MsgSessionRequest{
@@ -43,13 +46,7 @@ message MsgSessionRequest{
 }
 
 message MsgSessionResponse {
-  uint64 id = 1;
-  uint64 start = 2;
-  uint64 end = 3;
-  string root = 6;
-  repeated string indexes = 7;
-  repeated string accepted = 8;
-  string signature = 9;
+  Session data = 1;
 }
 
 message MsgAddOperationRequest {

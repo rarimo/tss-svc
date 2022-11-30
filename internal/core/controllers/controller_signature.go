@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"database/sql"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -11,6 +12,7 @@ import (
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
@@ -25,6 +27,7 @@ type SignatureController struct {
 	log  *logan.Entry
 
 	party   *tss.SignParty
+	pg      *pg.Storage
 	factory *ControllerFactory
 }
 
@@ -78,7 +81,7 @@ func (s *SignatureController) Next() IController {
 		content, _ := pkg.GetChangePartiesContent(op)
 		s.data.Root = hexutil.Encode(content.CalculateHash())
 		s.data.Indexes = []string{s.data.Root}
-		return s.factory.GetSignController(s.data.Root)
+		return s.factory.GetSignController(s.data.Root, false)
 	}
 	return s.factory.GetFinishController()
 }
@@ -90,6 +93,7 @@ func (s *SignatureController) Type() types.ControllerType {
 func (s *SignatureController) run(ctx context.Context) {
 	defer func() {
 		s.log.Infof("%s finished", s.Type().String())
+		s.updateSessionData()
 		s.wg.Done()
 	}()
 
@@ -111,4 +115,71 @@ func (s *SignatureController) run(ctx context.Context) {
 		s.data.KeySignature = signature
 	}
 	s.data.OperationSignature = signature
+}
+
+func (s *SignatureController) updateSessionData() {
+	session, err := s.pg.SessionQ().SessionByID(int64(s.data.SessionId), false)
+	if err != nil {
+		s.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		s.log.Error("session entry is not initialized")
+		return
+	}
+
+	switch s.data.SessionType {
+	case types.SessionType_DefaultSession:
+		data, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
+		if err != nil {
+			s.log.WithError(err).Error("error selecting session data")
+			return
+		}
+
+		if data == nil {
+			s.log.Error("session data is not initialized")
+			return
+		}
+
+		data.Signature = sql.NullString{
+			String: s.data.OperationSignature,
+			Valid:  s.data.OperationSignature != "",
+		}
+
+		err = s.pg.DefaultSessionDatumQ().Update(data)
+	case types.SessionType_ReshareSession:
+		data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
+		if err != nil {
+			s.log.WithError(err).Error("error selecting session data")
+			return
+		}
+
+		if data == nil {
+			s.log.Error("session data is not initialized")
+			return
+		}
+
+		if s.isKeySigner {
+			data.Signature = sql.NullString{
+				String: s.data.OperationSignature,
+				Valid:  s.data.OperationSignature != "",
+			}
+		} else {
+			data.KeySignature = sql.NullString{
+				String: s.data.KeySignature,
+				Valid:  s.data.KeySignature != "",
+			}
+			data.Root = sql.NullString{
+				String: s.data.Root,
+				Valid:  true,
+			}
+		}
+
+		err = s.pg.ReshareSessionDatumQ().Update(data)
+	}
+
+	if err != nil {
+		s.log.WithError(err).Error("error updating session data entry")
+	}
 }

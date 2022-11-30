@@ -3,13 +3,7 @@ syntax = "proto3";
 option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
 
 import "google/protobuf/any.proto";
-
-
-enum SessionType {
-  DefaultSession = 0;
-  ReshareSession = 1;
-  KeygenSession = 2;
-}
+import "session.proto";
 
 message Set {
   repeated string parties = 1;

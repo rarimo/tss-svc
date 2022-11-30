@@ -49,14 +49,15 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 			}
 
 		case rarimo.OpType_CHANGE_PARTIES:
-			content, err := GetChangePartiesContent(op)
-			if err != nil {
-				return nil, err
-			}
-
-			if content != nil {
-				contents = append(contents, content)
-			}
+			// Currently not supported here
+			//content, err := GetChangePartiesContent(op)
+			//if err != nil {
+			//	return nil, err
+			//}
+			//
+			//if content != nil {
+			//	contents = append(contents, content)
+			//}
 		default:
 			return nil, ErrUnsupportedContent
 		}
@@ -126,6 +127,22 @@ func getSet(input *core.InputSet) *types.Set {
 
 	for _, p := range input.Parties {
 		res.Parties = append(res.Parties, p.Account)
+	}
+	return res
+}
+
+func partyAccounts(parties []*rarimo.Party) []string {
+	res := make([]string, 0, len(parties))
+	for _, p := range parties {
+		res = append(res, p.Account)
+	}
+	return res
+}
+
+func acceptancesToArr(acc map[string]struct{}) []string {
+	res := make([]string, 0, len(acc))
+	for p, _ := range acc {
+		res = append(res, p)
 	}
 	return res
 }
