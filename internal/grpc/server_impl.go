@@ -107,7 +107,7 @@ func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
 		}
 
 		if data == nil {
-			return nil, status.Error(codes.NotFound, "Current session data not found")
+			break
 		}
 
 		details, err = cosmostypes.NewAnyWithValue(&types.DefaultSessionData{
@@ -127,7 +127,7 @@ func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
 		}
 
 		if data == nil {
-			return nil, status.Error(codes.NotFound, "Current session data not found")
+			break
 		}
 
 		details, err = cosmostypes.NewAnyWithValue(&types.ReshareSessionData{
@@ -148,7 +148,7 @@ func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
 		}
 
 		if data == nil {
-			return nil, status.Error(codes.NotFound, "Current session data not found")
+			break
 		}
 
 		details, err = cosmostypes.NewAnyWithValue(&types.KeygenSessionData{

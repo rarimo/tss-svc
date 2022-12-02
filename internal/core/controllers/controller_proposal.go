@@ -178,14 +178,18 @@ func (p *ProposalController) run(ctx context.Context) {
 	}
 
 	p.makeReshareProposal(ctx)
+	<-ctx.Done()
 }
 
 func (p *ProposalController) makeSignProposal(ctx context.Context) {
+	p.log.Infof("Making sign proposal:")
 	ids, root, err := p.getNewPool()
 	if err != nil {
 		p.log.WithError(err).Error("Error preparing pool to propose")
 		return
 	}
+
+	p.log.Infof("Performed pool to share: %v", ids)
 
 	if len(ids) == 0 {
 		p.log.Info("Empty pool. Skipping.")
@@ -220,6 +224,7 @@ func (p *ProposalController) makeSignProposal(ctx context.Context) {
 }
 
 func (p *ProposalController) makeReshareProposal(ctx context.Context) {
+	p.log.Infof("Making reshare proposal:")
 	data := &types.ReshareSessionProposalData{
 		Old:          getSet(p.data.Old),
 		New:          getSet(p.data.New),

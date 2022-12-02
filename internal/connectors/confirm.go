@@ -135,6 +135,8 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 		return err
 	}
 
+	c.log.Infof("Submitted tx: %s", grpcRes.TxResponse.TxHash)
+
 	if grpcRes.TxResponse.Code != successTxCode {
 		c.log.Debug(grpcRes.String())
 		return errors.New(fmt.Sprintf("Got error code: %d, info: %s", grpcRes.TxResponse.Code, grpcRes.TxResponse.Info))

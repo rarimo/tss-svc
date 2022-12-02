@@ -75,6 +75,7 @@ func (k *KeygenController) Type() types.ControllerType {
 func (k *KeygenController) run(ctx context.Context) {
 	defer func() {
 		k.log.Infof("%s finished", k.Type().String())
+		k.updateSessionData()
 		k.wg.Done()
 	}()
 

@@ -38,19 +38,9 @@ func (f *FinishController) Run(ctx context.Context) {
 	f.wg.Add(1)
 	defer func() {
 		f.log.Infof("%s finished", f.Type().String())
+		f.updateSessionEntry()
 		f.wg.Done()
 	}()
-
-	session, err := f.pg.SessionQ().SessionByID(int64(f.data.SessionId), false)
-	if err != nil {
-		f.log.WithError(err).Error("error selecting session")
-		return
-	}
-
-	if session == nil {
-		f.log.Error("session entry is not initialized")
-		return
-	}
 
 	if !f.data.Processing {
 		f.log.Info("Unsuccessful session")
@@ -59,17 +49,7 @@ func (f *FinishController) Run(ctx context.Context) {
 			f.pool.Add(index)
 		}
 
-		session.Status = int(types.SessionStatus_SessionFailed)
-		if err := f.pg.SessionQ().Update(session); err != nil {
-			f.log.Error("error updating session entry")
-		}
-
 		return
-	}
-
-	session.Status = int(types.SessionStatus_SessionSucceeded)
-	if err := f.pg.SessionQ().Update(session); err != nil {
-		f.log.Error("error updating session entry")
 	}
 
 	switch f.data.SessionType {
@@ -95,6 +75,7 @@ func (f *FinishController) Type() types.ControllerType {
 }
 
 func (f *FinishController) finishKeygenSession() {
+	f.log.Info("Submitting setup initial message to finish keygen session.")
 	msg := &rarimo.MsgSetupInitial{
 		Creator:        f.data.New.LocalAccountAddress,
 		NewPublicKey:   f.data.New.GlobalPubKey,
@@ -107,6 +88,7 @@ func (f *FinishController) finishKeygenSession() {
 }
 
 func (f *FinishController) finishReshareSession() {
+	f.log.Info("Submitting change parties and confirmation messages to finish reshare session.")
 	msg1 := &rarimo.MsgCreateChangePartiesOp{
 		Creator:      f.data.New.LocalAccountAddress,
 		NewSet:       f.data.New.Parties,
@@ -125,12 +107,34 @@ func (f *FinishController) finishReshareSession() {
 		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
 	}
 	f.proposer.WithSignature(f.data.OperationSignature)
-
 }
 
 func (f *FinishController) finishDefaultSession() {
+	f.log.Info("Submitting confirmation message to finish reshare session.")
 	if err := f.core.SubmitConfirmation(f.data.Indexes, f.data.Root, f.data.OperationSignature); err != nil {
 		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
 	}
 	f.proposer.WithSignature(f.data.OperationSignature)
+}
+
+func (f *FinishController) updateSessionEntry() {
+	session, err := f.pg.SessionQ().SessionByID(int64(f.data.SessionId), false)
+	if err != nil {
+		f.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		f.log.Error("session entry is not initialized")
+		return
+	}
+
+	session.Status = int(types.SessionStatus_SessionSucceeded)
+	if !f.data.Processing {
+		session.Status = int(types.SessionStatus_SessionFailed)
+	}
+
+	if err := f.pg.SessionQ().Update(session); err != nil {
+		f.log.Error("error updating session entry")
+	}
 }

@@ -94,7 +94,6 @@ func (s *Session) NewBlock(height uint64) {
 			s.stopController()
 			s.current = s.current.Next()
 			s.isStarted = false
-			s.runController()
 		}
 	}
 }
@@ -147,7 +146,7 @@ func (s *Session) initSessionData() {
 		})
 
 		if err != nil {
-			s.log.WithError(err).Error("error crating session entry")
+			s.log.WithError(err).Error("error creating session entry")
 		}
 	}
 }
