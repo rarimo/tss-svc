@@ -144,6 +144,7 @@ func (c *ControllerFactory) GetFinishController() IController {
 		data:     c.data,
 		proposer: c.proposer,
 		pg:       c.pg,
+		pool:     c.pool,
 		factory:  c,
 	}
 }

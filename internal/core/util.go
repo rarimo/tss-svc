@@ -9,7 +9,7 @@ import (
 )
 
 func Equal(p1 *rarimo.Party, p2 *rarimo.Party) bool {
-	return p1.Address == p2.Account
+	return p1.Account == p2.Account
 }
 
 func PartiesEqual(p1 []*rarimo.Party, p2 []*rarimo.Party) bool {
@@ -18,7 +18,7 @@ func PartiesEqual(p1 []*rarimo.Party, p2 []*rarimo.Party) bool {
 	}
 
 	for i := range p1 {
-		if p1[i].Address != p2[i].Address || p1[i].PubKey != p2[i].PubKey {
+		if p1[i].Account != p2[i].Account || p1[i].PubKey != p2[i].PubKey {
 			return false
 		}
 	}

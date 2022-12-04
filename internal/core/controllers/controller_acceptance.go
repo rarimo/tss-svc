@@ -55,10 +55,12 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
+	a.log.Infof("Received acceptance request from %s for session type=%s", sender.Account, acceptance.Type.String())
+
 	switch acceptance.Type {
 	case types.SessionType_DefaultSession:
 		details := new(types.DefaultSessionAcceptanceData)
-		if err := proto.Unmarshal(request.Details.Value, acceptance); err != nil {
+		if err := proto.Unmarshal(acceptance.Details.Value, details); err != nil {
 			return errors.Wrap(err, "error unmarshalling request")
 		}
 
@@ -72,7 +74,7 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 
 	case types.SessionType_ReshareSession:
 		details := new(types.ReshareSessionAcceptanceData)
-		if err := proto.Unmarshal(request.Details.Value, acceptance); err != nil {
+		if err := proto.Unmarshal(acceptance.Details.Value, details); err != nil {
 			return errors.Wrap(err, "error unmarshalling request")
 		}
 

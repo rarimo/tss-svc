@@ -39,7 +39,7 @@ func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSub
 			_, err := b.Submit(ctx, *party, request)
 
 			if err != nil {
-				b.log.WithError(err).Errorf("error submitting request to party key: %s addr: %s", party.PubKey, party.Address)
+				b.log.WithError(err).Errorf("error submitting request to party: %s addr: %s", party.Account, party.Address)
 				failed = append(failed, party)
 			}
 		}

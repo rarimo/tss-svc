@@ -41,6 +41,7 @@ func NewPool(cfg config.Config) *Pool {
 			rarimo:   cfg.Cosmos(),
 			log:      cfg.Log(),
 			rawOrder: make(chan string, poolSz),
+			index:    make(map[string]struct{}),
 		}
 	}
 
@@ -67,7 +68,7 @@ func (p *Pool) Add(id string) error {
 // GetNext returns checked pool of maximum n unsigned operations or an error in case of rpc call errors.
 func (p *Pool) GetNext(n uint) ([]string, error) {
 	p.mu.Lock()
-	defer p.mu.Lock()
+	defer p.mu.Unlock()
 
 	res := make([]string, 0, n)
 	collected := uint(0)

@@ -42,9 +42,6 @@ type ProposalController struct {
 var _ IController = &ProposalController{}
 
 func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	sender, err := p.auth.Auth(request)
 	if err != nil {
 		return err
@@ -63,17 +60,22 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 		return errors.Wrap(err, "error unmarshalling request")
 	}
 
+	p.log.Infof("Received proposal request from %s for session type=%s", sender.Account, proposal.Type.String())
+
 	switch proposal.Type {
 	case types.SessionType_DefaultSession:
 		data := new(types.DefaultSessionProposalData)
-		if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
+		if err := proto.Unmarshal(proposal.Details.Value, data); err != nil {
 			return errors.Wrap(err, "error unmarshalling details")
 		}
+
+		p.log.Infof("Proposal request details: indexes=%v root=%s", data.Indexes, data.Root)
 
 		if p.validateDefaultProposal(data) {
 			func() {
 				p.mu.Lock()
 				defer p.mu.Unlock()
+				p.log.Infof("Proposal data is correct")
 				p.data.SessionType = types.SessionType_DefaultSession
 				p.data.Processing = true
 				p.data.Root = data.Root
@@ -83,14 +85,17 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 		}
 	case types.SessionType_ReshareSession:
 		data := new(types.ReshareSessionProposalData)
-		if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
+		if err := proto.Unmarshal(proposal.Details.Value, data); err != nil {
 			return errors.Wrap(err, "error unmarshalling details")
 		}
+
+		p.log.Infof("Proposal request details: old=%v new=%v", data.Old, data.New)
 
 		if p.validateReshareProposal(data) {
 			func() {
 				p.mu.Lock()
 				defer p.mu.Unlock()
+				p.log.Infof("Proposal data is correct")
 				p.data.SessionType = types.SessionType_ReshareSession
 				p.data.Processing = true
 			}()
@@ -182,7 +187,7 @@ func (p *ProposalController) run(ctx context.Context) {
 }
 
 func (p *ProposalController) makeSignProposal(ctx context.Context) {
-	p.log.Infof("Making sign proposal:")
+	p.log.Infof("Making sign proposal")
 	ids, root, err := p.getNewPool()
 	if err != nil {
 		p.log.WithError(err).Error("Error preparing pool to propose")
@@ -224,7 +229,7 @@ func (p *ProposalController) makeSignProposal(ctx context.Context) {
 }
 
 func (p *ProposalController) makeReshareProposal(ctx context.Context) {
-	p.log.Infof("Making reshare proposal:")
+	p.log.Infof("Making reshare proposal")
 	data := &types.ReshareSessionProposalData{
 		Old:          getSet(p.data.Old),
 		New:          getSet(p.data.New),

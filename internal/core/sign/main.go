@@ -100,13 +100,7 @@ func (s *Session) NewBlock(height uint64) {
 
 func (s *Session) NextSession() core.ISession {
 	factory := s.factory.NextFactory()
-	return &Session{
-		log:     s.log,
-		id:      s.id + 1,
-		bounds:  core.NewBoundsManager(s.End() + 1),
-		factory: factory,
-		current: factory.GetProposalController(),
-	}
+	return NewSessionWithData(s.id+1, s.End()+1, factory, s.data, s.log)
 }
 
 func (s *Session) End() uint64 {
