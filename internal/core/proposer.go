@@ -9,6 +9,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 )
 
+// Proposer is responsible for managing proposers
 type Proposer struct {
 	lastSignature string
 	set           *InputSet

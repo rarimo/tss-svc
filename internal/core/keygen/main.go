@@ -14,6 +14,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+// Session represents key generation session that should be run only once as a first session
 type Session struct {
 	log    *logan.Entry
 	mu     sync.Mutex
@@ -27,6 +28,7 @@ type Session struct {
 	cancel    context.CancelFunc
 }
 
+// Implements core.ISession interface
 var _ core.ISession = &Session{}
 
 func NewSession(cfg config.Config) *Session {

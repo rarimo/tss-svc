@@ -31,6 +31,7 @@ type Bounds struct {
 	End   uint64
 }
 
+// BoundsManager is responsible for managing controllers bounds
 type BoundsManager struct {
 	mu           sync.Mutex
 	SessionStart uint64

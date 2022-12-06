@@ -36,6 +36,7 @@ type LocalTss struct {
 	LocalParams     *keygen.LocalPreParams
 }
 
+// InputSet defines data set (parties, corresponding keys, etc.) to be used in session
 type InputSet struct {
 	*ParamsData
 	*LocalData

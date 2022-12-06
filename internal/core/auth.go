@@ -15,6 +15,7 @@ var (
 	ErrInvalidSignature = goerr.New("invalid signature")
 )
 
+// RequestAuthorizer is responsible for authorizing requests using defined InputSet parties
 type RequestAuthorizer struct {
 	log *logan.Entry
 	set *InputSet

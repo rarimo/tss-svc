@@ -13,6 +13,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+// Session represents default and reshare sessions that is a normal flow
 type Session struct {
 	log    *logan.Entry
 	mu     sync.Mutex
@@ -26,6 +27,7 @@ type Session struct {
 	cancel    context.CancelFunc
 }
 
+// Implements core.ISession interface
 var _ core.ISession = &Session{}
 
 func NewSession(cfg config.Config) *Session {

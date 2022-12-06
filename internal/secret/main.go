@@ -54,6 +54,7 @@ func (t *TssSecret) Previous() *TssSecret {
 	return t.prev
 }
 
+// Storage is responsible for managing TSS secret data and Rarimo core account secret data
 type Storage interface {
 	// Core account management
 	AccountAddressStr() string
