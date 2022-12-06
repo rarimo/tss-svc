@@ -16,6 +16,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+// ReshareController is responsible for resharing keys to add or remove parties from the signers.
 type ReshareController struct {
 	mu   sync.Mutex
 	wg   *sync.WaitGroup
@@ -30,6 +31,7 @@ type ReshareController struct {
 	factory *ControllerFactory
 }
 
+// Implements IController interface
 var _ IController = &ReshareController{}
 
 func (r *ReshareController) Receive(request *types.MsgSubmitRequest) error {

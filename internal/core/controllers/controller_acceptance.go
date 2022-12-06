@@ -14,6 +14,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+// AcceptanceController is responsible for sharing and collecting acceptances for different types of session.
 type AcceptanceController struct {
 	IAcceptanceController
 	mu sync.Mutex
@@ -25,6 +26,7 @@ type AcceptanceController struct {
 	log  *logan.Entry
 }
 
+// Implements IController interface
 var _ IController = &AcceptanceController{}
 
 func (a *AcceptanceController) Run(ctx context.Context) {
@@ -91,6 +93,7 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	a.finish()
 }
 
+// IAcceptanceController defines custom logic for every acceptance controller.
 type IAcceptanceController interface {
 	Next() IController
 	validate(details *cosmostypes.Any, st types.SessionType) bool
@@ -99,6 +102,7 @@ type IAcceptanceController interface {
 	finish()
 }
 
+// DefaultAcceptanceController represents custom logic for types.SessionType_DefaultSession
 type DefaultAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
@@ -107,6 +111,7 @@ type DefaultAcceptanceController struct {
 	factory   *ControllerFactory
 }
 
+// Implements IAcceptanceController interface
 var _ IAcceptanceController = &DefaultAcceptanceController{}
 
 func (a *DefaultAcceptanceController) Next() IController {
@@ -185,6 +190,7 @@ func (a *DefaultAcceptanceController) finish() {
 	}
 }
 
+// ReshareAcceptanceController represents custom logic for types.SessionType_ReshareSession
 type ReshareAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
@@ -193,6 +199,7 @@ type ReshareAcceptanceController struct {
 	factory   *ControllerFactory
 }
 
+// Implements IAcceptanceController interface
 var _ IAcceptanceController = &ReshareAcceptanceController{}
 
 func (a *ReshareAcceptanceController) Next() IController {

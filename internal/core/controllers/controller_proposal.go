@@ -23,6 +23,8 @@ import (
 
 const MaxPoolSize = 32
 
+// ProposalController is responsible for proposing and collecting proposals from proposer.
+// Proposer will execute logic of defining the next session type and suggest data to process in session.
 type ProposalController struct {
 	mu sync.Mutex
 	wg *sync.WaitGroup
@@ -39,6 +41,7 @@ type ProposalController struct {
 	factory *ControllerFactory
 }
 
+// Implements IController interface
 var _ IController = &ProposalController{}
 
 func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {

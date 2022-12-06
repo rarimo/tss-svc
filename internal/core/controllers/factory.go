@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// ControllerFactory is used to store current session data that will be used to create controllers inside controllers.
 type ControllerFactory struct {
 	data     *LocalSessionData
 	client   *grpc.ClientConn

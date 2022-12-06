@@ -17,6 +17,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+// SignatureController is responsible for signing data by signature producers.
 type SignatureController struct {
 	ISignatureController
 	mu   sync.Mutex
@@ -28,6 +29,7 @@ type SignatureController struct {
 	party *tss.SignParty
 }
 
+// Implements IController interface
 var _ IController = &SignatureController{}
 
 func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
@@ -94,12 +96,14 @@ func (s *SignatureController) run(ctx context.Context) {
 	s.finish(signature)
 }
 
+// ISignatureController defines custom logic for every signature controller.
 type ISignatureController interface {
 	Next() IController
 	finish(signature string)
 	updateSessionData()
 }
 
+// KeySignatureController represents custom logic for types.SessionType_ReshareSession for signing the new key with old signature.
 type KeySignatureController struct {
 	data    *LocalSessionData
 	factory *ControllerFactory
@@ -107,6 +111,7 @@ type KeySignatureController struct {
 	log     *logan.Entry
 }
 
+// Implements ISignatureController interface
 var _ ISignatureController = &KeySignatureController{}
 
 func (s *KeySignatureController) Next() IController {
@@ -160,6 +165,8 @@ func (s *KeySignatureController) updateSessionData() {
 	}
 }
 
+// RootSignatureController represents custom logic for both types.SessionType_ReshareSession
+// and types.SessionType_DefaultSession for signing the root of indexes set.
 type RootSignatureController struct {
 	data    *LocalSessionData
 	factory *ControllerFactory
@@ -167,6 +174,7 @@ type RootSignatureController struct {
 	log     *logan.Entry
 }
 
+// Implements ISignatureController interface
 var _ ISignatureController = &RootSignatureController{}
 
 func (s *RootSignatureController) Next() IController {

@@ -19,14 +19,20 @@ var (
 )
 
 type (
+	// IController interface represents the smallest independent part of flow.
 	IController interface {
+		// Receive accepts all incoming requests
 		Receive(request *types.MsgSubmitRequest) error
+		// Run will execute controller logic in separate goroutine
 		Run(ctx context.Context)
+		// WaitFor should be used to wait while controller finishes after canceling context.
 		WaitFor()
+		// Next returns next controller depending on current state or nil if session ended.
 		Next() IController
 		Type() types.ControllerType
 	}
 
+	// LocalSessionData represents all necessary data from current session to be shared between controllers.
 	LocalSessionData struct {
 		SessionId               uint64
 		Processing              bool

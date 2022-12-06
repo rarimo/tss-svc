@@ -11,14 +11,18 @@ var (
 	ErrInvalidSessionID = goerr.New("invalid session ID")
 )
 
+// ISession represents session component that is responsible for launching first session controller,
+// managing controllers execution and creating next sessions.
 type ISession interface {
 	ID() uint64
 	End() uint64
 	Receive(request *types.MsgSubmitRequest) error
+	// NewBlock is a receiver for timer.Timer
 	NewBlock(height uint64)
 	NextSession() ISession
 }
 
+// SessionManager is responsible for managing session execution
 type SessionManager struct {
 	mu             sync.Mutex
 	currentSession ISession

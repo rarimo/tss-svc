@@ -17,6 +17,8 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+// KeygenController is responsible for initial key generation. It can only be launched with empty secret storage and
+// after finishing will update storage with generated secret.
 type KeygenController struct {
 	mu sync.Mutex
 	wg *sync.WaitGroup
@@ -32,6 +34,7 @@ type KeygenController struct {
 	factory *ControllerFactory
 }
 
+// Implements IController interface
 var _ IController = &KeygenController{}
 
 func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {

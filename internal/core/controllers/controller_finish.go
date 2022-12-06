@@ -13,6 +13,7 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
+// FinishController is responsible for finishing sessions. For example: submit transactions, update session entry, etc.
 type FinishController struct {
 	wg *sync.WaitGroup
 
@@ -27,6 +28,7 @@ type FinishController struct {
 	factory  *ControllerFactory
 }
 
+// Implements IController interface
 var _ IController = &FinishController{}
 
 func (f *FinishController) Receive(*types.MsgSubmitRequest) error {
