@@ -8,7 +8,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
@@ -135,14 +134,7 @@ func (a *AcceptanceController) run(ctx context.Context) {
 
 	// adding self
 	a.data.Acceptances[a.data.New.LocalAccountAddress] = struct{}{}
-
-	accepted := make([]*rarimo.Party, 0, a.data.Old.N)
-	for _, p := range a.data.Old.Parties {
-		if _, ok := a.data.Acceptances[p.Account]; ok {
-			accepted = append(accepted, p)
-		}
-	}
-	a.data.AcceptedSigningPartyIds = core.PartyIds(accepted)
+	a.data.AcceptedSigningPartyIds = getPartyIDsFromAcceptances(a.data.Acceptances, a.data.Old)
 
 	a.log.Infof("Acceptances: %v", a.data.Acceptances)
 

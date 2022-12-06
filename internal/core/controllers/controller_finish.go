@@ -29,11 +29,11 @@ type FinishController struct {
 
 var _ IController = &FinishController{}
 
-func (f *FinishController) Receive(request *types.MsgSubmitRequest) error {
+func (f *FinishController) Receive(*types.MsgSubmitRequest) error {
 	return nil
 }
 
-func (f *FinishController) Run(ctx context.Context) {
+func (f *FinishController) Run(context.Context) {
 	f.log.Infof("Starting %s", f.Type().String())
 	f.wg.Add(1)
 	defer func() {
