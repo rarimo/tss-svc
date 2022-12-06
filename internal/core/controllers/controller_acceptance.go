@@ -15,16 +15,14 @@ import (
 )
 
 type AcceptanceController struct {
+	IAcceptanceController
 	mu sync.Mutex
 	wg *sync.WaitGroup
 
 	data *LocalSessionData
 
-	broadcast *connectors.BroadcastConnector
-	auth      *core.RequestAuthorizer
-	log       *logan.Entry
-	pg        *pg.Storage
-	factory   *ControllerFactory
+	auth *core.RequestAuthorizer
+	log  *logan.Entry
 }
 
 var _ IController = &AcceptanceController{}
@@ -54,36 +52,11 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	a.log.Infof("Received acceptance request from %s for session type=%s", sender.Account, acceptance.Type.String())
-
-	switch acceptance.Type {
-	case types.SessionType_DefaultSession:
-		details := new(types.DefaultSessionAcceptanceData)
-		if err := proto.Unmarshal(acceptance.Details.Value, details); err != nil {
-			return errors.Wrap(err, "error unmarshalling request")
-		}
-
-		if details.Root == a.data.Root {
-			a.mu.Lock()
-			defer a.mu.Unlock()
-
-			a.log.Infof("Received acceptance from %s for root %s", sender.Account, details.Root)
-			a.data.Acceptances[sender.Account] = struct{}{}
-		}
-
-	case types.SessionType_ReshareSession:
-		details := new(types.ReshareSessionAcceptanceData)
-		if err := proto.Unmarshal(acceptance.Details.Value, details); err != nil {
-			return errors.Wrap(err, "error unmarshalling request")
-		}
-
-		if checkSet(details.New, a.data.New) {
-			a.mu.Lock()
-			defer a.mu.Unlock()
-
-			a.log.Infof("Received acceptance from %s for reshare", sender.Account)
-			a.data.Acceptances[sender.Account] = struct{}{}
-		}
+	if a.validate(acceptance.Details, acceptance.Type) {
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		a.log.Infof("Received acceptance request from %s for session type=%s", sender.Account, acceptance.Type.String())
+		a.data.Acceptances[sender.Account] = struct{}{}
 	}
 
 	return nil
@@ -91,22 +64,6 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 
 func (a *AcceptanceController) WaitFor() {
 	a.wg.Wait()
-}
-
-func (a *AcceptanceController) Next() IController {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if a.data.Processing {
-		switch a.data.SessionType {
-		case types.SessionType_DefaultSession:
-			return a.factory.GetSignController(a.data.Root, false)
-		case types.SessionType_ReshareSession:
-			return a.factory.GetReshareController()
-		}
-	}
-
-	return a.factory.GetFinishController()
 }
 
 func (a *AcceptanceController) Type() types.ControllerType {
@@ -120,13 +77,7 @@ func (a *AcceptanceController) run(ctx context.Context) {
 		a.wg.Done()
 	}()
 
-	switch a.data.SessionType {
-	case types.SessionType_DefaultSession:
-		a.shareDefaultAcceptance(ctx)
-	case types.SessionType_ReshareSession:
-		a.shareReshareAcceptance(ctx)
-	}
-
+	a.shareAcceptance(ctx)
 	<-ctx.Done()
 
 	a.mu.Lock()
@@ -137,20 +88,48 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	a.data.AcceptedSigningPartyIds = getPartyIDsFromAcceptances(a.data.Acceptances, a.data.Old)
 
 	a.log.Infof("Acceptances: %v", a.data.Acceptances)
-
-	switch a.data.SessionType {
-	case types.SessionType_DefaultSession:
-		if len(a.data.Acceptances) <= a.data.New.T {
-			a.data.Processing = false
-		}
-	case types.SessionType_ReshareSession:
-		if len(a.data.Acceptances) < a.data.New.N {
-			a.data.Processing = false
-		}
-	}
+	a.finish()
 }
 
-func (a *AcceptanceController) shareDefaultAcceptance(ctx context.Context) {
+type IAcceptanceController interface {
+	Next() IController
+	validate(details *cosmostypes.Any, st types.SessionType) bool
+	shareAcceptance(ctx context.Context)
+	updateSessionData()
+	finish()
+}
+
+type DefaultAcceptanceController struct {
+	data      *LocalSessionData
+	broadcast *connectors.BroadcastConnector
+	log       *logan.Entry
+	pg        *pg.Storage
+	factory   *ControllerFactory
+}
+
+var _ IAcceptanceController = &DefaultAcceptanceController{}
+
+func (a *DefaultAcceptanceController) Next() IController {
+	if a.data.Processing {
+		return a.factory.GetRootSignController(a.data.Root)
+	}
+	return a.factory.GetFinishController()
+}
+
+func (a *DefaultAcceptanceController) validate(any *cosmostypes.Any, st types.SessionType) bool {
+	if st != types.SessionType_DefaultSession {
+		return false
+	}
+
+	details := new(types.DefaultSessionAcceptanceData)
+	if err := proto.Unmarshal(any.Value, details); err != nil {
+		a.log.WithError(err).Error("error unmarshalling request")
+	}
+
+	return details.Root == a.data.Root
+}
+
+func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
 	details, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionAcceptanceData{Root: a.data.Root})
 	if err != nil {
 		a.log.WithError(err).Error("error parsing details")
@@ -171,7 +150,73 @@ func (a *AcceptanceController) shareDefaultAcceptance(ctx context.Context) {
 	})
 }
 
-func (a *AcceptanceController) shareReshareAcceptance(ctx context.Context) {
+func (a *DefaultAcceptanceController) updateSessionData() {
+	session, err := a.pg.SessionQ().SessionByID(int64(a.data.SessionId), false)
+	if err != nil {
+		a.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		a.log.Error("session entry is not initialized")
+		return
+	}
+
+	data, err := a.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
+	if err != nil {
+		a.log.WithError(err).Error("error selecting session data")
+		return
+	}
+
+	if data == nil {
+		a.log.Error("session data is not initialized")
+		return
+	}
+
+	data.Accepted = acceptancesToArr(a.data.Acceptances)
+	if err = a.pg.DefaultSessionDatumQ().Update(data); err != nil {
+		a.log.WithError(err).Error("error updating session data entry")
+	}
+}
+
+func (a *DefaultAcceptanceController) finish() {
+	if len(a.data.Acceptances) <= a.data.New.T {
+		a.data.Processing = false
+	}
+}
+
+type ReshareAcceptanceController struct {
+	data      *LocalSessionData
+	broadcast *connectors.BroadcastConnector
+	log       *logan.Entry
+	pg        *pg.Storage
+	factory   *ControllerFactory
+}
+
+var _ IAcceptanceController = &ReshareAcceptanceController{}
+
+func (a *ReshareAcceptanceController) Next() IController {
+	if a.data.Processing {
+		return a.factory.GetReshareController()
+	}
+
+	return a.factory.GetFinishController()
+}
+
+func (a *ReshareAcceptanceController) validate(any *cosmostypes.Any, st types.SessionType) bool {
+	if st != types.SessionType_ReshareSession {
+		return false
+	}
+
+	details := new(types.ReshareSessionAcceptanceData)
+	if err := proto.Unmarshal(any.Value, details); err != nil {
+		a.log.WithError(err).Error("error unmarshalling request")
+	}
+
+	return checkSet(details.New, a.data.Old)
+}
+
+func (a *ReshareAcceptanceController) shareAcceptance(ctx context.Context) {
 	details, err := cosmostypes.NewAnyWithValue(&types.ReshareSessionAcceptanceData{New: getSet(a.data.New)})
 	if err != nil {
 		a.log.WithError(err).Error("error parsing details")
@@ -192,33 +237,12 @@ func (a *AcceptanceController) shareReshareAcceptance(ctx context.Context) {
 	})
 }
 
-func (a *AcceptanceController) updateSessionData() {
-	session, err := a.pg.SessionQ().SessionByID(int64(a.data.SessionId), false)
-	if err != nil {
-		a.log.WithError(err).Error("error selecting session")
-		return
-	}
+func (a *ReshareAcceptanceController) updateSessionData() {
+	// Nothing to do for reshare session
+}
 
-	if session == nil {
-		a.log.Error("session entry is not initialized")
-		return
-	}
-
-	if a.data.SessionType == types.SessionType_DefaultSession {
-		data, err := a.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
-		if err != nil {
-			a.log.WithError(err).Error("error selecting session data")
-			return
-		}
-
-		if data == nil {
-			a.log.Error("session data is not initialized")
-			return
-		}
-
-		data.Accepted = acceptancesToArr(a.data.Acceptances)
-		if err = a.pg.DefaultSessionDatumQ().Update(data); err != nil {
-			a.log.WithError(err).Error("error updating session data entry")
-		}
+func (a *ReshareAcceptanceController) finish() {
+	if len(a.data.Acceptances) < a.data.New.N {
+		a.data.Processing = false
 	}
 }

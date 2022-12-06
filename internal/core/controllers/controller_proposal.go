@@ -124,11 +124,11 @@ func (p *ProposalController) Next() IController {
 		// We're definitely working on the old set
 		p.data.New = p.data.Old
 		if p.data.Processing {
-			return p.factory.GetAcceptanceController()
+			return p.factory.GetDefaultAcceptanceController()
 		}
 	case types.SessionType_ReshareSession:
 		if p.data.Processing {
-			return p.factory.GetAcceptanceController()
+			return p.factory.GetReshareAcceptanceController()
 		}
 	}
 

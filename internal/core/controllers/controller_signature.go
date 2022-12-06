@@ -18,17 +18,14 @@ import (
 )
 
 type SignatureController struct {
-	mu          sync.Mutex
-	wg          *sync.WaitGroup
-	data        *LocalSessionData
-	isKeySigner bool
+	ISignatureController
+	mu   sync.Mutex
+	wg   *sync.WaitGroup
+	data *LocalSessionData
 
-	auth *core.RequestAuthorizer
-	log  *logan.Entry
-
-	party   *tss.SignParty
-	pg      *pg.Storage
-	factory *ControllerFactory
+	auth  *core.RequestAuthorizer
+	log   *logan.Entry
+	party *tss.SignParty
 }
 
 var _ IController = &SignatureController{}
@@ -69,23 +66,6 @@ func (s *SignatureController) WaitFor() {
 	s.wg.Wait()
 }
 
-func (s *SignatureController) Next() IController {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.data.SessionType == types.SessionType_ReshareSession && s.data.Processing && s.isKeySigner {
-		op := &rarimo.ChangeParties{
-			Parties:   s.data.New.Parties,
-			Signature: s.data.KeySignature,
-		}
-		content, _ := pkg.GetChangePartiesContent(op)
-		s.data.Root = hexutil.Encode(content.CalculateHash())
-		s.data.Indexes = []string{s.data.Root}
-		return s.factory.GetSignController(s.data.Root, false)
-	}
-	return s.factory.GetFinishController()
-}
-
 func (s *SignatureController) Type() types.ControllerType {
 	return types.ControllerType_CONTROLLER_SIGN
 }
@@ -111,13 +91,93 @@ func (s *SignatureController) run(ctx context.Context) {
 	}
 
 	signature := hexutil.Encode(append(result.Signature, result.SignatureRecovery...))
-	if s.isKeySigner {
-		s.data.KeySignature = signature
+	s.finish(signature)
+}
+
+type ISignatureController interface {
+	Next() IController
+	finish(signature string)
+	updateSessionData()
+}
+
+type KeySignatureController struct {
+	data    *LocalSessionData
+	factory *ControllerFactory
+	pg      *pg.Storage
+	log     *logan.Entry
+}
+
+var _ ISignatureController = &KeySignatureController{}
+
+func (s *KeySignatureController) Next() IController {
+	if s.data.Processing {
+		op := &rarimo.ChangeParties{
+			Parties:   s.data.New.Parties,
+			Signature: s.data.KeySignature,
+		}
+		content, _ := pkg.GetChangePartiesContent(op)
+		s.data.Root = hexutil.Encode(content.CalculateHash())
+		s.data.Indexes = []string{s.data.Root}
+		return s.factory.GetRootSignController(s.data.Root)
 	}
+	return s.factory.GetFinishController()
+}
+
+func (s *KeySignatureController) finish(signature string) {
+	s.data.KeySignature = signature
+}
+
+func (s *KeySignatureController) updateSessionData() {
+	session, err := s.pg.SessionQ().SessionByID(int64(s.data.SessionId), false)
+	if err != nil {
+		s.log.WithError(err).Error("error selecting session")
+		return
+	}
+
+	if session == nil {
+		s.log.Error("session entry is not initialized")
+		return
+	}
+
+	data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
+	if err != nil {
+		s.log.WithError(err).Error("error selecting session data")
+		return
+	}
+
+	if data == nil {
+		s.log.Error("session data is not initialized")
+		return
+	}
+
+	data.Signature = sql.NullString{
+		String: s.data.OperationSignature,
+		Valid:  s.data.OperationSignature != "",
+	}
+
+	if err = s.pg.ReshareSessionDatumQ().Update(data); err != nil {
+		s.log.WithError(err).Error("error updating session data entry")
+	}
+}
+
+type RootSignatureController struct {
+	data    *LocalSessionData
+	factory *ControllerFactory
+	pg      *pg.Storage
+	log     *logan.Entry
+}
+
+var _ ISignatureController = &RootSignatureController{}
+
+func (s *RootSignatureController) Next() IController {
+	return s.factory.GetFinishController()
+}
+
+func (s *RootSignatureController) finish(signature string) {
 	s.data.OperationSignature = signature
 }
 
-func (s *SignatureController) updateSessionData() {
+func (s *RootSignatureController) updateSessionData() {
 	session, err := s.pg.SessionQ().SessionByID(int64(s.data.SessionId), false)
 	if err != nil {
 		s.log.WithError(err).Error("error selecting session")
@@ -160,20 +220,13 @@ func (s *SignatureController) updateSessionData() {
 			return
 		}
 
-		if s.isKeySigner {
-			data.Signature = sql.NullString{
-				String: s.data.OperationSignature,
-				Valid:  s.data.OperationSignature != "",
-			}
-		} else {
-			data.KeySignature = sql.NullString{
-				String: s.data.KeySignature,
-				Valid:  s.data.KeySignature != "",
-			}
-			data.Root = sql.NullString{
-				String: s.data.Root,
-				Valid:  true,
-			}
+		data.KeySignature = sql.NullString{
+			String: s.data.KeySignature,
+			Valid:  s.data.KeySignature != "",
+		}
+		data.Root = sql.NullString{
+			String: s.data.Root,
+			Valid:  true,
 		}
 
 		err = s.pg.ReshareSessionDatumQ().Update(data)

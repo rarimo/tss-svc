@@ -66,7 +66,7 @@ func (r *ReshareController) Next() IController {
 	defer r.mu.Unlock()
 
 	if r.data.Processing {
-		return r.factory.GetSignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewGlobalPublicKey))), true)
+		return r.factory.GetKeySignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewGlobalPublicKey))))
 	}
 
 	return r.factory.GetFinishController()

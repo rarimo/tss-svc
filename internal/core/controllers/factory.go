@@ -94,32 +94,67 @@ func (c *ControllerFactory) GetProposalController() IController {
 	}
 }
 
-func (c *ControllerFactory) GetAcceptanceController() IController {
+func (c *ControllerFactory) GetDefaultAcceptanceController() IController {
 	return &AcceptanceController{
-		wg:        &sync.WaitGroup{},
-		data:      c.data,
-		broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
-		auth:      core.NewRequestAuthorizer(c.data.New, c.log),
-		log:       c.log,
-		pg:        c.pg,
-		factory:   c,
+		IAcceptanceController: &DefaultAcceptanceController{
+			data:      c.data,
+			broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
+			log:       c.log,
+			pg:        c.pg,
+			factory:   c,
+		},
+		wg:   &sync.WaitGroup{},
+		data: c.data,
+		auth: core.NewRequestAuthorizer(c.data.New, c.log),
+		log:  c.log,
 	}
 }
 
-// Used always for old params
-// if it's a default session there is no difference
-// otherwise we should sign with old keys
+func (c *ControllerFactory) GetReshareAcceptanceController() IController {
+	return &AcceptanceController{
+		IAcceptanceController: &ReshareAcceptanceController{
+			data:      c.data,
+			broadcast: connectors.NewBroadcastConnector(c.data.New, c.log),
+			log:       c.log,
+			pg:        c.pg,
+			factory:   c,
+		},
+		wg:   &sync.WaitGroup{},
+		data: c.data,
+		auth: core.NewRequestAuthorizer(c.data.New, c.log),
+		log:  c.log,
+	}
+}
 
-func (c *ControllerFactory) GetSignController(hash string, keySign bool) IController {
+func (c *ControllerFactory) GetRootSignController(hash string) IController {
 	return &SignatureController{
-		wg:          &sync.WaitGroup{},
-		data:        c.data,
-		auth:        core.NewRequestAuthorizer(c.data.Old, c.log),
-		log:         c.log,
-		isKeySigner: keySign,
-		party:       tss.NewSignParty(hash, c.data.SessionId, c.data.AcceptedSigningPartyIds, c.data.Old, c.log),
-		pg:          c.pg,
-		factory:     c,
+		ISignatureController: &RootSignatureController{
+			data:    c.data,
+			factory: c,
+			pg:      c.pg,
+			log:     c.log,
+		},
+		wg:    &sync.WaitGroup{},
+		data:  c.data,
+		auth:  core.NewRequestAuthorizer(c.data.Old, c.log),
+		log:   c.log,
+		party: tss.NewSignParty(hash, c.data.SessionId, c.data.AcceptedSigningPartyIds, c.data.Old, c.log),
+	}
+}
+
+func (c *ControllerFactory) GetKeySignController(hash string) IController {
+	return &SignatureController{
+		ISignatureController: &KeySignatureController{
+			data:    c.data,
+			factory: c,
+			pg:      c.pg,
+			log:     c.log,
+		},
+		wg:    &sync.WaitGroup{},
+		data:  c.data,
+		auth:  core.NewRequestAuthorizer(c.data.Old, c.log),
+		log:   c.log,
+		party: tss.NewSignParty(hash, c.data.SessionId, c.data.AcceptedSigningPartyIds, c.data.Old, c.log),
 	}
 }
 
