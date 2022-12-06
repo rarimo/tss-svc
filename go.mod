@@ -16,7 +16,7 @@ require (
 	gitlab.com/distributed_lab/kit v1.11.1
 	gitlab.com/distributed_lab/logan v3.8.1+incompatible
 	gitlab.com/rarify-protocol/go-merkle v0.0.0-20220831221733-8f4135fe9f1f
-	gitlab.com/rarify-protocol/rarimo-core v0.0.0-20221129043418-b70a74f4d0c5
+	gitlab.com/rarify-protocol/rarimo-core v0.0.0-20221206113801-7d9f764b4361
 	google.golang.org/grpc v1.50.1
 )
 

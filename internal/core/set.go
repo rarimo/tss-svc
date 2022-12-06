@@ -15,11 +15,12 @@ import (
 )
 
 type ParamsData struct {
-	IsActive     bool
-	GlobalPubKey string
-	N, T         int
-	Parties      []*rarimo.Party
-	Chains       map[string]*token.ChainParams
+	IsActive      bool
+	GlobalPubKey  string
+	N, T          int
+	Parties       []*rarimo.Party
+	Chains        map[string]*token.ChainParams
+	LastSignature string
 }
 
 type LocalData struct {
@@ -56,12 +57,13 @@ func NewInputSet(client *grpc.ClientConn, storage secret.Storage) *InputSet {
 
 	return &InputSet{
 		ParamsData: &ParamsData{
-			IsActive:     !tssP.Params.IsUpdateRequired,
-			GlobalPubKey: tssP.Params.KeyECDSA,
-			N:            len(tssP.Params.Parties),
-			T:            int(tssP.Params.Threshold),
-			Parties:      tssP.Params.Parties,
-			Chains:       tokenP.Params.Networks,
+			IsActive:      !tssP.Params.IsUpdateRequired,
+			GlobalPubKey:  tssP.Params.KeyECDSA,
+			N:             len(tssP.Params.Parties),
+			T:             int(tssP.Params.Threshold),
+			Parties:       tssP.Params.Parties,
+			Chains:        tokenP.Params.Networks,
+			LastSignature: tssP.Params.LastSignature,
 		},
 
 		LocalData: &LocalData{

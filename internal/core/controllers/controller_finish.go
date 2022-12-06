@@ -108,7 +108,6 @@ func (f *FinishController) finishReshareSession() {
 	if err := f.core.Submit(msg1, msg2); err != nil {
 		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
 	}
-	f.proposer.WithSignature(f.data.OperationSignature)
 }
 
 func (f *FinishController) finishDefaultSession() {
@@ -116,7 +115,6 @@ func (f *FinishController) finishDefaultSession() {
 	if err := f.core.SubmitConfirmation(f.data.Indexes, f.data.Root, f.data.OperationSignature); err != nil {
 		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
 	}
-	f.proposer.WithSignature(f.data.OperationSignature)
 }
 
 func (f *FinishController) updateSessionEntry() {

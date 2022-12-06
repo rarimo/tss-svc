@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 )
 
 // Proposer is responsible for managing proposers
@@ -15,9 +14,10 @@ type Proposer struct {
 	set           *InputSet
 }
 
-func NewProposer(cfg config.Config) *Proposer {
+func NewProposer(set *InputSet) *Proposer {
 	return &Proposer{
-		lastSignature: cfg.Session().LastSignature,
+		lastSignature: set.LastSignature,
+		set:           set,
 	}
 }
 
