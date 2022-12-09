@@ -86,8 +86,7 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	defer a.mu.Unlock()
 
 	// adding self
-	a.data.Acceptances[a.data.New.LocalAccountAddress] = struct{}{}
-	a.data.AcceptedSigningPartyIds = getPartyIDsFromAcceptances(a.data.Acceptances, a.data.Old)
+	a.data.Acceptances[a.data.Secret.AccountAddress()] = struct{}{}
 
 	a.log.Infof("Acceptances: %v", a.data.Acceptances)
 	a.finish()
@@ -185,7 +184,7 @@ func (a *DefaultAcceptanceController) updateSessionData() {
 }
 
 func (a *DefaultAcceptanceController) finish() {
-	if len(a.data.Acceptances) <= a.data.New.T {
+	if len(a.data.Acceptances) <= a.data.Set.T {
 		a.data.Processing = false
 	}
 }
@@ -204,7 +203,7 @@ var _ IAcceptanceController = &ReshareAcceptanceController{}
 
 func (a *ReshareAcceptanceController) Next() IController {
 	if a.data.Processing {
-		return a.factory.GetReshareController()
+		return a.factory.GetKeygenController()
 	}
 
 	return a.factory.GetFinishController()
@@ -220,11 +219,11 @@ func (a *ReshareAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 		a.log.WithError(err).Error("error unmarshalling request")
 	}
 
-	return checkSet(details.New, a.data.Old)
+	return checkSet(details.New, a.data.Set)
 }
 
 func (a *ReshareAcceptanceController) shareAcceptance(ctx context.Context) {
-	details, err := cosmostypes.NewAnyWithValue(&types.ReshareSessionAcceptanceData{New: getSet(a.data.New)})
+	details, err := cosmostypes.NewAnyWithValue(&types.ReshareSessionAcceptanceData{New: getSet(a.data.Set)})
 	if err != nil {
 		a.log.WithError(err).Error("error parsing details")
 		return
@@ -249,7 +248,7 @@ func (a *ReshareAcceptanceController) updateSessionData() {
 }
 
 func (a *ReshareAcceptanceController) finish() {
-	if len(a.data.Acceptances) < a.data.New.N {
+	if len(a.data.Acceptances) < a.data.Set.N {
 		a.data.Processing = false
 	}
 }

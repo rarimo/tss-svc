@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
-	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types"
@@ -18,7 +17,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"google.golang.org/grpc"
 )
 
@@ -35,23 +34,23 @@ type CoreConnector struct {
 	txclient client.ServiceClient
 	auth     authtypes.QueryClient
 	txConfig sdkclient.TxConfig
-	data     *core.LocalData
+	secret   *secret.TssSecret
 	log      *logan.Entry
 }
 
-func NewCoreConnector(cli *grpc.ClientConn, data *core.LocalData, log *logan.Entry) *CoreConnector {
+func NewCoreConnector(cli *grpc.ClientConn, secret *secret.TssSecret, log *logan.Entry) *CoreConnector {
 	return &CoreConnector{
 		txclient: client.NewServiceClient(cli),
 		auth:     authtypes.NewQueryClient(cli),
 		txConfig: tx.NewTxConfig(codec.NewProtoCodec(codectypes.NewInterfaceRegistry()), []signing.SignMode{signing.SignMode_SIGN_MODE_DIRECT}),
-		data:     data,
+		secret:   secret,
 		log:      log,
 	}
 }
 
 func (c *CoreConnector) SubmitChangeSet(set []*rarimo.Party, sig string) error {
 	msg := &rarimo.MsgCreateChangePartiesOp{
-		Creator:   c.data.LocalAccountAddress,
+		Creator:   c.secret.AccountAddress(),
 		NewSet:    set,
 		Signature: sig,
 	}
@@ -61,7 +60,7 @@ func (c *CoreConnector) SubmitChangeSet(set []*rarimo.Party, sig string) error {
 
 func (c *CoreConnector) SubmitConfirmation(indexes []string, root string, signature string) error {
 	msg := &rarimo.MsgCreateConfirmation{
-		Creator:        c.data.LocalAccountAddress,
+		Creator:        c.secret.AccountAddress(),
 		Root:           root,
 		Indexes:        indexes,
 		SignatureECDSA: signature,
@@ -80,7 +79,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	builder.SetGasLimit(gasLimit)
 	builder.SetFeeAmount(types.Coins{types.NewInt64Coin(coinName, int64(gasLimit*minGasPrice))})
 
-	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.data.LocalAccountAddress})
+	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.secret.AccountAddress()})
 	if err != nil {
 		panic(err)
 	}
@@ -92,7 +91,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	}
 
 	err = builder.SetSignatures(signing.SignatureV2{
-		PubKey: c.data.LocalAccountPrivateKey.PubKey(),
+		PubKey: c.secret.AccountPubKey(),
 		Data: &signing.SingleSignatureData{
 			SignMode:  c.txConfig.SignModeHandler().DefaultMode(),
 			Signature: nil,
@@ -109,10 +108,10 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 		Sequence:      account.Sequence,
 	}
 
-	sigV2, err := clienttx.SignWithPrivKey(
-		c.txConfig.SignModeHandler().DefaultMode(), signerData,
-		builder, c.data.LocalAccountPrivateKey, c.txConfig, account.Sequence,
-	)
+	sigV2, err := c.secret.SignTransaction(c.txConfig, signerData, builder, &account)
+	if err != nil {
+		return err
+	}
 
 	err = builder.SetSignatures(sigV2)
 	if err != nil {

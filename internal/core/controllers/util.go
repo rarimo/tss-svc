@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 
-	"github.com/bnb-chain/tss-lib/tss"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	merkle "gitlab.com/rarify-protocol/go-merkle"
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
@@ -148,13 +147,14 @@ func acceptancesToArr(acc map[string]struct{}) []string {
 	return res
 }
 
-func getPartyIDsFromAcceptances(acc map[string]struct{}, set *core.InputSet) tss.SortedPartyIDs {
-	accepted := make([]*rarimo.Party, 0, set.N)
-	for _, p := range set.Parties {
-		if _, ok := acc[p.Account]; ok {
+func getPartiesAcceptances(all map[string]struct{}, parties []*rarimo.Party) []*rarimo.Party {
+	accepted := make([]*rarimo.Party, 0, len(parties))
+
+	for _, p := range parties {
+		if _, ok := all[p.Account]; ok {
 			accepted = append(accepted, p)
 		}
 	}
 
-	return core.PartyIds(accepted)
+	return accepted
 }

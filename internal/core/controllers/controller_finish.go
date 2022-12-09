@@ -7,25 +7,21 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
 	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
 // FinishController is responsible for finishing sessions. For example: submit transactions, update session entry, etc.
 type FinishController struct {
+	IFinishController
 	wg *sync.WaitGroup
-
-	core *connectors.CoreConnector
-	log  *logan.Entry
 
 	data *LocalSessionData
 
-	proposer *core.Proposer
-	pool     *pool.Pool
-	pg       *pg.Storage
-	factory  *ControllerFactory
+	pg  *pg.Storage
+	log *logan.Entry
 }
 
 // Implements IController interface
@@ -44,24 +40,7 @@ func (f *FinishController) Run(context.Context) {
 		f.wg.Done()
 	}()
 
-	if !f.data.Processing {
-		f.log.Info("Unsuccessful session")
-		// try to return indexes back to the pool
-		for _, index := range f.data.Indexes {
-			f.pool.Add(index)
-		}
-
-		return
-	}
-
-	switch f.data.SessionType {
-	case types.SessionType_DefaultSession:
-		f.finishDefaultSession()
-	case types.SessionType_ReshareSession:
-		f.finishReshareSession()
-	case types.SessionType_KeygenSession:
-		f.finishKeygenSession()
-	}
+	f.finish()
 }
 
 func (f *FinishController) WaitFor() {
@@ -74,47 +53,6 @@ func (f *FinishController) Next() IController {
 
 func (f *FinishController) Type() types.ControllerType {
 	return types.ControllerType_CONTROLLER_FINISH
-}
-
-func (f *FinishController) finishKeygenSession() {
-	f.log.Info("Submitting setup initial message to finish keygen session.")
-	msg := &rarimo.MsgSetupInitial{
-		Creator:        f.data.New.LocalAccountAddress,
-		NewPublicKey:   f.data.New.GlobalPubKey,
-		PartyPublicKey: f.data.New.LocalPubKey,
-	}
-
-	if err := f.core.Submit(msg); err != nil {
-		panic(err)
-	}
-}
-
-func (f *FinishController) finishReshareSession() {
-	f.log.Info("Submitting change parties and confirmation messages to finish reshare session.")
-	msg1 := &rarimo.MsgCreateChangePartiesOp{
-		Creator:      f.data.New.LocalAccountAddress,
-		NewSet:       f.data.New.Parties,
-		Signature:    f.data.KeySignature,
-		NewPublicKey: f.data.NewGlobalPublicKey,
-	}
-
-	msg2 := &rarimo.MsgCreateConfirmation{
-		Creator:        f.data.New.LocalAccountAddress,
-		Root:           f.data.Root,
-		Indexes:        f.data.Indexes,
-		SignatureECDSA: f.data.OperationSignature,
-	}
-
-	if err := f.core.Submit(msg1, msg2); err != nil {
-		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
-	}
-}
-
-func (f *FinishController) finishDefaultSession() {
-	f.log.Info("Submitting confirmation message to finish reshare session.")
-	if err := f.core.SubmitConfirmation(f.data.Indexes, f.data.Root, f.data.OperationSignature); err != nil {
-		f.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
-	}
 }
 
 func (f *FinishController) updateSessionEntry() {
@@ -137,4 +75,106 @@ func (f *FinishController) updateSessionEntry() {
 	if err := f.pg.SessionQ().Update(session); err != nil {
 		f.log.Error("error updating session entry")
 	}
+}
+
+type IFinishController interface {
+	finish()
+}
+
+type KeygenFinishController struct {
+	data    *LocalSessionData
+	storage secret.Storage
+	core    *connectors.CoreConnector
+	log     *logan.Entry
+}
+
+var _ IFinishController = &KeygenFinishController{}
+
+func (k *KeygenFinishController) finish() {
+	if k.data.Processing {
+		k.log.Info("Successful session finish")
+		if err := k.storage.SetTssSecret(k.data.NewSecret); err != nil {
+			panic(err)
+		}
+
+		k.log.Info("Submitting setup initial message to finish keygen session.")
+		msg := &rarimo.MsgSetupInitial{
+			Creator:        k.data.NewSecret.AccountAddress(),
+			NewPublicKey:   k.data.NewSecret.GlobalPubKey(),
+			PartyPublicKey: k.data.NewSecret.TssPubKey(),
+		}
+
+		if err := k.core.Submit(msg); err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	k.log.Info("Unsuccessful session finish")
+}
+
+type DefaultFinishController struct {
+	data *LocalSessionData
+	pool *pool.Pool
+	core *connectors.CoreConnector
+	log  *logan.Entry
+}
+
+var _ IFinishController = &DefaultFinishController{}
+
+func (d *DefaultFinishController) finish() {
+	if d.data.Processing {
+		d.log.Info("Successful session finish")
+		d.log.Info("Submitting confirmation message to finish reshare session.")
+		if err := d.core.SubmitConfirmation(d.data.Indexes, d.data.Root, d.data.OperationSignature); err != nil {
+			d.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
+		}
+		return
+	}
+	d.log.Info("Unsuccessful session finish")
+
+	// try to return indexes back to the pool
+	for _, index := range d.data.Indexes {
+		d.pool.Add(index)
+	}
+}
+
+type ReshareFinishController struct {
+	data    *LocalSessionData
+	storage secret.Storage
+	core    *connectors.CoreConnector
+	log     *logan.Entry
+}
+
+var _ IFinishController = &ReshareFinishController{}
+
+func (r *ReshareFinishController) finish() {
+	if r.data.Processing {
+		r.log.Info("Successful session finish")
+		if err := r.storage.SetTssSecret(r.data.NewSecret); err != nil {
+			panic(err)
+		}
+
+		r.log.Info("Submitting change parties and confirmation messages to finish reshare session.")
+		msg1 := &rarimo.MsgCreateChangePartiesOp{
+			Creator:      r.data.Secret.AccountAddress(),
+			NewSet:       r.data.Set.Parties,
+			Signature:    r.data.KeySignature,
+			NewPublicKey: r.data.NewSecret.GlobalPubKey(),
+		}
+
+		msg2 := &rarimo.MsgCreateConfirmation{
+			Creator:        r.data.Secret.AccountAddress(),
+			Root:           r.data.Root,
+			Indexes:        r.data.Indexes,
+			SignatureECDSA: r.data.OperationSignature,
+		}
+
+		if err := r.core.Submit(msg1, msg2); err != nil {
+			r.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
+		}
+		return
+	}
+
+	r.log.Info("Unsuccessful session finish")
 }

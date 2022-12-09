@@ -46,11 +46,11 @@ func (s *ServerImpl) Run() error {
 
 var _ types.ServiceServer = &ServerImpl{}
 
-func (s *ServerImpl) Submit(ctx context.Context, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
+func (s *ServerImpl) Submit(_ context.Context, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
 	return &types.MsgSubmitResponse{}, s.manager.Receive(request)
 }
 
-func (s *ServerImpl) AddOperation(ctx context.Context, request *types.MsgAddOperationRequest) (*types.MsgAddOperationResponse, error) {
+func (s *ServerImpl) AddOperation(_ context.Context, request *types.MsgAddOperationRequest) (*types.MsgAddOperationResponse, error) {
 	err := s.pool.Add(request.Index)
 	if err != nil {
 		s.log.WithError(err).Error("error adding to the pool")
@@ -59,7 +59,7 @@ func (s *ServerImpl) AddOperation(ctx context.Context, request *types.MsgAddOper
 	return &types.MsgAddOperationResponse{}, nil
 }
 
-func (s *ServerImpl) Info(ctx context.Context, request *types.MsgInfoRequest) (*types.MsgInfoResponse, error) {
+func (s *ServerImpl) Info(_ context.Context, _ *types.MsgInfoRequest) (*types.MsgInfoResponse, error) {
 	id := s.manager.ID()
 	session, err := s.getSessionResp(id)
 	if err != nil {
@@ -67,14 +67,14 @@ func (s *ServerImpl) Info(ctx context.Context, request *types.MsgInfoRequest) (*
 	}
 
 	return &types.MsgInfoResponse{
-		LocalAccount:     s.storage.AccountAddressStr(),
-		LocalPublicKey:   s.storage.GetTssSecret().PubKeyStr(),
+		LocalAccount:     s.storage.GetTssSecret().AccountAddress(),
+		LocalPublicKey:   s.storage.GetTssSecret().TssPubKey(),
 		CurrentSessionId: id,
 		SessionData:      session,
 	}, nil
 }
 
-func (s *ServerImpl) Session(ctx context.Context, request *types.MsgSessionRequest) (*types.MsgSessionResponse, error) {
+func (s *ServerImpl) Session(_ context.Context, request *types.MsgSessionRequest) (*types.MsgSessionResponse, error) {
 	session, err := s.getSessionResp(request.Id)
 	if err != nil {
 		return nil, err

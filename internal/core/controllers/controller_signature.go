@@ -117,8 +117,9 @@ var _ ISignatureController = &KeySignatureController{}
 func (s *KeySignatureController) Next() IController {
 	if s.data.Processing {
 		op := &rarimo.ChangeParties{
-			Parties:   s.data.New.Parties,
-			Signature: s.data.KeySignature,
+			Parties:      s.data.Set.Parties,
+			NewPublicKey: s.data.NewSecret.GlobalPubKey(),
+			Signature:    s.data.KeySignature,
 		}
 		content, _ := pkg.GetChangePartiesContent(op)
 		s.data.Root = hexutil.Encode(content.CalculateHash())

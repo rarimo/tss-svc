@@ -3,27 +3,43 @@ package secret
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	goerr "errors"
+	"math/big"
 
-	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
+	"github.com/bnb-chain/tss-lib/common"
+	tsskeygen "github.com/bnb-chain/tss-lib/ecdsa/keygen"
+	tssreshare "github.com/bnb-chain/tss-lib/ecdsa/resharing"
+	tsssign "github.com/bnb-chain/tss-lib/ecdsa/signing"
+	"github.com/bnb-chain/tss-lib/tss"
+	"github.com/cosmos/cosmos-sdk/client"
+	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
+	xauthsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
+	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+)
+
+var (
+	ErrUninitializedPrivateKey = goerr.New("private key or TSS data should be initialized")
 )
 
 type TssSecret struct {
-	Prv    *ecdsa.PrivateKey
-	Data   *keygen.LocalPartySaveData
-	Params *keygen.LocalPreParams
-	prev   *TssSecret
+	tssPrv     *ecdsa.PrivateKey
+	accountPrv cryptotypes.PrivKey
+	data       *tsskeygen.LocalPartySaveData
+	params     *tsskeygen.LocalPreParams
 }
 
-func NewTssSecret(data *keygen.LocalPartySaveData, params *keygen.LocalPreParams, prev *TssSecret) *TssSecret {
-	var (
-		prv *ecdsa.PrivateKey
-		err error
-	)
-
-	if data != nil && data.Xi != nil {
+func NewTssSecret(prv *ecdsa.PrivateKey, account cryptotypes.PrivKey, data *tsskeygen.LocalPartySaveData, params *tsskeygen.LocalPreParams) *TssSecret {
+	if prv == nil {
+		if data == nil || data.Xi == nil {
+			panic(ErrUninitializedPrivateKey)
+		}
+		var err error
 		prv, err = eth.ToECDSA(data.Xi.Bytes())
 		if err != nil {
 			panic(err)
@@ -31,37 +47,86 @@ func NewTssSecret(data *keygen.LocalPartySaveData, params *keygen.LocalPreParams
 	}
 
 	return &TssSecret{
-		Prv:    prv,
-		Data:   data,
-		Params: params,
-		prev:   prev,
+		tssPrv:     prv,
+		accountPrv: account,
+		data:       data,
+		params:     params,
 	}
 }
 
-func (t *TssSecret) PubKeyStr() string {
-	if t.Prv == nil {
+func (t *TssSecret) NewWithData(data *tsskeygen.LocalPartySaveData) *TssSecret {
+	prv, err := eth.ToECDSA(data.Xi.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	return &TssSecret{
+		tssPrv:     prv,
+		accountPrv: t.accountPrv,
+		data:       data,
+		params:     &data.LocalPreParams,
+	}
+}
+
+func (t *TssSecret) Sign(request *types.MsgSubmitRequest) error {
+	hash := eth.Keccak256(request.Details.Value)
+	signature, err := eth.Sign(hash, t.tssPrv)
+	if err != nil {
+		return err
+	}
+	request.Signature = hexutil.Encode(signature)
+	return nil
+}
+
+func (t *TssSecret) SignTransaction(txConfig client.TxConfig, data xauthsigning.SignerData, builder client.TxBuilder, account *authtypes.BaseAccount) (signing.SignatureV2, error) {
+	return clienttx.SignWithPrivKey(
+		txConfig.SignModeHandler().DefaultMode(), data,
+		builder, t.accountPrv, txConfig, account.Sequence,
+	)
+}
+
+func (t *TssSecret) TssPubKey() string {
+	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.tssPrv.X, t.tssPrv.Y))
+}
+
+func (t *TssSecret) AccountAddress() string {
+	address, _ := bech32.ConvertAndEncode(AccountPrefix, t.accountPrv.PubKey().Address().Bytes())
+	return address
+}
+
+func (t *TssSecret) AccountPubKey() cryptotypes.PubKey {
+	return t.accountPrv.PubKey()
+}
+
+func (t *TssSecret) GlobalPubKey() string {
+	if t.data == nil {
 		return ""
 	}
 
-	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.Prv.X, t.Prv.Y))
+	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.data.ECDSAPub.X(), t.data.ECDSAPub.Y()))
 }
 
-func (t *TssSecret) GlobalPubKeyStr() string {
-	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.Data.ECDSAPub.X(), t.Data.ECDSAPub.Y()))
+func (t *TssSecret) GetKeygenParty(params *tss.Parameters, out chan<- tss.Message, end chan<- tsskeygen.LocalPartySaveData) tss.Party {
+	return tsskeygen.NewLocalParty(params, out, end, *t.params)
 }
 
-func (t *TssSecret) Previous() *TssSecret {
-	return t.prev
+func (t *TssSecret) GetSignParty(msg *big.Int, params *tss.Parameters, out chan<- tss.Message, end chan<- common.SignatureData) tss.Party {
+	return tsssign.NewLocalParty(msg, params, *t.data, out, end)
+}
+
+func (t *TssSecret) GetReshareParty(params *tss.ReSharingParameters, n int, out chan<- tss.Message, end chan<- tsskeygen.LocalPartySaveData) tss.Party {
+	data := t.data
+	if data == nil {
+		empty := tsskeygen.NewLocalPartySaveData(n)
+		data = &empty
+		data.LocalPreParams = *t.params
+	}
+
+	return tssreshare.NewLocalParty(params, *data, out, end)
 }
 
 // Storage is responsible for managing TSS secret data and Rarimo core account secret data
 type Storage interface {
-	// Core account management
-	AccountAddressStr() string
-	AccountPrvKey() cryptotypes.PrivKey
-
-	// TSS account management
 	GetTssSecret() *TssSecret
-	GetTrialPrivateKey() *ecdsa.PrivateKey
 	SetTssSecret(secret *TssSecret) error
 }

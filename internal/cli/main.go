@@ -1,7 +1,12 @@
 package cli
 
 import (
+	"encoding/json"
+	"fmt"
+	"time"
+
 	"github.com/alecthomas/kingpin"
+	tsskg "github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
@@ -30,6 +35,7 @@ func Run(args []string) bool {
 	runCmd := app.Command("run", "run command")
 	serviceCmd := runCmd.Command("service", "run service")
 	keygenCmd := runCmd.Command("keygen", "run keygen")
+	paramgenCmd := runCmd.Command("paramgen", "run paramgen")
 
 	migrateCmd := app.Command("migrate", "migrate command")
 	migrateUpCmd := migrateCmd.Command("up", "migrate db up")
@@ -57,6 +63,19 @@ func Run(args []string) bool {
 		manager := core.NewSessionManager(keygen.NewSession(cfg))
 		timer.NewTimer(cfg).SubscribeToBlocks("session-manager", manager.NewBlock)
 		err = grpc.NewServer(manager, cfg).Run()
+
+	case paramgenCmd.FullCommand():
+		params, err := tsskg.GeneratePreParams(10 * time.Minute)
+		if err != nil {
+			panic(err)
+		}
+
+		data, err := json.Marshal(params)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(string(data))
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():

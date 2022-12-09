@@ -6,10 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	eth "github.com/ethereum/go-ethereum/crypto"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
@@ -26,14 +24,14 @@ type con struct {
 type SubmitConnector struct {
 	mu       sync.Mutex
 	isClosed bool
-	set      *core.InputSet
+	secret   *secret.TssSecret
 	clients  map[string]*con
 }
 
-func NewSubmitConnector(set *core.InputSet) *SubmitConnector {
+func NewSubmitConnector(secret *secret.TssSecret) *SubmitConnector {
 	c := &SubmitConnector{
 		isClosed: false,
-		set:      set,
+		secret:   secret,
 		clients:  make(map[string]*con),
 	}
 
@@ -47,17 +45,9 @@ func (s *SubmitConnector) Close() error {
 }
 
 func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
-	hash := eth.Keccak256(request.Details.Value)
-	key := s.set.LocalPrivateKey
-	if key == nil {
-		key = s.set.TrialPrivateKey
-	}
-
-	signature, err := eth.Sign(hash, key)
-	if err != nil {
+	if err := s.secret.Sign(request); err != nil {
 		return nil, err
 	}
-	request.Signature = hexutil.Encode(signature)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

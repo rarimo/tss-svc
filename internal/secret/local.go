@@ -10,7 +10,6 @@ import (
 
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 )
 
@@ -29,7 +28,7 @@ type LocalStorage struct {
 	mu          sync.Mutex
 	account     cryptotypes.PrivKey
 	TrialPrvKey *ecdsa.PrivateKey
-	secrets     []*TssSecret
+	secret      *TssSecret
 }
 
 func NewLocalStorage(cfg config.Config) *LocalStorage {
@@ -39,45 +38,35 @@ func NewLocalStorage(cfg config.Config) *LocalStorage {
 			panic(ErrNoTssDataPath)
 		}
 
+		var prv *ecdsa.PrivateKey
+		if data == nil || data.Xi == nil {
+			prv = cfg.Private().PrivateKey
+		}
+
 		localStorage = &LocalStorage{
 			account:     cfg.Private().AccountPrvKey,
 			TrialPrvKey: cfg.Private().PrivateKey,
-			secrets:     []*TssSecret{NewTssSecret(data, loadParams(), nil)},
+			secret:      NewTssSecret(prv, cfg.Private().AccountPrvKey, data, loadParams()),
 		}
 	}
 
 	return localStorage
 }
 
+// Implements Storage interface
 var _ Storage = &LocalStorage{}
-
-func (l *LocalStorage) AccountAddressStr() string {
-	address, _ := bech32.ConvertAndEncode(AccountPrefix, l.account.PubKey().Address().Bytes())
-	return address
-}
-
-func (l *LocalStorage) AccountPrvKey() cryptotypes.PrivKey {
-	return l.account
-}
 
 func (l *LocalStorage) GetTssSecret() *TssSecret {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if len(l.secrets) > 0 {
-		return l.secrets[len(l.secrets)-1]
-	}
-	return nil
-}
-
-func (l *LocalStorage) GetTrialPrivateKey() *ecdsa.PrivateKey {
-	return l.TrialPrvKey
+	return l.secret
 }
 
 func (l *LocalStorage) SetTssSecret(secret *TssSecret) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.secrets = append(l.secrets, secret)
-	return saveData(secret.Data)
+	l.secret = secret
+	return saveData(secret.data)
 }
 
 func loadParams() *keygen.LocalPreParams {

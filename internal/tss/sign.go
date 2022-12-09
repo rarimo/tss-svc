@@ -6,60 +6,59 @@ import (
 	"sync"
 
 	"github.com/bnb-chain/tss-lib/common"
-	"github.com/bnb-chain/tss-lib/ecdsa/signing"
 	"github.com/bnb-chain/tss-lib/tss"
 	s256k1 "github.com/btcsuite/btcd/btcec"
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
-
-type SignatureResult struct {
-	Signature string
-	Data      string
-}
 
 type SignParty struct {
 	wg *sync.WaitGroup
 
 	log *logan.Entry
 
-	set   *core.InputSet
+	partyIds tss.SortedPartyIDs
+	parties  map[string]*rarimo.Party
+	secret   *secret.TssSecret
+
+	self  *tss.PartyID
 	party tss.Party
 	con   *connectors.BroadcastConnector
 
-	data     string
-	id       uint64
-	partyIds tss.SortedPartyIDs
-	result   *common.SignatureData
+	data   string
+	id     uint64
+	result *common.SignatureData
 }
 
-func NewSignParty(data string, id uint64, parties tss.SortedPartyIDs, set *core.InputSet, log *logan.Entry) *SignParty {
+func NewSignParty(data string, id uint64, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *SignParty {
 	return &SignParty{
 		wg:       &sync.WaitGroup{},
 		log:      log,
-		set:      set,
-		con:      connectors.NewBroadcastConnector(set, log),
-		partyIds: parties,
+		parties:  core.PartiesByAccountMapping(parties),
+		partyIds: core.PartyIds(parties),
+		secret:   secret,
+		con:      connectors.NewBroadcastConnector(parties, secret, log),
 		data:     data,
 		id:       id,
 	}
 }
 
 func (p *SignParty) Run(ctx context.Context) {
-	p.log.Infof("Running TSS signing on set: %v", p.set.Parties)
+	p.log.Infof("Running TSS signing on set: %v", p.parties)
+	p.self = p.partyIds.FindByKey(core.GetTssPartyKey(p.secret.AccountAddress()))
 	out := make(chan tss.Message, 1000)
 	end := make(chan common.SignatureData, 1)
 	peerCtx := tss.NewPeerContext(p.partyIds)
-	local := p.partyIds.FindByKey(p.set.PartyKey())
-	tssParams := tss.NewParameters(s256k1.S256(), peerCtx, local, p.set.N, p.set.T)
-
-	p.party = signing.NewLocalParty(new(big.Int).SetBytes(hexutil.MustDecode(p.data)), tssParams, *p.set.LocalTss.LocalData, out, end)
+	params := tss.NewParameters(s256k1.S256(), peerCtx, p.self, p.partyIds.Len(), crypto.GetThreshold(p.partyIds.Len()))
+	p.party = p.secret.GetSignParty(new(big.Int).SetBytes(hexutil.MustDecode(p.data)), params, out, end)
 	go func() {
 		err := p.party.Start()
 		if err != nil {
@@ -85,7 +84,7 @@ func (p *SignParty) Data() string {
 	return p.data
 }
 
-func (p *SignParty) Receive(sender rarimo.Party, isBroadcast bool, details []byte) {
+func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) {
 	if p.party != nil {
 		p.log.Infof("Received signing request from %s id: %d", sender.Account, p.id)
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
@@ -154,16 +153,16 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 			p.log.Infof("Sending to %v", to)
 			for _, to := range to {
 				p.log.Infof("Sending message to %s", to.Id)
-				party, _ := p.set.PartyByAccount(to.Id)
+				party, _ := p.parties[to.Id]
 
-				if party.Account == p.set.LocalAccountAddress {
+				if party.Account == p.secret.AccountAddress() {
 					p.log.Info("Sending to self")
 					p.Receive(party, msg.IsBroadcast(), details.Value)
 					continue
 				}
 
-				if failed := p.con.SubmitTo(ctx, request, &party); len(failed) != 0 {
-					p.con.SubmitTo(ctx, request, &party)
+				if failed := p.con.SubmitTo(ctx, request, party); len(failed) != 0 {
+					p.con.SubmitTo(ctx, request, party)
 				}
 			}
 		}

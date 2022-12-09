@@ -13,9 +13,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
@@ -24,7 +26,11 @@ type KeygenParty struct {
 
 	log *logan.Entry
 
-	set   *core.InputSet
+	partyIds tss.SortedPartyIDs
+	parties  map[string]*rarimo.Party
+	secret   *secret.TssSecret
+
+	self  *tss.PartyID
 	party tss.Party
 	con   *connectors.BroadcastConnector
 
@@ -32,13 +38,15 @@ type KeygenParty struct {
 	result *keygen.LocalPartySaveData
 }
 
-func NewKeygenParty(id uint64, set *core.InputSet, log *logan.Entry) *KeygenParty {
+func NewKeygenParty(id uint64, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *KeygenParty {
 	return &KeygenParty{
-		id:  id,
-		wg:  &sync.WaitGroup{},
-		log: log,
-		set: set,
-		con: connectors.NewBroadcastConnector(set, log),
+		id:       id,
+		wg:       &sync.WaitGroup{},
+		log:      log,
+		partyIds: core.PartyIds(parties),
+		parties:  core.PartiesByAccountMapping(parties),
+		secret:   secret,
+		con:      connectors.NewBroadcastConnector(parties, secret, log),
 	}
 }
 
@@ -46,28 +54,29 @@ func (k *KeygenParty) Result() *keygen.LocalPartySaveData {
 	return k.result
 }
 
-func (k *KeygenParty) Receive(sender rarimo.Party, isBroadcast bool, details []byte) {
+func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) {
 	k.log.Infof("Received keygen request from %s", sender.Account)
 	_, data, _ := bech32.DecodeAndConvert(sender.Account)
-	_, err := k.party.UpdateFromBytes(details, k.set.SortedPartyIDs.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
+	_, err := k.party.UpdateFromBytes(details, k.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 	if err != nil {
 		k.log.WithError(err).Debug("error updating party")
 	}
-
 }
 
 func (k *KeygenParty) Run(ctx context.Context) {
-	k.log.Infof("Running TSS key generation on set: %v", k.set.Parties)
+	k.log.Infof("Running TSS key generation on set: %v", k.parties)
+	k.self = k.partyIds.FindByKey(core.GetTssPartyKey(k.secret.AccountAddress()))
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1)
-	peerCtx := tss.NewPeerContext(k.set.SortedPartyIDs)
-	params := tss.NewParameters(s256k1.S256(), peerCtx, k.set.LocalParty(), k.set.N, k.set.T)
+	peerCtx := tss.NewPeerContext(k.partyIds)
+	params := tss.NewParameters(s256k1.S256(), peerCtx, k.self, k.partyIds.Len(), crypto.GetThreshold(k.partyIds.Len()))
 
-	k.party = keygen.NewLocalParty(params, out, end, *k.set.LocalParams)
+	k.party = k.secret.GetKeygenParty(params, out, end)
 	go func() {
 		err := k.party.Start()
 		if err != nil {
-			panic(err)
+			k.log.WithError(err).Error("error running tss party")
+			close(end)
 		}
 	}()
 
@@ -122,21 +131,21 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 
 			to := msg.GetTo()
 			if msg.IsBroadcast() {
-				to = k.set.SortedPartyIDs
+				to = k.partyIds
 			}
 
 			k.log.Infof("Sending to %v", to)
 			for _, to := range to {
 				k.log.Infof("Sending message to %s", to.Id)
-				party, _ := k.set.PartyByAccount(to.Id)
+				party, _ := k.parties[to.Id]
 
-				if party.Account == k.set.LocalAccountAddress {
+				if party.Account == k.secret.AccountAddress() {
 					k.log.Info("Sending to self")
 					k.Receive(party, msg.IsBroadcast(), request.Details.Value)
 					continue
 				}
 
-				k.con.MustSubmitTo(ctx, request, &party)
+				k.con.MustSubmitTo(ctx, request, party)
 			}
 		}
 	}
