@@ -117,7 +117,7 @@ var _ ISignatureController = &KeySignatureController{}
 func (s *KeySignatureController) Next() IController {
 	if s.data.Processing {
 		op := &rarimo.ChangeParties{
-			Parties:      s.data.Set.Parties,
+			Parties:      s.data.NewParties,
 			NewPublicKey: s.data.NewSecret.GlobalPubKey(),
 			Signature:    s.data.KeySignature,
 		}

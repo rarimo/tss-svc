@@ -53,7 +53,7 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 			Set:         set,
 			Acceptances: make(map[string]struct{}),
 			Secret:      c.storage.GetTssSecret(),
-			Proposer:    core.GetProposer(set.VerifiedParties, set.LastSignature, c.data.SessionId+1),
+			Proposer:    core.GetProposer(set.Parties, set.LastSignature, c.data.SessionId+1),
 		},
 		client:  c.client,
 		pool:    c.pool,

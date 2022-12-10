@@ -155,10 +155,15 @@ func (r *ReshareFinishController) finish() {
 			panic(err)
 		}
 
+		if contains(r.data.Set.UnverifiedParties, r.data.Secret.AccountAddress()) {
+			// That party is new one, no additional operations required
+			return
+		}
+
 		r.log.Info("Submitting change parties and confirmation messages to finish reshare session.")
 		msg1 := &rarimo.MsgCreateChangePartiesOp{
 			Creator:      r.data.Secret.AccountAddress(),
-			NewSet:       r.data.Set.Parties,
+			NewSet:       r.data.NewParties,
 			Signature:    r.data.KeySignature,
 			NewPublicKey: r.data.NewSecret.GlobalPubKey(),
 		}

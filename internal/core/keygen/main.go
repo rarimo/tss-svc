@@ -31,7 +31,7 @@ type Session struct {
 // Implements core.ISession interface
 var _ core.ISession = &Session{}
 
-func NewSession(cfg config.Config) *Session {
+func NewSession(cfg config.Config) core.ISession {
 	factory := controllers.NewControllerFactory(cfg)
 
 	sess := &Session{
@@ -90,8 +90,7 @@ func (s *Session) NewBlock(height uint64) {
 }
 
 func (s *Session) NextSession() core.ISession {
-	factory := s.factory.NextFactory()
-	return sign.NewSessionWithData(s.id+1, s.End()+1, factory, s.data, s.log)
+	return sign.NewSessionWithData(s.id+1, s.End()+1, s.factory.NextFactory(), s.data, s.log)
 }
 
 func (s *Session) End() uint64 {

@@ -46,5 +46,6 @@ type (
 		Acceptances        map[string]struct{}
 		OperationSignature string
 		KeySignature       string
+		NewParties         []*rarimo.Party
 	}
 )

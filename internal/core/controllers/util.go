@@ -158,3 +158,13 @@ func getPartiesAcceptances(all map[string]struct{}, parties []*rarimo.Party) []*
 
 	return accepted
 }
+
+func contains(list []*rarimo.Party, account string) bool {
+	for _, p := range list {
+		if p.Account == account {
+			return true
+		}
+	}
+
+	return false
+}

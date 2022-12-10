@@ -11,6 +11,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarify-protocol/tss-svc/internal/config"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
+	"gitlab.com/rarify-protocol/tss-svc/internal/core/empty"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core/keygen"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core/sign"
 	"gitlab.com/rarify-protocol/tss-svc/internal/grpc"
@@ -53,17 +54,17 @@ func Run(args []string) bool {
 		go pool.NewTransferOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
 
-		manager := core.NewSessionManager(sign.NewSession(cfg))
+		manager := core.NewSessionManager(empty.NewEmptySession(cfg, sign.NewSession))
 		timer.NewTimer(cfg).SubscribeToBlocks("session-manager", manager.NewBlock)
 		err = grpc.NewServer(manager, cfg).Run()
 	case keygenCmd.FullCommand():
 		go timer.NewBlockSubscriber(cfg).Run()
 		go pool.NewTransferOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
-		manager := core.NewSessionManager(keygen.NewSession(cfg))
+
+		manager := core.NewSessionManager(empty.NewEmptySession(cfg, keygen.NewSession))
 		timer.NewTimer(cfg).SubscribeToBlocks("session-manager", manager.NewBlock)
 		err = grpc.NewServer(manager, cfg).Run()
-
 	case paramgenCmd.FullCommand():
 		params, err := tsskg.GeneratePreParams(10 * time.Minute)
 		if err != nil {

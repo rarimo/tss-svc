@@ -8,7 +8,6 @@ import (
 
 	"github.com/bnb-chain/tss-lib/common"
 	tsskeygen "github.com/bnb-chain/tss-lib/ecdsa/keygen"
-	tssreshare "github.com/bnb-chain/tss-lib/ecdsa/resharing"
 	tsssign "github.com/bnb-chain/tss-lib/ecdsa/signing"
 	"github.com/bnb-chain/tss-lib/tss"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -20,11 +19,14 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
 var (
 	ErrUninitializedPrivateKey = goerr.New("private key or TSS data should be initialized")
+	ErrNoTssData               = goerr.New("tss data is empty")
 )
 
 type TssSecret struct {
@@ -114,15 +116,29 @@ func (t *TssSecret) GetSignParty(msg *big.Int, params *tss.Parameters, out chan<
 	return tsssign.NewLocalParty(msg, params, *t.data, out, end)
 }
 
-func (t *TssSecret) GetReshareParty(params *tss.ReSharingParameters, n int, out chan<- tss.Message, end chan<- tsskeygen.LocalPartySaveData) tss.Party {
-	data := t.data
-	if data == nil {
-		empty := tsskeygen.NewLocalPartySaveData(n)
-		data = &empty
-		data.LocalPreParams = *t.params
+func (t *TssSecret) GetPartiesWithNewKeys(parties []*rarimo.Party) []*rarimo.Party {
+	result := make([]*rarimo.Party, 0, len(parties))
+
+	partyIDs := core.PartyIds(parties)
+	if t.data == nil {
+		panic(ErrNoTssData)
 	}
 
-	return tssreshare.NewLocalParty(params, *data, out, end)
+	for i := range t.data.Ks {
+		partyId := partyIDs.FindByKey(t.data.Ks[i])
+		for j := range parties {
+			if parties[j].Account == partyId.Id {
+				result = append(result, &rarimo.Party{
+					PubKey:   hexutil.Encode(elliptic.Marshal(eth.S256(), t.data.BigXj[i].X(), t.data.BigXj[i].Y())),
+					Address:  parties[j].Address,
+					Account:  parties[j].Account,
+					Verified: true,
+				})
+				break
+			}
+		}
+	}
+	return result
 }
 
 // Storage is responsible for managing TSS secret data and Rarimo core account secret data

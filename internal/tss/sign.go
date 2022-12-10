@@ -53,7 +53,6 @@ func NewSignParty(data string, id uint64, parties []*rarimo.Party, secret *secre
 func (p *SignParty) Run(ctx context.Context) {
 	p.log.Infof("Running TSS signing on set: %v", p.parties)
 	self := p.partyIds.FindByKey(core.GetTssPartyKey(p.secret.AccountAddress()))
-	p.log.Debugf("Parties: %v, self: %v", p.partyIds, self)
 	out := make(chan tss.Message, 1000)
 	end := make(chan common.SignatureData, 1)
 	peerCtx := tss.NewPeerContext(p.partyIds)

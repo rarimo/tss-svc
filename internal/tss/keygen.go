@@ -65,7 +65,6 @@ func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []
 func (k *KeygenParty) Run(ctx context.Context) {
 	k.log.Infof("Running TSS key generation on set: %v", k.parties)
 	self := k.partyIds.FindByKey(core.GetTssPartyKey(k.secret.AccountAddress()))
-	k.log.Debugf("Parties: %v, self: %v", k.partyIds, self)
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1)
 	peerCtx := tss.NewPeerContext(k.partyIds)

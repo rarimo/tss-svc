@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3"
+	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarify-protocol/tss-svc/internal/core"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data"
 	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
@@ -173,7 +174,7 @@ type ReshareKeygenController struct {
 var _ IKeygenController = &ReshareKeygenController{}
 
 func (r *ReshareKeygenController) Next() IController {
-	if r.data.Processing {
+	if r.data.Processing && !contains(r.data.Set.UnverifiedParties, r.data.Secret.AccountAddress()) {
 		return r.factory.GetKeySignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewSecret.GlobalPubKey()))))
 	}
 
@@ -215,14 +216,19 @@ func (r *ReshareKeygenController) updateSessionData() {
 
 func (r *ReshareKeygenController) finish(result *keygen.LocalPartySaveData) {
 	r.data.NewSecret = r.data.Secret.NewWithData(result)
-	partyIDs := core.PartyIds(r.data.Set.Parties)
+	r.data.NewParties = make([]*rarimo.Party, len(r.data.Set.Parties))
 
+	partyIDs := core.PartyIds(r.data.Set.Parties)
 	for i := range result.Ks {
 		partyId := partyIDs.FindByKey(result.Ks[i])
-		for j := range r.data.Set.Parties {
-			if r.data.Set.Parties[j].Account == partyId.Id {
-				r.data.Set.Parties[j].PubKey = hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y()))
-				r.data.Set.Parties[j].Verified = true
+		for j, party := range r.data.Set.Parties {
+			if party.Account == partyId.Id {
+				r.data.NewParties[j] = &rarimo.Party{
+					PubKey:   hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y())),
+					Address:  party.Address,
+					Account:  party.Account,
+					Verified: true,
+				}
 				break
 			}
 		}

@@ -92,6 +92,8 @@ func (p *ProposalController) run(ctx context.Context) {
 		p.wg.Done()
 	}()
 
+	p.log.Infof("Session proposer: %v", p.data.Proposer)
+
 	if p.data.Proposer.Account != p.data.Secret.AccountAddress() {
 		p.log.Info("Proposer is another party")
 		return
@@ -296,8 +298,8 @@ func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.Se
 		return
 	}
 
-	r.log.Infof("Proposal request details: new=%v", data.New)
-	if checkSet(data.New, r.data.Set) {
+	r.log.Infof("Proposal request details: Set = %v", data.Set)
+	if checkSet(data.Set, r.data.Set) {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 		r.log.Infof("Proposal data is correct")
@@ -309,10 +311,7 @@ func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.Se
 func (r *ReshareProposalController) shareProposal(ctx context.Context) {
 	r.log.Infof("Making reshare proposal")
 	data := &types.ReshareSessionProposalData{
-		// TODO
-		Old:          getSet(nil),
-		New:          getSet(nil),
-		OldPublicKey: "",
+		Set: getSet(r.data.Set),
 	}
 
 	details, err := cosmostypes.NewAnyWithValue(data)
