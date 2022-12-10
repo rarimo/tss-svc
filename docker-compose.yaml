@@ -1,0 +1,96 @@
+version: "3.7"
+
+services:
+  tss1:
+    image: tss-svc:latest
+    entrypoint: sh -c "tss-svc migrate up && tss-svc run keygen"
+    depends_on:
+      - tss1-db
+    volumes:
+      - ./configs/tss1.yaml:/config.yaml
+    environment:
+      - KV_VIPER_FILE=/config.yaml
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.1
+
+  tss1-db:
+    image: postgres:13
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=tss
+      - POSTGRES_PASSWORD=tss
+      - POSTGRES_DB=tss
+      - PGDATA=/pgdata
+    volumes:
+      - tss1-data:/pgdata
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.2
+
+  tss2:
+    image: tss-svc:latest
+    entrypoint: sh -c "tss-svc migrate up && tss-svc run keygen"
+    depends_on:
+      - tss2-db
+    volumes:
+      - ./configs/tss2.yaml:/config.yaml
+    environment:
+      - KV_VIPER_FILE=/config.yaml
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.3
+
+  tss2-db:
+    image: postgres:13
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=tss
+      - POSTGRES_PASSWORD=tss
+      - POSTGRES_DB=tss
+      - PGDATA=/pgdata
+    volumes:
+      - tss2-data:/pgdata
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.4
+
+  tss3:
+    image: tss-svc:latest
+    entrypoint: sh -c "tss-svc migrate up && tss-svc run keygen"
+    depends_on:
+      - tss3-db
+    volumes:
+      - ./configs/tss3.yaml:/config.yaml
+    environment:
+      - KV_VIPER_FILE=/config.yaml
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.5
+
+  tss3-db:
+    image: postgres:13
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=tss
+      - POSTGRES_PASSWORD=tss
+      - POSTGRES_DB=tss
+      - PGDATA=/pgdata
+    volumes:
+      - tss3-data:/pgdata
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.6
+
+volumes:
+  tss1-data:
+  tss2-data:
+  tss3-data:
+
+networks:
+  localnet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.10.0/25

@@ -5,6 +5,7 @@ package types
 
 import (
 	fmt "fmt"
+	types "github.com/cosmos/cosmos-sdk/codec/types"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
@@ -22,207 +23,76 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type StepType int32
+type SessionType int32
 
 const (
-	StepType_Proposing StepType = 0
-	StepType_Accepting StepType = 1
-	StepType_Signing   StepType = 2
+	SessionType_DefaultSession SessionType = 0
+	SessionType_ReshareSession SessionType = 1
+	SessionType_KeygenSession  SessionType = 2
 )
 
-var StepType_name = map[int32]string{
-	0: "Proposing",
-	1: "Accepting",
-	2: "Signing",
+var SessionType_name = map[int32]string{
+	0: "DefaultSession",
+	1: "ReshareSession",
+	2: "KeygenSession",
 }
 
-var StepType_value = map[string]int32{
-	"Proposing": 0,
-	"Accepting": 1,
-	"Signing":   2,
+var SessionType_value = map[string]int32{
+	"DefaultSession": 0,
+	"ReshareSession": 1,
+	"KeygenSession":  2,
 }
 
-func (x StepType) String() string {
-	return proto.EnumName(StepType_name, int32(x))
+func (x SessionType) String() string {
+	return proto.EnumName(SessionType_name, int32(x))
 }
 
-func (StepType) EnumDescriptor() ([]byte, []int) {
+func (SessionType) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_3a6be1b361fa6f14, []int{0}
 }
 
-type Status int32
+type SessionStatus int32
 
 const (
-	Status_Pending    Status = 0
-	Status_Processing Status = 1
-	Status_Success    Status = 2
-	Status_Failed     Status = 3
+	SessionStatus_SessionProcessing SessionStatus = 0
+	SessionStatus_SessionFailed     SessionStatus = 1
+	SessionStatus_SessionSucceeded  SessionStatus = 3
 )
 
-var Status_name = map[int32]string{
-	0: "Pending",
-	1: "Processing",
-	2: "Success",
-	3: "Failed",
+var SessionStatus_name = map[int32]string{
+	0: "SessionProcessing",
+	1: "SessionFailed",
+	3: "SessionSucceeded",
 }
 
-var Status_value = map[string]int32{
-	"Pending":    0,
-	"Processing": 1,
-	"Success":    2,
-	"Failed":     3,
+var SessionStatus_value = map[string]int32{
+	"SessionProcessing": 0,
+	"SessionFailed":     1,
+	"SessionSucceeded":  3,
 }
 
-func (x Status) String() string {
-	return proto.EnumName(Status_name, int32(x))
+func (x SessionStatus) String() string {
+	return proto.EnumName(SessionStatus_name, int32(x))
 }
 
-func (Status) EnumDescriptor() ([]byte, []int) {
+func (SessionStatus) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_3a6be1b361fa6f14, []int{1}
-}
-
-type Step struct {
-	StartBlock uint64   `protobuf:"varint,1,opt,name=startBlock,proto3" json:"startBlock,omitempty"`
-	EndBlock   uint64   `protobuf:"varint,2,opt,name=endBlock,proto3" json:"endBlock,omitempty"`
-	Type       StepType `protobuf:"varint,3,opt,name=type,proto3,enum=StepType" json:"type,omitempty"`
-}
-
-func (m *Step) Reset()         { *m = Step{} }
-func (m *Step) String() string { return proto.CompactTextString(m) }
-func (*Step) ProtoMessage()    {}
-func (*Step) Descriptor() ([]byte, []int) {
-	return fileDescriptor_3a6be1b361fa6f14, []int{0}
-}
-func (m *Step) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Step) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Step.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Step) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Step.Merge(m, src)
-}
-func (m *Step) XXX_Size() int {
-	return m.Size()
-}
-func (m *Step) XXX_DiscardUnknown() {
-	xxx_messageInfo_Step.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Step proto.InternalMessageInfo
-
-func (m *Step) GetStartBlock() uint64 {
-	if m != nil {
-		return m.StartBlock
-	}
-	return 0
-}
-
-func (m *Step) GetEndBlock() uint64 {
-	if m != nil {
-		return m.EndBlock
-	}
-	return 0
-}
-
-func (m *Step) GetType() StepType {
-	if m != nil {
-		return m.Type
-	}
-	return StepType_Proposing
-}
-
-type Pool struct {
-	// List of operation ids
-	Indexes []string `protobuf:"bytes,1,rep,name=indexes,proto3" json:"indexes,omitempty"`
-	// Merkle tree based on operations root hash in hex
-	Root string `protobuf:"bytes,2,opt,name=root,proto3" json:"root,omitempty"`
-	// Proposer public key
-	Proposer string `protobuf:"bytes,3,opt,name=proposer,proto3" json:"proposer,omitempty"`
-}
-
-func (m *Pool) Reset()         { *m = Pool{} }
-func (m *Pool) String() string { return proto.CompactTextString(m) }
-func (*Pool) ProtoMessage()    {}
-func (*Pool) Descriptor() ([]byte, []int) {
-	return fileDescriptor_3a6be1b361fa6f14, []int{1}
-}
-func (m *Pool) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Pool) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Pool.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Pool) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Pool.Merge(m, src)
-}
-func (m *Pool) XXX_Size() int {
-	return m.Size()
-}
-func (m *Pool) XXX_DiscardUnknown() {
-	xxx_messageInfo_Pool.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Pool proto.InternalMessageInfo
-
-func (m *Pool) GetIndexes() []string {
-	if m != nil {
-		return m.Indexes
-	}
-	return nil
-}
-
-func (m *Pool) GetRoot() string {
-	if m != nil {
-		return m.Root
-	}
-	return ""
-}
-
-func (m *Pool) GetProposer() string {
-	if m != nil {
-		return m.Proposer
-	}
-	return ""
 }
 
 type Session struct {
-	Id          uint64   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Status      Status   `protobuf:"varint,2,opt,name=status,proto3,enum=Status" json:"status,omitempty"`
-	Pool        *Pool    `protobuf:"bytes,3,opt,name=pool,proto3" json:"pool,omitempty"`
-	Steps       []*Step  `protobuf:"bytes,4,rep,name=steps,proto3" json:"steps,omitempty"`
-	CurrentStep StepType `protobuf:"varint,5,opt,name=currentStep,proto3,enum=StepType" json:"currentStep,omitempty"`
-	// Hex-encoded produces signature
-	Signature string `protobuf:"bytes,6,opt,name=signature,proto3" json:"signature,omitempty"`
-	// Accepted parties public keys
-	AcceptedId []string `protobuf:"bytes,7,rep,name=acceptedId,proto3" json:"acceptedId,omitempty"`
-	// Signed parties public keys
-	SignedId []string `protobuf:"bytes,8,rep,name=signedId,proto3" json:"signedId,omitempty"`
+	Id         uint64        `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Status     SessionStatus `protobuf:"varint,2,opt,name=status,proto3,enum=SessionStatus" json:"status,omitempty"`
+	StartBlock uint64        `protobuf:"varint,3,opt,name=startBlock,proto3" json:"startBlock,omitempty"`
+	EndBlock   uint64        `protobuf:"varint,4,opt,name=endBlock,proto3" json:"endBlock,omitempty"`
+	Type       SessionType   `protobuf:"varint,5,opt,name=type,proto3,enum=SessionType" json:"type,omitempty"`
+	Data       *types.Any    `protobuf:"bytes,6,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (m *Session) Reset()         { *m = Session{} }
 func (m *Session) String() string { return proto.CompactTextString(m) }
 func (*Session) ProtoMessage()    {}
 func (*Session) Descriptor() ([]byte, []int) {
-	return fileDescriptor_3a6be1b361fa6f14, []int{2}
+	return fileDescriptor_3a6be1b361fa6f14, []int{0}
 }
 func (m *Session) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -258,178 +128,314 @@ func (m *Session) GetId() uint64 {
 	return 0
 }
 
-func (m *Session) GetStatus() Status {
+func (m *Session) GetStatus() SessionStatus {
 	if m != nil {
 		return m.Status
 	}
-	return Status_Pending
+	return SessionStatus_SessionProcessing
 }
 
-func (m *Session) GetPool() *Pool {
+func (m *Session) GetStartBlock() uint64 {
 	if m != nil {
-		return m.Pool
+		return m.StartBlock
+	}
+	return 0
+}
+
+func (m *Session) GetEndBlock() uint64 {
+	if m != nil {
+		return m.EndBlock
+	}
+	return 0
+}
+
+func (m *Session) GetType() SessionType {
+	if m != nil {
+		return m.Type
+	}
+	return SessionType_DefaultSession
+}
+
+func (m *Session) GetData() *types.Any {
+	if m != nil {
+		return m.Data
 	}
 	return nil
 }
 
-func (m *Session) GetSteps() []*Step {
+type DefaultSessionData struct {
+	Parties   []string `protobuf:"bytes,1,rep,name=parties,proto3" json:"parties,omitempty"`
+	Proposer  string   `protobuf:"bytes,2,opt,name=proposer,proto3" json:"proposer,omitempty"`
+	Indexes   []string `protobuf:"bytes,3,rep,name=indexes,proto3" json:"indexes,omitempty"`
+	Root      string   `protobuf:"bytes,4,opt,name=root,proto3" json:"root,omitempty"`
+	Accepted  []string `protobuf:"bytes,5,rep,name=accepted,proto3" json:"accepted,omitempty"`
+	Signature string   `protobuf:"bytes,6,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (m *DefaultSessionData) Reset()         { *m = DefaultSessionData{} }
+func (m *DefaultSessionData) String() string { return proto.CompactTextString(m) }
+func (*DefaultSessionData) ProtoMessage()    {}
+func (*DefaultSessionData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3a6be1b361fa6f14, []int{1}
+}
+func (m *DefaultSessionData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DefaultSessionData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DefaultSessionData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DefaultSessionData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DefaultSessionData.Merge(m, src)
+}
+func (m *DefaultSessionData) XXX_Size() int {
+	return m.Size()
+}
+func (m *DefaultSessionData) XXX_DiscardUnknown() {
+	xxx_messageInfo_DefaultSessionData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DefaultSessionData proto.InternalMessageInfo
+
+func (m *DefaultSessionData) GetParties() []string {
 	if m != nil {
-		return m.Steps
+		return m.Parties
 	}
 	return nil
 }
 
-func (m *Session) GetCurrentStep() StepType {
+func (m *DefaultSessionData) GetProposer() string {
 	if m != nil {
-		return m.CurrentStep
+		return m.Proposer
 	}
-	return StepType_Proposing
+	return ""
 }
 
-func (m *Session) GetSignature() string {
+func (m *DefaultSessionData) GetIndexes() []string {
+	if m != nil {
+		return m.Indexes
+	}
+	return nil
+}
+
+func (m *DefaultSessionData) GetRoot() string {
+	if m != nil {
+		return m.Root
+	}
+	return ""
+}
+
+func (m *DefaultSessionData) GetAccepted() []string {
+	if m != nil {
+		return m.Accepted
+	}
+	return nil
+}
+
+func (m *DefaultSessionData) GetSignature() string {
 	if m != nil {
 		return m.Signature
 	}
 	return ""
 }
 
-func (m *Session) GetAcceptedId() []string {
+type ReshareSessionData struct {
+	Parties      []string `protobuf:"bytes,1,rep,name=parties,proto3" json:"parties,omitempty"`
+	Proposer     string   `protobuf:"bytes,2,opt,name=proposer,proto3" json:"proposer,omitempty"`
+	OldKey       string   `protobuf:"bytes,3,opt,name=oldKey,proto3" json:"oldKey,omitempty"`
+	NewKey       string   `protobuf:"bytes,4,opt,name=newKey,proto3" json:"newKey,omitempty"`
+	KeySignature string   `protobuf:"bytes,5,opt,name=keySignature,proto3" json:"keySignature,omitempty"`
+	Signature    string   `protobuf:"bytes,6,opt,name=signature,proto3" json:"signature,omitempty"`
+	Root         string   `protobuf:"bytes,7,opt,name=root,proto3" json:"root,omitempty"`
+}
+
+func (m *ReshareSessionData) Reset()         { *m = ReshareSessionData{} }
+func (m *ReshareSessionData) String() string { return proto.CompactTextString(m) }
+func (*ReshareSessionData) ProtoMessage()    {}
+func (*ReshareSessionData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3a6be1b361fa6f14, []int{2}
+}
+func (m *ReshareSessionData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ReshareSessionData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ReshareSessionData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ReshareSessionData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReshareSessionData.Merge(m, src)
+}
+func (m *ReshareSessionData) XXX_Size() int {
+	return m.Size()
+}
+func (m *ReshareSessionData) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReshareSessionData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReshareSessionData proto.InternalMessageInfo
+
+func (m *ReshareSessionData) GetParties() []string {
 	if m != nil {
-		return m.AcceptedId
+		return m.Parties
 	}
 	return nil
 }
 
-func (m *Session) GetSignedId() []string {
+func (m *ReshareSessionData) GetProposer() string {
 	if m != nil {
-		return m.SignedId
+		return m.Proposer
+	}
+	return ""
+}
+
+func (m *ReshareSessionData) GetOldKey() string {
+	if m != nil {
+		return m.OldKey
+	}
+	return ""
+}
+
+func (m *ReshareSessionData) GetNewKey() string {
+	if m != nil {
+		return m.NewKey
+	}
+	return ""
+}
+
+func (m *ReshareSessionData) GetKeySignature() string {
+	if m != nil {
+		return m.KeySignature
+	}
+	return ""
+}
+
+func (m *ReshareSessionData) GetSignature() string {
+	if m != nil {
+		return m.Signature
+	}
+	return ""
+}
+
+func (m *ReshareSessionData) GetRoot() string {
+	if m != nil {
+		return m.Root
+	}
+	return ""
+}
+
+type KeygenSessionData struct {
+	Parties []string `protobuf:"bytes,1,rep,name=parties,proto3" json:"parties,omitempty"`
+	Key     string   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (m *KeygenSessionData) Reset()         { *m = KeygenSessionData{} }
+func (m *KeygenSessionData) String() string { return proto.CompactTextString(m) }
+func (*KeygenSessionData) ProtoMessage()    {}
+func (*KeygenSessionData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3a6be1b361fa6f14, []int{3}
+}
+func (m *KeygenSessionData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *KeygenSessionData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_KeygenSessionData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *KeygenSessionData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_KeygenSessionData.Merge(m, src)
+}
+func (m *KeygenSessionData) XXX_Size() int {
+	return m.Size()
+}
+func (m *KeygenSessionData) XXX_DiscardUnknown() {
+	xxx_messageInfo_KeygenSessionData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_KeygenSessionData proto.InternalMessageInfo
+
+func (m *KeygenSessionData) GetParties() []string {
+	if m != nil {
+		return m.Parties
 	}
 	return nil
+}
+
+func (m *KeygenSessionData) GetKey() string {
+	if m != nil {
+		return m.Key
+	}
+	return ""
 }
 
 func init() {
-	proto.RegisterEnum("StepType", StepType_name, StepType_value)
-	proto.RegisterEnum("Status", Status_name, Status_value)
-	proto.RegisterType((*Step)(nil), "Step")
-	proto.RegisterType((*Pool)(nil), "Pool")
+	proto.RegisterEnum("SessionType", SessionType_name, SessionType_value)
+	proto.RegisterEnum("SessionStatus", SessionStatus_name, SessionStatus_value)
 	proto.RegisterType((*Session)(nil), "Session")
+	proto.RegisterType((*DefaultSessionData)(nil), "DefaultSessionData")
+	proto.RegisterType((*ReshareSessionData)(nil), "ReshareSessionData")
+	proto.RegisterType((*KeygenSessionData)(nil), "KeygenSessionData")
 }
 
 func init() { proto.RegisterFile("session.proto", fileDescriptor_3a6be1b361fa6f14) }
 
 var fileDescriptor_3a6be1b361fa6f14 = []byte{
-	// 426 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x92, 0xbd, 0x6e, 0xdb, 0x30,
-	0x14, 0x85, 0x4d, 0x59, 0x96, 0xac, 0x6b, 0xc4, 0x30, 0x38, 0xa9, 0x7f, 0xaa, 0xe1, 0xc9, 0x48,
-	0x1b, 0x19, 0x70, 0xd1, 0xb5, 0x40, 0x33, 0x04, 0xe8, 0x26, 0xc8, 0x9d, 0xba, 0x29, 0x24, 0x2b,
-	0x10, 0x51, 0x49, 0x82, 0xa4, 0x8b, 0xfa, 0x2d, 0xfa, 0x58, 0x1d, 0x33, 0x76, 0x2c, 0xec, 0xa7,
-	0xe8, 0x56, 0xf0, 0x2a, 0x51, 0x8d, 0x6c, 0x3a, 0xdf, 0x11, 0x0f, 0xef, 0x3d, 0x20, 0x5c, 0x38,
-	0xe1, 0x9c, 0xd4, 0xaa, 0x34, 0x56, 0x7b, 0xbd, 0x6a, 0x20, 0xde, 0x79, 0x61, 0x68, 0x01, 0xe0,
-	0x7c, 0x63, 0xfd, 0x75, 0xa7, 0xd9, 0x5d, 0x4e, 0x96, 0x64, 0x1d, 0xd7, 0x67, 0x84, 0x3e, 0x87,
-	0xa9, 0x50, 0xbc, 0x77, 0x23, 0x74, 0x07, 0x4d, 0x5f, 0x41, 0xec, 0x0f, 0x46, 0xe4, 0xe3, 0x25,
-	0x59, 0xcf, 0xb7, 0x59, 0x19, 0x02, 0x3f, 0x1f, 0x8c, 0xa8, 0x11, 0xaf, 0x2a, 0x88, 0x2b, 0xad,
-	0x3b, 0x9a, 0x43, 0x2a, 0x15, 0x17, 0x3f, 0x84, 0xcb, 0xc9, 0x72, 0xbc, 0xce, 0xea, 0x47, 0x49,
-	0x29, 0xc4, 0x56, 0x6b, 0x8f, 0xc1, 0x59, 0x8d, 0xdf, 0xe1, 0x42, 0x63, 0xb5, 0xd1, 0x4e, 0x58,
-	0x0c, 0xce, 0xea, 0x41, 0xaf, 0xfe, 0x12, 0x48, 0x77, 0xfd, 0x1a, 0x74, 0x0e, 0x91, 0xe4, 0x0f,
-	0x03, 0x47, 0x92, 0xd3, 0xd7, 0x90, 0x38, 0xdf, 0xf8, 0xbd, 0xc3, 0xb4, 0xf9, 0x36, 0x2d, 0x77,
-	0x28, 0xeb, 0x07, 0x4c, 0x9f, 0x41, 0x6c, 0xb4, 0xee, 0x30, 0x74, 0xb6, 0x9d, 0x94, 0x61, 0xb6,
-	0x1a, 0x11, 0x7d, 0x01, 0x13, 0xe7, 0x85, 0x71, 0x79, 0xbc, 0x1c, 0xa3, 0x17, 0x36, 0xa9, 0x7b,
-	0x46, 0xdf, 0xc0, 0x8c, 0xed, 0xad, 0x15, 0xca, 0x07, 0x9a, 0x4f, 0x9e, 0x2e, 0x7b, 0xee, 0xd2,
-	0x97, 0x90, 0x39, 0xd9, 0xaa, 0xc6, 0xef, 0xad, 0xc8, 0x13, 0x1c, 0xff, 0x3f, 0x08, 0x65, 0x37,
-	0x8c, 0x09, 0xe3, 0x05, 0xff, 0xc4, 0xf3, 0x14, 0xcb, 0x38, 0x23, 0x61, 0xf7, 0xf0, 0x33, 0xba,
-	0x53, 0x74, 0x07, 0x7d, 0xf9, 0x1e, 0xa6, 0x8f, 0x57, 0xd2, 0x0b, 0xc8, 0x2a, 0xec, 0x44, 0xaa,
-	0x76, 0x31, 0x0a, 0xf2, 0x23, 0x86, 0x04, 0x49, 0xe8, 0x0c, 0xd2, 0x9d, 0x6c, 0x55, 0x10, 0xd1,
-	0xe5, 0x07, 0x48, 0xfa, 0x1e, 0x02, 0xae, 0x84, 0xe2, 0xfd, 0x91, 0x39, 0x40, 0x65, 0x35, 0x0b,
-	0x5d, 0x0e, 0x67, 0xf6, 0x2c, 0xe8, 0x45, 0x44, 0x01, 0x92, 0x9b, 0x46, 0x76, 0x82, 0x2f, 0xc6,
-	0xd7, 0x37, 0xbf, 0x8e, 0x05, 0xb9, 0x3f, 0x16, 0xe4, 0xcf, 0xb1, 0x20, 0x3f, 0x4f, 0xc5, 0xe8,
-	0xfe, 0x54, 0x8c, 0x7e, 0x9f, 0x8a, 0xd1, 0x97, 0xb7, 0xad, 0xf4, 0x5d, 0x73, 0x5b, 0x32, 0xfd,
-	0x6d, 0x63, 0x1b, 0x2b, 0xbf, 0x1e, 0xae, 0xf0, 0x69, 0x31, 0xdd, 0x6d, 0xbc, 0x73, 0x57, 0xee,
-	0x3b, 0xdb, 0x98, 0xbb, 0x76, 0x13, 0xde, 0x82, 0xbb, 0x4d, 0xd0, 0x7b, 0xf7, 0x2f, 0x00, 0x00,
-	0xff, 0xff, 0x71, 0x36, 0x0c, 0x3e, 0x87, 0x02, 0x00, 0x00,
-}
-
-func (m *Step) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Step) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Step) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Type != 0 {
-		i = encodeVarintSession(dAtA, i, uint64(m.Type))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.EndBlock != 0 {
-		i = encodeVarintSession(dAtA, i, uint64(m.EndBlock))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.StartBlock != 0 {
-		i = encodeVarintSession(dAtA, i, uint64(m.StartBlock))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *Pool) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Pool) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Pool) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.Proposer) > 0 {
-		i -= len(m.Proposer)
-		copy(dAtA[i:], m.Proposer)
-		i = encodeVarintSession(dAtA, i, uint64(len(m.Proposer)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Root) > 0 {
-		i -= len(m.Root)
-		copy(dAtA[i:], m.Root)
-		i = encodeVarintSession(dAtA, i, uint64(len(m.Root)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Indexes) > 0 {
-		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Indexes[iNdEx])
-			copy(dAtA[i:], m.Indexes[iNdEx])
-			i = encodeVarintSession(dAtA, i, uint64(len(m.Indexes[iNdEx])))
-			i--
-			dAtA[i] = 0xa
-		}
-	}
-	return len(dAtA) - i, nil
+	// 504 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x52, 0xcd, 0x6e, 0xd3, 0x40,
+	0x10, 0xce, 0xe6, 0x17, 0x4f, 0x9b, 0xc8, 0x59, 0x15, 0x64, 0x2a, 0x64, 0x45, 0x39, 0xa0, 0xa8,
+	0xa2, 0xb6, 0x54, 0x1e, 0x00, 0x51, 0x55, 0x15, 0x52, 0x0f, 0xa0, 0x0d, 0x27, 0x6e, 0x1b, 0xef,
+	0xc4, 0x58, 0x31, 0x5e, 0x6b, 0x77, 0x03, 0xf8, 0x2d, 0x78, 0x16, 0x9e, 0x02, 0x6e, 0x39, 0x72,
+	0x44, 0xc9, 0x8b, 0xa0, 0x5d, 0x3b, 0x69, 0x73, 0x41, 0x48, 0xdc, 0xe6, 0xfb, 0xbe, 0x99, 0x9d,
+	0xf9, 0x66, 0x07, 0x86, 0x1a, 0xb5, 0xce, 0x64, 0x11, 0x95, 0x4a, 0x1a, 0x79, 0xfe, 0x34, 0x95,
+	0x32, 0xcd, 0x31, 0x76, 0x68, 0xb1, 0x5e, 0xc6, 0xbc, 0xa8, 0x6a, 0x69, 0xfa, 0x93, 0xc0, 0x60,
+	0x5e, 0x27, 0xd3, 0x11, 0xb4, 0x33, 0x11, 0x90, 0x09, 0x99, 0x75, 0x59, 0x3b, 0x13, 0xf4, 0x39,
+	0xf4, 0xb5, 0xe1, 0x66, 0xad, 0x83, 0xf6, 0x84, 0xcc, 0x46, 0x57, 0xa3, 0xa8, 0xc9, 0x9c, 0x3b,
+	0x96, 0x35, 0x2a, 0x0d, 0x01, 0xb4, 0xe1, 0xca, 0x5c, 0xe7, 0x32, 0x59, 0x05, 0x1d, 0x57, 0xff,
+	0x80, 0xa1, 0xe7, 0xf0, 0x08, 0x0b, 0x51, 0xab, 0x5d, 0xa7, 0x1e, 0x30, 0x9d, 0x40, 0xd7, 0x54,
+	0x25, 0x06, 0x3d, 0xd7, 0xe1, 0x74, 0xdf, 0xe1, 0x7d, 0x55, 0x22, 0x73, 0x0a, 0x9d, 0x41, 0x57,
+	0x70, 0xc3, 0x83, 0xfe, 0x84, 0xcc, 0x4e, 0xae, 0xce, 0xa2, 0xda, 0x4b, 0xb4, 0xf7, 0x12, 0xbd,
+	0x2e, 0x2a, 0xe6, 0x32, 0xa6, 0xdf, 0x09, 0xd0, 0x1b, 0x5c, 0xf2, 0x75, 0x6e, 0x9a, 0x67, 0x6e,
+	0xb8, 0xe1, 0x34, 0x80, 0x41, 0xc9, 0x95, 0xc9, 0x50, 0x07, 0x64, 0xd2, 0x99, 0x79, 0x6c, 0x0f,
+	0xed, 0x60, 0xa5, 0x92, 0xa5, 0xd4, 0xa8, 0x9c, 0x45, 0x8f, 0x1d, 0xb0, 0xad, 0xca, 0x0a, 0x81,
+	0x5f, 0x51, 0x07, 0x9d, 0xba, 0xaa, 0x81, 0x94, 0x42, 0x57, 0x49, 0x69, 0x9c, 0x15, 0x8f, 0xb9,
+	0xd8, 0xbe, 0xc4, 0x93, 0x04, 0x4b, 0x83, 0x22, 0xe8, 0xb9, 0xf4, 0x03, 0xa6, 0xcf, 0xc0, 0xd3,
+	0x59, 0x5a, 0x70, 0xb3, 0x56, 0xe8, 0x5c, 0x78, 0xec, 0x9e, 0x98, 0x6e, 0x08, 0x50, 0x86, 0xfa,
+	0x23, 0x57, 0xf8, 0xff, 0x43, 0x3f, 0x81, 0xbe, 0xcc, 0xc5, 0x1d, 0x56, 0xee, 0x17, 0x3c, 0xd6,
+	0x20, 0xcb, 0x17, 0xf8, 0xc5, 0xf2, 0xf5, 0xd0, 0x0d, 0xa2, 0x53, 0x38, 0x5d, 0x61, 0x35, 0x3f,
+	0x4c, 0xd7, 0x73, 0xea, 0x11, 0xf7, 0xf7, 0xf1, 0x0f, 0xcb, 0x18, 0xdc, 0x2f, 0x63, 0xfa, 0x0a,
+	0xc6, 0x77, 0x58, 0xa5, 0x58, 0xfc, 0x9b, 0x21, 0x1f, 0x3a, 0x2b, 0xac, 0x1a, 0x2f, 0x36, 0xbc,
+	0x78, 0x03, 0x27, 0x0f, 0xee, 0x80, 0x52, 0x18, 0x1d, 0x7f, 0xab, 0xdf, 0xb2, 0xdc, 0xf1, 0xd6,
+	0x7c, 0x42, 0xc7, 0x30, 0x3c, 0xea, 0xeb, 0xb7, 0x2f, 0xde, 0xc2, 0xf0, 0xe8, 0x66, 0xe9, 0x63,
+	0x18, 0x37, 0xc4, 0x3b, 0x25, 0x13, 0x1b, 0x15, 0xa9, 0xdf, 0xb2, 0xa5, 0x0d, 0x7d, 0xcb, 0xb3,
+	0x1c, 0x85, 0x4f, 0xe8, 0x19, 0xf8, 0xfb, 0xd2, 0x75, 0x92, 0x20, 0x0a, 0x14, 0x7e, 0xe7, 0xfa,
+	0xf6, 0xc7, 0x36, 0x24, 0x9b, 0x6d, 0x48, 0x7e, 0x6f, 0x43, 0xf2, 0x6d, 0x17, 0xb6, 0x36, 0xbb,
+	0xb0, 0xf5, 0x6b, 0x17, 0xb6, 0x3e, 0xbc, 0x48, 0x33, 0x93, 0xf3, 0x45, 0x94, 0xc8, 0x4f, 0xb1,
+	0xe2, 0x2a, 0x5b, 0x56, 0x97, 0xee, 0x46, 0x13, 0x99, 0xc7, 0x46, 0xeb, 0x4b, 0xfd, 0x39, 0x89,
+	0xcb, 0x55, 0x1a, 0xdb, 0xa3, 0xd6, 0x8b, 0xbe, 0xd3, 0x5e, 0xfe, 0x09, 0x00, 0x00, 0xff, 0xff,
+	0x52, 0xf1, 0xca, 0x0c, 0xaa, 0x03, 0x00, 0x00,
 }
 
 func (m *Session) Marshal() (dAtA []byte, err error) {
@@ -452,53 +458,9 @@ func (m *Session) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.SignedId) > 0 {
-		for iNdEx := len(m.SignedId) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.SignedId[iNdEx])
-			copy(dAtA[i:], m.SignedId[iNdEx])
-			i = encodeVarintSession(dAtA, i, uint64(len(m.SignedId[iNdEx])))
-			i--
-			dAtA[i] = 0x42
-		}
-	}
-	if len(m.AcceptedId) > 0 {
-		for iNdEx := len(m.AcceptedId) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.AcceptedId[iNdEx])
-			copy(dAtA[i:], m.AcceptedId[iNdEx])
-			i = encodeVarintSession(dAtA, i, uint64(len(m.AcceptedId[iNdEx])))
-			i--
-			dAtA[i] = 0x3a
-		}
-	}
-	if len(m.Signature) > 0 {
-		i -= len(m.Signature)
-		copy(dAtA[i:], m.Signature)
-		i = encodeVarintSession(dAtA, i, uint64(len(m.Signature)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if m.CurrentStep != 0 {
-		i = encodeVarintSession(dAtA, i, uint64(m.CurrentStep))
-		i--
-		dAtA[i] = 0x28
-	}
-	if len(m.Steps) > 0 {
-		for iNdEx := len(m.Steps) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Steps[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintSession(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	if m.Pool != nil {
+	if m.Data != nil {
 		{
-			size, err := m.Pool.MarshalToSizedBuffer(dAtA[:i])
+			size, err := m.Data.MarshalToSizedBuffer(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
@@ -506,7 +468,22 @@ func (m *Session) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i = encodeVarintSession(dAtA, i, uint64(size))
 		}
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x32
+	}
+	if m.Type != 0 {
+		i = encodeVarintSession(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.EndBlock != 0 {
+		i = encodeVarintSession(dAtA, i, uint64(m.EndBlock))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.StartBlock != 0 {
+		i = encodeVarintSession(dAtA, i, uint64(m.StartBlock))
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.Status != 0 {
 		i = encodeVarintSession(dAtA, i, uint64(m.Status))
@@ -517,6 +494,190 @@ func (m *Session) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintSession(dAtA, i, uint64(m.Id))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DefaultSessionData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DefaultSessionData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DefaultSessionData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Signature) > 0 {
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.Signature)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Accepted) > 0 {
+		for iNdEx := len(m.Accepted) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Accepted[iNdEx])
+			copy(dAtA[i:], m.Accepted[iNdEx])
+			i = encodeVarintSession(dAtA, i, uint64(len(m.Accepted[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.Root) > 0 {
+		i -= len(m.Root)
+		copy(dAtA[i:], m.Root)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.Root)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Indexes) > 0 {
+		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Indexes[iNdEx])
+			copy(dAtA[i:], m.Indexes[iNdEx])
+			i = encodeVarintSession(dAtA, i, uint64(len(m.Indexes[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Proposer) > 0 {
+		i -= len(m.Proposer)
+		copy(dAtA[i:], m.Proposer)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.Proposer)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Parties) > 0 {
+		for iNdEx := len(m.Parties) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Parties[iNdEx])
+			copy(dAtA[i:], m.Parties[iNdEx])
+			i = encodeVarintSession(dAtA, i, uint64(len(m.Parties[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReshareSessionData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReshareSessionData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ReshareSessionData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Root) > 0 {
+		i -= len(m.Root)
+		copy(dAtA[i:], m.Root)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.Root)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.Signature) > 0 {
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.Signature)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.KeySignature) > 0 {
+		i -= len(m.KeySignature)
+		copy(dAtA[i:], m.KeySignature)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.KeySignature)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.NewKey) > 0 {
+		i -= len(m.NewKey)
+		copy(dAtA[i:], m.NewKey)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.NewKey)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.OldKey) > 0 {
+		i -= len(m.OldKey)
+		copy(dAtA[i:], m.OldKey)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.OldKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Proposer) > 0 {
+		i -= len(m.Proposer)
+		copy(dAtA[i:], m.Proposer)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.Proposer)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Parties) > 0 {
+		for iNdEx := len(m.Parties) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Parties[iNdEx])
+			copy(dAtA[i:], m.Parties[iNdEx])
+			i = encodeVarintSession(dAtA, i, uint64(len(m.Parties[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KeygenSessionData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeygenSessionData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *KeygenSessionData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = encodeVarintSession(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Parties) > 0 {
+		for iNdEx := len(m.Parties) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Parties[iNdEx])
+			copy(dAtA[i:], m.Parties[iNdEx])
+			i = encodeVarintSession(dAtA, i, uint64(len(m.Parties[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -532,47 +693,6 @@ func encodeVarintSession(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *Step) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.StartBlock != 0 {
-		n += 1 + sovSession(uint64(m.StartBlock))
-	}
-	if m.EndBlock != 0 {
-		n += 1 + sovSession(uint64(m.EndBlock))
-	}
-	if m.Type != 0 {
-		n += 1 + sovSession(uint64(m.Type))
-	}
-	return n
-}
-
-func (m *Pool) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if len(m.Indexes) > 0 {
-		for _, s := range m.Indexes {
-			l = len(s)
-			n += 1 + l + sovSession(uint64(l))
-		}
-	}
-	l = len(m.Root)
-	if l > 0 {
-		n += 1 + l + sovSession(uint64(l))
-	}
-	l = len(m.Proposer)
-	if l > 0 {
-		n += 1 + l + sovSession(uint64(l))
-	}
-	return n
-}
-
 func (m *Session) Size() (n int) {
 	if m == nil {
 		return 0
@@ -585,34 +705,115 @@ func (m *Session) Size() (n int) {
 	if m.Status != 0 {
 		n += 1 + sovSession(uint64(m.Status))
 	}
-	if m.Pool != nil {
-		l = m.Pool.Size()
+	if m.StartBlock != 0 {
+		n += 1 + sovSession(uint64(m.StartBlock))
+	}
+	if m.EndBlock != 0 {
+		n += 1 + sovSession(uint64(m.EndBlock))
+	}
+	if m.Type != 0 {
+		n += 1 + sovSession(uint64(m.Type))
+	}
+	if m.Data != nil {
+		l = m.Data.Size()
 		n += 1 + l + sovSession(uint64(l))
 	}
-	if len(m.Steps) > 0 {
-		for _, e := range m.Steps {
-			l = e.Size()
+	return n
+}
+
+func (m *DefaultSessionData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Parties) > 0 {
+		for _, s := range m.Parties {
+			l = len(s)
 			n += 1 + l + sovSession(uint64(l))
 		}
 	}
-	if m.CurrentStep != 0 {
-		n += 1 + sovSession(uint64(m.CurrentStep))
+	l = len(m.Proposer)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
+	}
+	if len(m.Indexes) > 0 {
+		for _, s := range m.Indexes {
+			l = len(s)
+			n += 1 + l + sovSession(uint64(l))
+		}
+	}
+	l = len(m.Root)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
+	}
+	if len(m.Accepted) > 0 {
+		for _, s := range m.Accepted {
+			l = len(s)
+			n += 1 + l + sovSession(uint64(l))
+		}
 	}
 	l = len(m.Signature)
 	if l > 0 {
 		n += 1 + l + sovSession(uint64(l))
 	}
-	if len(m.AcceptedId) > 0 {
-		for _, s := range m.AcceptedId {
+	return n
+}
+
+func (m *ReshareSessionData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Parties) > 0 {
+		for _, s := range m.Parties {
 			l = len(s)
 			n += 1 + l + sovSession(uint64(l))
 		}
 	}
-	if len(m.SignedId) > 0 {
-		for _, s := range m.SignedId {
+	l = len(m.Proposer)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
+	}
+	l = len(m.OldKey)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
+	}
+	l = len(m.NewKey)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
+	}
+	l = len(m.KeySignature)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
+	}
+	l = len(m.Signature)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
+	}
+	l = len(m.Root)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
+	}
+	return n
+}
+
+func (m *KeygenSessionData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Parties) > 0 {
+		for _, s := range m.Parties {
 			l = len(s)
 			n += 1 + l + sovSession(uint64(l))
 		}
+	}
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + sovSession(uint64(l))
 	}
 	return n
 }
@@ -622,259 +823,6 @@ func sovSession(x uint64) (n int) {
 }
 func sozSession(x uint64) (n int) {
 	return sovSession(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-}
-func (m *Step) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSession
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Step: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Step: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StartBlock", wireType)
-			}
-			m.StartBlock = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSession
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.StartBlock |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EndBlock", wireType)
-			}
-			m.EndBlock = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSession
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.EndBlock |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
-			}
-			m.Type = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSession
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Type |= StepType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSession(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthSession
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Pool) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSession
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Pool: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Pool: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Indexes", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSession
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthSession
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSession
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Indexes = append(m.Indexes, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSession
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthSession
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSession
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Root = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Proposer", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSession
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthSession
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSession
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Proposer = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSession(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthSession
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 func (m *Session) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -938,14 +886,71 @@ func (m *Session) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Status |= Status(b&0x7F) << shift
+				m.Status |= SessionStatus(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartBlock", wireType)
+			}
+			m.StartBlock = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.StartBlock |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EndBlock", wireType)
+			}
+			m.EndBlock = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EndBlock |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= SessionType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Pool", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -972,18 +977,164 @@ func (m *Session) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Pool == nil {
-				m.Pool = &Pool{}
+			if m.Data == nil {
+				m.Data = &types.Any{}
 			}
-			if err := m.Pool.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Data.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSession(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthSession
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DefaultSessionData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSession
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DefaultSessionData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DefaultSessionData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Parties", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Parties = append(m.Parties, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Proposer", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Proposer = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Indexes", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Indexes = append(m.Indexes, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Steps", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
 			}
-			var msglen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSession
@@ -993,31 +1144,29 @@ func (m *Session) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return ErrInvalidLengthSession
 			}
-			postIndex := iNdEx + msglen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return ErrInvalidLengthSession
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Steps = append(m.Steps, &Step{})
-			if err := m.Steps[len(m.Steps)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
+			m.Root = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CurrentStep", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Accepted", wireType)
 			}
-			m.CurrentStep = 0
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSession
@@ -1027,11 +1176,266 @@ func (m *Session) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CurrentStep |= StepType(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Accepted = append(m.Accepted, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signature = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSession(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthSession
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ReshareSessionData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSession
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReshareSessionData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReshareSessionData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Parties", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Parties = append(m.Parties, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Proposer", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Proposer = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OldKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OldKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NewKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NewKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KeySignature", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.KeySignature = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
@@ -1066,7 +1470,7 @@ func (m *Session) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1094,11 +1498,61 @@ func (m *Session) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.AcceptedId = append(m.AcceptedId, string(dAtA[iNdEx:postIndex]))
+			m.Root = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 8:
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSession(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthSession
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *KeygenSessionData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSession
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeygenSessionData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeygenSessionData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SignedId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Parties", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1126,7 +1580,39 @@ func (m *Session) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.SignedId = append(m.SignedId, string(dAtA[iNdEx:postIndex]))
+			m.Parties = append(m.Parties, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSession
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSession
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSession
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
