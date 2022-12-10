@@ -29,7 +29,6 @@ type SignParty struct {
 	parties  map[string]*rarimo.Party
 	secret   *secret.TssSecret
 
-	self  *tss.PartyID
 	party tss.Party
 	con   *connectors.BroadcastConnector
 
@@ -53,11 +52,12 @@ func NewSignParty(data string, id uint64, parties []*rarimo.Party, secret *secre
 
 func (p *SignParty) Run(ctx context.Context) {
 	p.log.Infof("Running TSS signing on set: %v", p.parties)
-	p.self = p.partyIds.FindByKey(core.GetTssPartyKey(p.secret.AccountAddress()))
+	self := p.partyIds.FindByKey(core.GetTssPartyKey(p.secret.AccountAddress()))
+	p.log.Debugf("Parties: %v, self: %v", p.partyIds, self)
 	out := make(chan tss.Message, 1000)
 	end := make(chan common.SignatureData, 1)
 	peerCtx := tss.NewPeerContext(p.partyIds)
-	params := tss.NewParameters(s256k1.S256(), peerCtx, p.self, p.partyIds.Len(), crypto.GetThreshold(p.partyIds.Len()))
+	params := tss.NewParameters(s256k1.S256(), peerCtx, self, p.partyIds.Len(), crypto.GetThreshold(p.partyIds.Len()))
 	p.party = p.secret.GetSignParty(new(big.Int).SetBytes(hexutil.MustDecode(p.data)), params, out, end)
 	go func() {
 		err := p.party.Start()

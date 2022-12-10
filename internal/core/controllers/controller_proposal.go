@@ -75,7 +75,7 @@ func (p *ProposalController) WaitFor() {
 
 func (p *ProposalController) Next() IController {
 	if p.data.Processing {
-		return p.factory.GetKeygenController()
+		return p.factory.GetAcceptanceController()
 	}
 
 	return p.factory.GetFinishController()

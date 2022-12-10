@@ -223,10 +223,11 @@ func (c *ControllerFactory) GetKeygenController() IController {
 				log:     c.log,
 				factory: c,
 			},
-			wg:   &sync.WaitGroup{},
-			data: c.data,
-			auth: core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
-			log:  c.log,
+			wg:    &sync.WaitGroup{},
+			data:  c.data,
+			auth:  core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
+			log:   c.log,
+			party: tss.NewKeygenParty(c.data.SessionId, c.data.Set.Parties, c.data.Secret, c.log),
 		}
 	default:
 		return &KeygenController{
@@ -236,9 +237,11 @@ func (c *ControllerFactory) GetKeygenController() IController {
 				log:     c.log,
 				factory: c,
 			},
-			wg:   &sync.WaitGroup{},
-			data: c.data,
-			auth: core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
+			wg:    &sync.WaitGroup{},
+			data:  c.data,
+			auth:  core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
+			log:   c.log,
+			party: tss.NewKeygenParty(c.data.SessionId, c.data.Set.Parties, c.data.Secret, c.log),
 		}
 	}
 }

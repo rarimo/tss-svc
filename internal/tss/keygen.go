@@ -30,7 +30,6 @@ type KeygenParty struct {
 	parties  map[string]*rarimo.Party
 	secret   *secret.TssSecret
 
-	self  *tss.PartyID
 	party tss.Party
 	con   *connectors.BroadcastConnector
 
@@ -65,11 +64,12 @@ func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []
 
 func (k *KeygenParty) Run(ctx context.Context) {
 	k.log.Infof("Running TSS key generation on set: %v", k.parties)
-	k.self = k.partyIds.FindByKey(core.GetTssPartyKey(k.secret.AccountAddress()))
+	self := k.partyIds.FindByKey(core.GetTssPartyKey(k.secret.AccountAddress()))
+	k.log.Debugf("Parties: %v, self: %v", k.partyIds, self)
 	out := make(chan tss.Message, 1000)
 	end := make(chan keygen.LocalPartySaveData, 1)
 	peerCtx := tss.NewPeerContext(k.partyIds)
-	params := tss.NewParameters(s256k1.S256(), peerCtx, k.self, k.partyIds.Len(), crypto.GetThreshold(k.partyIds.Len()))
+	params := tss.NewParameters(s256k1.S256(), peerCtx, self, k.partyIds.Len(), crypto.GetThreshold(k.partyIds.Len()))
 
 	k.party = k.secret.GetKeygenParty(params, out, end)
 	go func() {

@@ -35,10 +35,10 @@ func NewInputSet(client *grpc.ClientConn) *InputSet {
 	unverifiedParties := make([]*rarimo.Party, 0, len(tssP.Params.Parties))
 	for _, p := range tssP.Params.Parties {
 		if p.Verified {
-			unverifiedParties = append(unverifiedParties, p)
+			verifiedParties = append(verifiedParties, p)
 			continue
 		}
-		verifiedParties = append(verifiedParties, p)
+		unverifiedParties = append(unverifiedParties, p)
 	}
 
 	return &InputSet{

@@ -125,7 +125,7 @@ var _ IFinishController = &DefaultFinishController{}
 func (d *DefaultFinishController) finish() {
 	if d.data.Processing {
 		d.log.Info("Successful session finish")
-		d.log.Info("Submitting confirmation message to finish reshare session.")
+		d.log.Info("Submitting confirmation message to finish default session.")
 		if err := d.core.SubmitConfirmation(d.data.Indexes, d.data.Root, d.data.OperationSignature); err != nil {
 			d.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
 		}

@@ -26,12 +26,7 @@ func GetTssPartyKey(account string) *big.Int {
 func PartyIds(parties []*rarimo.Party) tss.SortedPartyIDs {
 	partyIds := make([]*tss.PartyID, 0, len(parties))
 	for _, party := range parties {
-		_, data, err := bech32.DecodeAndConvert(party.Account)
-		if err != nil {
-			panic(err)
-		}
-
-		partyIds = append(partyIds, tss.NewPartyID(party.Account, "", new(big.Int).SetBytes(data)))
+		partyIds = append(partyIds, tss.NewPartyID(party.Account, party.Account, GetTssPartyKey(party.Account)))
 	}
 
 	return tss.SortPartyIDs(partyIds)
