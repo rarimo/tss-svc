@@ -6,42 +6,42 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/local"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 )
 
 // BroadcastConnector uses SubmitConnector to broadcast request to all parties, except of self.
 // Is request submission fails, there will be ONE retry after last party submission.
 type BroadcastConnector struct {
-	params *local.Params
 	*SubmitConnector
-	log *logan.Entry
+	parties []*rarimo.Party
+	sc      *secret.TssSecret
+	log     *logan.Entry
 }
 
-func NewBroadcastConnector(cfg config.Config) *BroadcastConnector {
-	params := local.NewParams(cfg)
+func NewBroadcastConnector(parties []*rarimo.Party, sc *secret.TssSecret, log *logan.Entry) *BroadcastConnector {
 	return &BroadcastConnector{
-		params:          params,
-		SubmitConnector: NewSubmitConnector(cfg),
-		log:             cfg.Log(),
+		SubmitConnector: NewSubmitConnector(sc),
+		parties:         parties,
+		sc:              sc,
+		log:             log,
 	}
 }
 
 func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSubmitRequest) {
-	retry := b.SubmitTo(ctx, request, b.params.Parties()...)
+	retry := b.SubmitTo(ctx, request, b.parties...)
 	b.SubmitTo(ctx, request, retry...)
 }
 
 func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
-	failed := make([]*rarimo.Party, 0, b.params.N())
+	failed := make([]*rarimo.Party, 0, len(b.parties))
 
 	for _, party := range parties {
-		if party.PubKey != b.secret.ECDSAPubKeyStr() {
+		if party.Account != b.sc.AccountAddress() {
 			_, err := b.Submit(ctx, *party, request)
 
 			if err != nil {
-				b.log.WithError(err).Errorf("error submitting request to party key: %s addr: %s", party.PubKey, party.Address)
+				b.log.WithError(err).Errorf("error submitting request to party: %s addr: %s", party.Account, party.Address)
 				failed = append(failed, party)
 			}
 		}
@@ -53,7 +53,7 @@ func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSub
 func (b *BroadcastConnector) MustSubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) {
 	for _, party := range parties {
 		retry = 0
-		if party.PubKey != b.secret.ECDSAPubKeyStr() {
+		if party.Account != b.sc.AccountAddress() {
 			for {
 				if _, err := b.Submit(ctx, *party, request); err != nil {
 					b.logErr(err)

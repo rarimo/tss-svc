@@ -23,53 +23,172 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type RequestType int32
-
-const (
-	RequestType_Proposal   RequestType = 0
-	RequestType_Acceptance RequestType = 1
-	RequestType_Sign       RequestType = 2
-	RequestType_Reshare    RequestType = 3
-	RequestType_Keygen     RequestType = 4
-)
-
-var RequestType_name = map[int32]string{
-	0: "Proposal",
-	1: "Acceptance",
-	2: "Sign",
-	3: "Reshare",
-	4: "Keygen",
+type Set struct {
+	Parties []string `protobuf:"bytes,1,rep,name=parties,proto3" json:"parties,omitempty"`
+	N       uint32   `protobuf:"varint,2,opt,name=n,proto3" json:"n,omitempty"`
+	T       uint32   `protobuf:"varint,3,opt,name=t,proto3" json:"t,omitempty"`
 }
 
-var RequestType_value = map[string]int32{
-	"Proposal":   0,
-	"Acceptance": 1,
-	"Sign":       2,
-	"Reshare":    3,
-	"Keygen":     4,
-}
-
-func (x RequestType) String() string {
-	return proto.EnumName(RequestType_name, int32(x))
-}
-
-func (RequestType) EnumDescriptor() ([]byte, []int) {
+func (m *Set) Reset()         { *m = Set{} }
+func (m *Set) String() string { return proto.CompactTextString(m) }
+func (*Set) ProtoMessage()    {}
+func (*Set) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7f73548e33e655fe, []int{0}
+}
+func (m *Set) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Set) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Set.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Set) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Set.Merge(m, src)
+}
+func (m *Set) XXX_Size() int {
+	return m.Size()
+}
+func (m *Set) XXX_DiscardUnknown() {
+	xxx_messageInfo_Set.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Set proto.InternalMessageInfo
+
+func (m *Set) GetParties() []string {
+	if m != nil {
+		return m.Parties
+	}
+	return nil
+}
+
+func (m *Set) GetN() uint32 {
+	if m != nil {
+		return m.N
+	}
+	return 0
+}
+
+func (m *Set) GetT() uint32 {
+	if m != nil {
+		return m.T
+	}
+	return 0
+}
+
+type DefaultSessionProposalData struct {
+	Indexes []string `protobuf:"bytes,2,rep,name=indexes,proto3" json:"indexes,omitempty"`
+	Root    string   `protobuf:"bytes,3,opt,name=root,proto3" json:"root,omitempty"`
+}
+
+func (m *DefaultSessionProposalData) Reset()         { *m = DefaultSessionProposalData{} }
+func (m *DefaultSessionProposalData) String() string { return proto.CompactTextString(m) }
+func (*DefaultSessionProposalData) ProtoMessage()    {}
+func (*DefaultSessionProposalData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7f73548e33e655fe, []int{1}
+}
+func (m *DefaultSessionProposalData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DefaultSessionProposalData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DefaultSessionProposalData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DefaultSessionProposalData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DefaultSessionProposalData.Merge(m, src)
+}
+func (m *DefaultSessionProposalData) XXX_Size() int {
+	return m.Size()
+}
+func (m *DefaultSessionProposalData) XXX_DiscardUnknown() {
+	xxx_messageInfo_DefaultSessionProposalData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DefaultSessionProposalData proto.InternalMessageInfo
+
+func (m *DefaultSessionProposalData) GetIndexes() []string {
+	if m != nil {
+		return m.Indexes
+	}
+	return nil
+}
+
+func (m *DefaultSessionProposalData) GetRoot() string {
+	if m != nil {
+		return m.Root
+	}
+	return ""
+}
+
+type ReshareSessionProposalData struct {
+	Set *Set `protobuf:"bytes,1,opt,name=set,proto3" json:"set,omitempty"`
+}
+
+func (m *ReshareSessionProposalData) Reset()         { *m = ReshareSessionProposalData{} }
+func (m *ReshareSessionProposalData) String() string { return proto.CompactTextString(m) }
+func (*ReshareSessionProposalData) ProtoMessage()    {}
+func (*ReshareSessionProposalData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7f73548e33e655fe, []int{2}
+}
+func (m *ReshareSessionProposalData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ReshareSessionProposalData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ReshareSessionProposalData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ReshareSessionProposalData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReshareSessionProposalData.Merge(m, src)
+}
+func (m *ReshareSessionProposalData) XXX_Size() int {
+	return m.Size()
+}
+func (m *ReshareSessionProposalData) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReshareSessionProposalData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReshareSessionProposalData proto.InternalMessageInfo
+
+func (m *ReshareSessionProposalData) GetSet() *Set {
+	if m != nil {
+		return m.Set
+	}
+	return nil
 }
 
 type ProposalRequest struct {
-	Session uint64 `protobuf:"varint,1,opt,name=session,proto3" json:"session,omitempty"`
-	// List of operation ids
-	Indexes []string `protobuf:"bytes,2,rep,name=indexes,proto3" json:"indexes,omitempty"`
-	// Merkle tree based on operations root hash in hex
-	Root string `protobuf:"bytes,3,opt,name=root,proto3" json:"root,omitempty"`
+	Type    SessionType `protobuf:"varint,1,opt,name=type,proto3,enum=SessionType" json:"type,omitempty"`
+	Details *types.Any  `protobuf:"bytes,2,opt,name=details,proto3" json:"details,omitempty"`
 }
 
 func (m *ProposalRequest) Reset()         { *m = ProposalRequest{} }
 func (m *ProposalRequest) String() string { return proto.CompactTextString(m) }
 func (*ProposalRequest) ProtoMessage()    {}
 func (*ProposalRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f73548e33e655fe, []int{0}
+	return fileDescriptor_7f73548e33e655fe, []int{3}
 }
 func (m *ProposalRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -98,37 +217,118 @@ func (m *ProposalRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ProposalRequest proto.InternalMessageInfo
 
-func (m *ProposalRequest) GetSession() uint64 {
+func (m *ProposalRequest) GetType() SessionType {
 	if m != nil {
-		return m.Session
+		return m.Type
 	}
-	return 0
+	return SessionType_DefaultSession
 }
 
-func (m *ProposalRequest) GetIndexes() []string {
+func (m *ProposalRequest) GetDetails() *types.Any {
 	if m != nil {
-		return m.Indexes
+		return m.Details
 	}
 	return nil
 }
 
-func (m *ProposalRequest) GetRoot() string {
+type DefaultSessionAcceptanceData struct {
+	Root string `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+}
+
+func (m *DefaultSessionAcceptanceData) Reset()         { *m = DefaultSessionAcceptanceData{} }
+func (m *DefaultSessionAcceptanceData) String() string { return proto.CompactTextString(m) }
+func (*DefaultSessionAcceptanceData) ProtoMessage()    {}
+func (*DefaultSessionAcceptanceData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7f73548e33e655fe, []int{4}
+}
+func (m *DefaultSessionAcceptanceData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DefaultSessionAcceptanceData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DefaultSessionAcceptanceData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DefaultSessionAcceptanceData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DefaultSessionAcceptanceData.Merge(m, src)
+}
+func (m *DefaultSessionAcceptanceData) XXX_Size() int {
+	return m.Size()
+}
+func (m *DefaultSessionAcceptanceData) XXX_DiscardUnknown() {
+	xxx_messageInfo_DefaultSessionAcceptanceData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DefaultSessionAcceptanceData proto.InternalMessageInfo
+
+func (m *DefaultSessionAcceptanceData) GetRoot() string {
 	if m != nil {
 		return m.Root
 	}
 	return ""
 }
 
+type ReshareSessionAcceptanceData struct {
+	New *Set `protobuf:"bytes,1,opt,name=new,proto3" json:"new,omitempty"`
+}
+
+func (m *ReshareSessionAcceptanceData) Reset()         { *m = ReshareSessionAcceptanceData{} }
+func (m *ReshareSessionAcceptanceData) String() string { return proto.CompactTextString(m) }
+func (*ReshareSessionAcceptanceData) ProtoMessage()    {}
+func (*ReshareSessionAcceptanceData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7f73548e33e655fe, []int{5}
+}
+func (m *ReshareSessionAcceptanceData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ReshareSessionAcceptanceData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ReshareSessionAcceptanceData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ReshareSessionAcceptanceData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReshareSessionAcceptanceData.Merge(m, src)
+}
+func (m *ReshareSessionAcceptanceData) XXX_Size() int {
+	return m.Size()
+}
+func (m *ReshareSessionAcceptanceData) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReshareSessionAcceptanceData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReshareSessionAcceptanceData proto.InternalMessageInfo
+
+func (m *ReshareSessionAcceptanceData) GetNew() *Set {
+	if m != nil {
+		return m.New
+	}
+	return nil
+}
+
 type AcceptanceRequest struct {
-	// Merkle tree based on operations root hash in hex
-	Root string `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+	Type    SessionType `protobuf:"varint,1,opt,name=type,proto3,enum=SessionType" json:"type,omitempty"`
+	Details *types.Any  `protobuf:"bytes,2,opt,name=details,proto3" json:"details,omitempty"`
 }
 
 func (m *AcceptanceRequest) Reset()         { *m = AcceptanceRequest{} }
 func (m *AcceptanceRequest) String() string { return proto.CompactTextString(m) }
 func (*AcceptanceRequest) ProtoMessage()    {}
 func (*AcceptanceRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f73548e33e655fe, []int{1}
+	return fileDescriptor_7f73548e33e655fe, []int{6}
 }
 func (m *AcceptanceRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -157,15 +357,22 @@ func (m *AcceptanceRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_AcceptanceRequest proto.InternalMessageInfo
 
-func (m *AcceptanceRequest) GetRoot() string {
+func (m *AcceptanceRequest) GetType() SessionType {
 	if m != nil {
-		return m.Root
+		return m.Type
 	}
-	return ""
+	return SessionType_DefaultSession
+}
+
+func (m *AcceptanceRequest) GetDetails() *types.Any {
+	if m != nil {
+		return m.Details
+	}
+	return nil
 }
 
 type SignRequest struct {
-	Root    string     `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+	Data    string     `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 	Details *types.Any `protobuf:"bytes,2,opt,name=details,proto3" json:"details,omitempty"`
 }
 
@@ -173,7 +380,7 @@ func (m *SignRequest) Reset()         { *m = SignRequest{} }
 func (m *SignRequest) String() string { return proto.CompactTextString(m) }
 func (*SignRequest) ProtoMessage()    {}
 func (*SignRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f73548e33e655fe, []int{2}
+	return fileDescriptor_7f73548e33e655fe, []int{7}
 }
 func (m *SignRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -202,9 +409,9 @@ func (m *SignRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SignRequest proto.InternalMessageInfo
 
-func (m *SignRequest) GetRoot() string {
+func (m *SignRequest) GetData() string {
 	if m != nil {
-		return m.Root
+		return m.Data
 	}
 	return ""
 }
@@ -217,8 +424,12 @@ func (m *SignRequest) GetDetails() *types.Any {
 }
 
 func init() {
-	proto.RegisterEnum("RequestType", RequestType_name, RequestType_value)
+	proto.RegisterType((*Set)(nil), "Set")
+	proto.RegisterType((*DefaultSessionProposalData)(nil), "DefaultSessionProposalData")
+	proto.RegisterType((*ReshareSessionProposalData)(nil), "ReshareSessionProposalData")
 	proto.RegisterType((*ProposalRequest)(nil), "ProposalRequest")
+	proto.RegisterType((*DefaultSessionAcceptanceData)(nil), "DefaultSessionAcceptanceData")
+	proto.RegisterType((*ReshareSessionAcceptanceData)(nil), "ReshareSessionAcceptanceData")
 	proto.RegisterType((*AcceptanceRequest)(nil), "AcceptanceRequest")
 	proto.RegisterType((*SignRequest)(nil), "SignRequest")
 }
@@ -226,27 +437,148 @@ func init() {
 func init() { proto.RegisterFile("request.proto", fileDescriptor_7f73548e33e655fe) }
 
 var fileDescriptor_7f73548e33e655fe = []byte{
-	// 310 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x8f, 0xbd, 0x4e, 0xc3, 0x30,
-	0x14, 0x85, 0xe3, 0x36, 0xea, 0xcf, 0x0d, 0x3f, 0xc1, 0x62, 0x08, 0x0c, 0x51, 0xd5, 0x85, 0x08,
-	0xd1, 0x44, 0x82, 0x27, 0x28, 0x03, 0x0b, 0x12, 0x82, 0xc0, 0x02, 0x9b, 0x9b, 0xde, 0x86, 0x88,
-	0x60, 0x1b, 0xdb, 0x45, 0xf8, 0x2d, 0x78, 0x2c, 0xc6, 0x8e, 0x8c, 0xa8, 0x7d, 0x11, 0xd4, 0x14,
-	0x0b, 0x26, 0x36, 0x1f, 0x9d, 0xcf, 0xf7, 0x9c, 0x03, 0xdb, 0x0a, 0x5f, 0xe6, 0xa8, 0x4d, 0x2a,
-	0x95, 0x30, 0xe2, 0xf0, 0xa0, 0x14, 0xa2, 0xac, 0x31, 0x6b, 0xd4, 0x64, 0x3e, 0xcb, 0x18, 0xb7,
-	0x1b, 0x6b, 0x78, 0x0f, 0xbb, 0xd7, 0x4a, 0x48, 0xa1, 0x59, 0x9d, 0x6f, 0xfe, 0xd0, 0x08, 0xba,
-	0x1a, 0xb5, 0xae, 0x04, 0x8f, 0xc8, 0x80, 0x24, 0x7e, 0xee, 0xe4, 0xda, 0xa9, 0xf8, 0x14, 0xdf,
-	0x50, 0x47, 0xad, 0x41, 0x3b, 0xe9, 0xe7, 0x4e, 0x52, 0x0a, 0xbe, 0x12, 0xc2, 0x44, 0xed, 0x01,
-	0x49, 0xfa, 0x79, 0xf3, 0x1e, 0x1e, 0xc1, 0xde, 0xb8, 0x28, 0x50, 0x1a, 0xc6, 0x0b, 0x74, 0xc7,
-	0x1d, 0x48, 0xfe, 0x80, 0x37, 0x10, 0xdc, 0x56, 0x25, 0xff, 0x07, 0xa1, 0x29, 0x74, 0xa7, 0x68,
-	0x58, 0x55, 0xaf, 0x93, 0x49, 0x12, 0x9c, 0xee, 0xa7, 0x9b, 0x4d, 0xa9, 0xdb, 0x94, 0x8e, 0xb9,
-	0xcd, 0x1d, 0x74, 0x7c, 0x05, 0xc1, 0xcf, 0xb9, 0x3b, 0x2b, 0x91, 0x6e, 0x41, 0xcf, 0xad, 0x0c,
-	0x3d, 0xba, 0x03, 0xf0, 0x5b, 0x2c, 0x24, 0xb4, 0x07, 0xfe, 0x3a, 0x3f, 0x6c, 0xd1, 0x00, 0xba,
-	0x39, 0xea, 0x47, 0xa6, 0x30, 0x6c, 0x53, 0x80, 0xce, 0x25, 0xda, 0x12, 0x79, 0xe8, 0x9f, 0x5f,
-	0x7c, 0x2c, 0x63, 0xb2, 0x58, 0xc6, 0xe4, 0x6b, 0x19, 0x93, 0xf7, 0x55, 0xec, 0x2d, 0x56, 0xb1,
-	0xf7, 0xb9, 0x8a, 0xbd, 0x87, 0x93, 0xb2, 0x32, 0x35, 0x9b, 0xa4, 0x85, 0x78, 0xce, 0x14, 0x53,
-	0xd5, 0xcc, 0x8e, 0x9a, 0x4a, 0x85, 0xa8, 0x33, 0xa3, 0xf5, 0x48, 0xbf, 0x16, 0x99, 0x7c, 0x2a,
-	0x33, 0x63, 0x25, 0xea, 0x49, 0xa7, 0xf1, 0xce, 0xbe, 0x03, 0x00, 0x00, 0xff, 0xff, 0x0d, 0xb5,
-	0xf5, 0x8b, 0xa1, 0x01, 0x00, 0x00,
+	// 388 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x90, 0xb1, 0x8e, 0xd3, 0x40,
+	0x10, 0x86, 0xb3, 0x67, 0x8b, 0xd3, 0x4d, 0x2e, 0x20, 0x2c, 0x74, 0x32, 0xd1, 0xc9, 0xb2, 0x5c,
+	0xa5, 0x20, 0x6b, 0xc9, 0x20, 0x1a, 0xaa, 0xa0, 0x88, 0x82, 0x0a, 0xd6, 0x54, 0x74, 0x1b, 0x67,
+	0x62, 0x2c, 0xcc, 0xae, 0xd9, 0x9d, 0x10, 0xfc, 0x16, 0x3c, 0x16, 0x65, 0x4a, 0x4a, 0x94, 0xbc,
+	0x08, 0xf2, 0x3a, 0x16, 0x04, 0xd1, 0x50, 0x5c, 0x37, 0xbf, 0xe7, 0xf7, 0x67, 0x7f, 0x03, 0x13,
+	0x83, 0x9f, 0xb7, 0x68, 0x89, 0x37, 0x46, 0x93, 0x9e, 0x3e, 0x2e, 0xb5, 0x2e, 0x6b, 0x4c, 0x5d,
+	0x5a, 0x6d, 0x37, 0xa9, 0x54, 0xed, 0x69, 0x35, 0xb1, 0x68, 0x6d, 0xa5, 0x55, 0x1f, 0x93, 0x17,
+	0xe0, 0xe5, 0x48, 0x41, 0x08, 0x97, 0x8d, 0x34, 0x54, 0xa1, 0x0d, 0x59, 0xec, 0xcd, 0xae, 0xc4,
+	0x10, 0x83, 0x6b, 0x60, 0x2a, 0xbc, 0x88, 0xd9, 0x6c, 0x22, 0x98, 0xea, 0x12, 0x85, 0x5e, 0x9f,
+	0x28, 0x79, 0x0d, 0xd3, 0x25, 0x6e, 0xe4, 0xb6, 0xa6, 0xbc, 0x87, 0xbe, 0x31, 0xba, 0xd1, 0x56,
+	0xd6, 0x4b, 0x49, 0xb2, 0x63, 0x56, 0x6a, 0x8d, 0x5f, 0xd1, 0x86, 0x17, 0x3d, 0xf3, 0x14, 0x83,
+	0x00, 0x7c, 0xa3, 0x75, 0x0f, 0xba, 0x12, 0x6e, 0x4e, 0x9e, 0xc1, 0x54, 0xa0, 0xfd, 0x20, 0x0d,
+	0xfe, 0x8b, 0x75, 0x03, 0x9e, 0x45, 0x0a, 0x59, 0xcc, 0x66, 0xe3, 0xcc, 0xe7, 0x39, 0x92, 0xe8,
+	0x1e, 0x24, 0x05, 0x3c, 0x18, 0x7a, 0xa2, 0xbf, 0x40, 0x10, 0x83, 0x4f, 0x6d, 0x83, 0xae, 0x7b,
+	0x3f, 0xbb, 0xe6, 0x27, 0xdc, 0xbb, 0xb6, 0x41, 0xe1, 0x36, 0x01, 0x87, 0xcb, 0x35, 0x92, 0xac,
+	0x6a, 0xeb, 0xc4, 0xc6, 0xd9, 0x23, 0xde, 0xdf, 0x8b, 0x0f, 0xf7, 0xe2, 0x0b, 0xd5, 0x8a, 0xa1,
+	0x94, 0x64, 0x70, 0x7b, 0xae, 0xb9, 0x28, 0x0a, 0x6c, 0x48, 0xaa, 0x02, 0xdd, 0xcf, 0x0d, 0x3a,
+	0xec, 0x0f, 0x9d, 0xe7, 0x70, 0x7b, 0xae, 0xf3, 0xd7, 0x3b, 0x37, 0xe0, 0x29, 0xdc, 0x9d, 0x0b,
+	0x29, 0xdc, 0x25, 0x08, 0x0f, 0x7f, 0x37, 0xef, 0x4e, 0xe9, 0x2d, 0x8c, 0xf3, 0xaa, 0x54, 0xc3,
+	0x07, 0x02, 0xf0, 0xd7, 0x92, 0xe4, 0x60, 0xd0, 0xcd, 0xff, 0x8b, 0x7c, 0xf9, 0xea, 0xfb, 0x21,
+	0x62, 0xfb, 0x43, 0xc4, 0x7e, 0x1e, 0x22, 0xf6, 0xed, 0x18, 0x8d, 0xf6, 0xc7, 0x68, 0xf4, 0xe3,
+	0x18, 0x8d, 0xde, 0x3f, 0x29, 0x2b, 0xaa, 0xe5, 0x8a, 0x17, 0xfa, 0x53, 0x6a, 0xa4, 0xa9, 0x36,
+	0xed, 0xdc, 0x21, 0x0a, 0x5d, 0xa7, 0x64, 0xed, 0xdc, 0x7e, 0x29, 0xd2, 0xe6, 0x63, 0x99, 0x76,
+	0x26, 0x76, 0x75, 0xcf, 0xed, 0x9e, 0xfe, 0x0a, 0x00, 0x00, 0xff, 0xff, 0x0b, 0xb4, 0xf6, 0xc9,
+	0xd3, 0x02, 0x00, 0x00,
+}
+
+func (m *Set) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Set) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Set) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.T != 0 {
+		i = encodeVarintRequest(dAtA, i, uint64(m.T))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.N != 0 {
+		i = encodeVarintRequest(dAtA, i, uint64(m.N))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Parties) > 0 {
+		for iNdEx := len(m.Parties) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Parties[iNdEx])
+			copy(dAtA[i:], m.Parties[iNdEx])
+			i = encodeVarintRequest(dAtA, i, uint64(len(m.Parties[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DefaultSessionProposalData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DefaultSessionProposalData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DefaultSessionProposalData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Root) > 0 {
+		i -= len(m.Root)
+		copy(dAtA[i:], m.Root)
+		i = encodeVarintRequest(dAtA, i, uint64(len(m.Root)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Indexes) > 0 {
+		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Indexes[iNdEx])
+			copy(dAtA[i:], m.Indexes[iNdEx])
+			i = encodeVarintRequest(dAtA, i, uint64(len(m.Indexes[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReshareSessionProposalData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReshareSessionProposalData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ReshareSessionProposalData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Set != nil {
+		{
+			size, err := m.Set.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRequest(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ProposalRequest) Marshal() (dAtA []byte, err error) {
@@ -269,26 +601,87 @@ func (m *ProposalRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Details != nil {
+		{
+			size, err := m.Details.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRequest(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Type != 0 {
+		i = encodeVarintRequest(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DefaultSessionAcceptanceData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DefaultSessionAcceptanceData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DefaultSessionAcceptanceData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
 	if len(m.Root) > 0 {
 		i -= len(m.Root)
 		copy(dAtA[i:], m.Root)
 		i = encodeVarintRequest(dAtA, i, uint64(len(m.Root)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0xa
 	}
-	if len(m.Indexes) > 0 {
-		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Indexes[iNdEx])
-			copy(dAtA[i:], m.Indexes[iNdEx])
-			i = encodeVarintRequest(dAtA, i, uint64(len(m.Indexes[iNdEx])))
-			i--
-			dAtA[i] = 0x12
+	return len(dAtA) - i, nil
+}
+
+func (m *ReshareSessionAcceptanceData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReshareSessionAcceptanceData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ReshareSessionAcceptanceData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.New != nil {
+		{
+			size, err := m.New.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRequest(dAtA, i, uint64(size))
 		}
-	}
-	if m.Session != 0 {
-		i = encodeVarintRequest(dAtA, i, uint64(m.Session))
 		i--
-		dAtA[i] = 0x8
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -313,12 +706,22 @@ func (m *AcceptanceRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Root) > 0 {
-		i -= len(m.Root)
-		copy(dAtA[i:], m.Root)
-		i = encodeVarintRequest(dAtA, i, uint64(len(m.Root)))
+	if m.Details != nil {
+		{
+			size, err := m.Details.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRequest(dAtA, i, uint64(size))
+		}
 		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x12
+	}
+	if m.Type != 0 {
+		i = encodeVarintRequest(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -355,10 +758,10 @@ func (m *SignRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.Root) > 0 {
-		i -= len(m.Root)
-		copy(dAtA[i:], m.Root)
-		i = encodeVarintRequest(dAtA, i, uint64(len(m.Root)))
+	if len(m.Data) > 0 {
+		i -= len(m.Data)
+		copy(dAtA[i:], m.Data)
+		i = encodeVarintRequest(dAtA, i, uint64(len(m.Data)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -376,15 +779,33 @@ func encodeVarintRequest(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *ProposalRequest) Size() (n int) {
+func (m *Set) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.Session != 0 {
-		n += 1 + sovRequest(uint64(m.Session))
+	if len(m.Parties) > 0 {
+		for _, s := range m.Parties {
+			l = len(s)
+			n += 1 + l + sovRequest(uint64(l))
+		}
 	}
+	if m.N != 0 {
+		n += 1 + sovRequest(uint64(m.N))
+	}
+	if m.T != 0 {
+		n += 1 + sovRequest(uint64(m.T))
+	}
+	return n
+}
+
+func (m *DefaultSessionProposalData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	if len(m.Indexes) > 0 {
 		for _, s := range m.Indexes {
 			l = len(s)
@@ -398,7 +819,36 @@ func (m *ProposalRequest) Size() (n int) {
 	return n
 }
 
-func (m *AcceptanceRequest) Size() (n int) {
+func (m *ReshareSessionProposalData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Set != nil {
+		l = m.Set.Size()
+		n += 1 + l + sovRequest(uint64(l))
+	}
+	return n
+}
+
+func (m *ProposalRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Type != 0 {
+		n += 1 + sovRequest(uint64(m.Type))
+	}
+	if m.Details != nil {
+		l = m.Details.Size()
+		n += 1 + l + sovRequest(uint64(l))
+	}
+	return n
+}
+
+func (m *DefaultSessionAcceptanceData) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -411,13 +861,42 @@ func (m *AcceptanceRequest) Size() (n int) {
 	return n
 }
 
+func (m *ReshareSessionAcceptanceData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.New != nil {
+		l = m.New.Size()
+		n += 1 + l + sovRequest(uint64(l))
+	}
+	return n
+}
+
+func (m *AcceptanceRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Type != 0 {
+		n += 1 + sovRequest(uint64(m.Type))
+	}
+	if m.Details != nil {
+		l = m.Details.Size()
+		n += 1 + l + sovRequest(uint64(l))
+	}
+	return n
+}
+
 func (m *SignRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.Root)
+	l = len(m.Data)
 	if l > 0 {
 		n += 1 + l + sovRequest(uint64(l))
 	}
@@ -434,7 +913,7 @@ func sovRequest(x uint64) (n int) {
 func sozRequest(x uint64) (n int) {
 	return sovRequest(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *ProposalRequest) Unmarshal(dAtA []byte) error {
+func (m *Set) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -457,17 +936,17 @@ func (m *ProposalRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ProposalRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: Set: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ProposalRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: Set: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Session", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Parties", wireType)
 			}
-			m.Session = 0
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowRequest
@@ -477,11 +956,112 @@ func (m *ProposalRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Session |= uint64(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Parties = append(m.Parties, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field N", wireType)
+			}
+			m.N = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.N |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field T", wireType)
+			}
+			m.T = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.T |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRequest(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DefaultSessionProposalData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRequest
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DefaultSessionProposalData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DefaultSessionProposalData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Indexes", wireType)
@@ -567,7 +1147,7 @@ func (m *ProposalRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *AcceptanceRequest) Unmarshal(dAtA []byte) error {
+func (m *ReshareSessionProposalData) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -590,10 +1170,201 @@ func (m *AcceptanceRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: AcceptanceRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: ReshareSessionProposalData: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AcceptanceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ReshareSessionProposalData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Set", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Set == nil {
+				m.Set = &Set{}
+			}
+			if err := m.Set.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRequest(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ProposalRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRequest
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ProposalRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ProposalRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= SessionType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Details", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Details == nil {
+				m.Details = &types.Any{}
+			}
+			if err := m.Details.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRequest(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DefaultSessionAcceptanceData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRequest
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DefaultSessionAcceptanceData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DefaultSessionAcceptanceData: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -649,6 +1420,197 @@ func (m *AcceptanceRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *ReshareSessionAcceptanceData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRequest
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReshareSessionAcceptanceData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReshareSessionAcceptanceData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field New", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.New == nil {
+				m.New = &Set{}
+			}
+			if err := m.New.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRequest(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AcceptanceRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRequest
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcceptanceRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcceptanceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= SessionType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Details", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRequest
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRequest
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Details == nil {
+				m.Details = &types.Any{}
+			}
+			if err := m.Details.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRequest(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthRequest
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *SignRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -680,7 +1642,7 @@ func (m *SignRequest) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -708,7 +1670,7 @@ func (m *SignRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Root = string(dAtA[iNdEx:postIndex])
+			m.Data = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {

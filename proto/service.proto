@@ -4,55 +4,53 @@ option go_package = "gitlab.com/rarify-protocol/tss-svc/pkg/types";
 
 import "request.proto";
 import "session.proto";
-import "party.proto";
 import "google/protobuf/any.proto";
 
 service Service {
-  rpc Info(MsgInfoRequest) returns (MsgInfoResponse);
-  rpc AllSessionsInfo(MsgAllSessionInfoRequest) returns (MsgAllSessionInfoResponse);
-  rpc SessionInfo(MsgSessionInfoRequest) returns (MsgSessionInfoResponse);
   rpc Submit(MsgSubmitRequest) returns (MsgSubmitResponse);
+  rpc Info(MsgInfoRequest) returns (MsgInfoResponse);
+  rpc Session(MsgSessionRequest) returns (MsgSessionResponse);
+  rpc AddOperation(MsgAddOperationRequest) returns (MsgAddOperationResponse);
 }
 
-message MsgInfoRequest {}
+enum RequestType {
+  Proposal = 0;
+  Acceptance = 1;
+  Sign = 2;
+  Reshare = 3;
+  Keygen = 4;
+}
+
+message MsgSubmitRequest {
+  uint64 id = 1;
+  string signature = 2;
+  bool isBroadcast = 3;
+  RequestType type = 4;
+  google.protobuf.Any details = 5;
+}
+
+message MsgSubmitResponse {}
+
+
+message MsgInfoRequest{}
 
 message MsgInfoResponse {
-  uint64 currentSession = 1;
-  bool isActive = 2;
-  string publicKey = 3;
-  string account = 4;
+  string localAccount = 1;
+  string localPublicKey = 2;
+  uint64 currentSessionId = 3;
+  Session sessionData = 4;
 }
 
-message Pagination {
-  uint64 limit = 1;
-  uint64 page = 2;
-  uint64 total = 3;
-}
-
-message MsgAllSessionInfoRequest {
-  Pagination pagination = 1;
-}
-
-message MsgAllSessionInfoResponse {
-  repeated Session session = 1;
-}
-
-message MsgSessionInfoRequest {
+message MsgSessionRequest{
   uint64 id = 1;
 }
 
-message MsgSessionInfoResponse {
-  Session session = 1;
+message MsgSessionResponse {
+  Session data = 1;
 }
 
-
-message MsgSubmitRequest {
-  string signature = 1;
-  bool isBroadcast = 2;
-  RequestType type = 3;
-  google.protobuf.Any details = 4;
+message MsgAddOperationRequest {
+  string index = 1;
 }
 
-message MsgSubmitResponse {
-
-}
+message MsgAddOperationResponse {}

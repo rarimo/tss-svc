@@ -7,15 +7,9 @@ import (
 	"time"
 
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/local"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
-)
-
-const (
-	canCloseAfter = 1 * time.Hour
-	cleanRetry    = 1 * time.Hour
 )
 
 var ErrorConnectorClosed = errors.New("connector already closed")
@@ -30,29 +24,28 @@ type con struct {
 type SubmitConnector struct {
 	mu       sync.Mutex
 	isClosed bool
-	secret   *local.Secret
+	secret   *secret.TssSecret
 	clients  map[string]*con
 }
 
-func NewSubmitConnector(cfg config.Config) *SubmitConnector {
+func NewSubmitConnector(secret *secret.TssSecret) *SubmitConnector {
 	c := &SubmitConnector{
 		isClosed: false,
-		secret:   local.NewSecret(cfg),
+		secret:   secret,
 		clients:  make(map[string]*con),
 	}
 
-	go c.runCleaner()
 	return c
 }
 
 func (s *SubmitConnector) Close() error {
 	s.isClosed = true
+	s.cleanAll()
 	return nil
 }
 
 func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
-	err := s.secret.SignRequest(request)
-	if err != nil {
+	if err := s.secret.Sign(request); err != nil {
 		return nil, err
 	}
 
@@ -90,34 +83,11 @@ func (s *SubmitConnector) getClient(addr string) (*grpc.ClientConn, error) {
 	return client, nil
 }
 
-func (s *SubmitConnector) runCleaner() {
-	for {
-		time.Sleep(cleanRetry)
-		if err := s.closed(); err != nil {
-			s.cleanAll()
-			return
-		}
-
-		s.clean()
-	}
-}
-
 func (s *SubmitConnector) cleanAll() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, c := range s.clients {
 		c.client.Close()
-	}
-}
-
-func (s *SubmitConnector) clean() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for addr, c := range s.clients {
-		if c.lastUsed.Before(time.Now().UTC().Add(-canCloseAfter)) {
-			c.client.Close()
-			s.clients[addr] = nil
-		}
 	}
 }
 

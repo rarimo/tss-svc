@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
-	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	client "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	xauthsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
@@ -17,48 +17,61 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/local"
+	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
+	"google.golang.org/grpc"
 )
 
 const (
+	chainId       = "rarimo"
 	coinName      = "stake"
 	successTxCode = 0
 	minGasPrice   = 1
 	gasLimit      = 100_000_000
 )
 
-// ConfirmConnector submits signed confirmations to the rarimo core
-type ConfirmConnector struct {
-	params   *local.Params
-	secret   *local.Secret
+// CoreConnector submits signed confirmations to the rarimo core
+type CoreConnector struct {
 	txclient client.ServiceClient
 	auth     authtypes.QueryClient
 	txConfig sdkclient.TxConfig
+	secret   *secret.TssSecret
 	log      *logan.Entry
 }
 
-func NewConfirmConnector(cfg config.Config) *ConfirmConnector {
-	return &ConfirmConnector{
-		params:   local.NewParams(cfg),
-		secret:   local.NewSecret(cfg),
-		txclient: client.NewServiceClient(cfg.Cosmos()),
-		auth:     authtypes.NewQueryClient(cfg.Cosmos()),
+func NewCoreConnector(cli *grpc.ClientConn, secret *secret.TssSecret, log *logan.Entry) *CoreConnector {
+	return &CoreConnector{
+		txclient: client.NewServiceClient(cli),
+		auth:     authtypes.NewQueryClient(cli),
 		txConfig: tx.NewTxConfig(codec.NewProtoCodec(codectypes.NewInterfaceRegistry()), []signing.SignMode{signing.SignMode_SIGN_MODE_DIRECT}),
-		log:      cfg.Log(),
+		secret:   secret,
+		log:      log,
 	}
 }
 
-func (c *ConfirmConnector) SubmitConfirmation(indexes []string, root string, signature string) error {
+func (c *CoreConnector) SubmitChangeSet(set []*rarimo.Party, sig string) error {
+	msg := &rarimo.MsgCreateChangePartiesOp{
+		Creator:   c.secret.AccountAddress(),
+		NewSet:    set,
+		Signature: sig,
+	}
+
+	return c.Submit(msg)
+}
+
+func (c *CoreConnector) SubmitConfirmation(indexes []string, root string, signature string) error {
 	msg := &rarimo.MsgCreateConfirmation{
-		Creator:        c.secret.AccountAddressStr(),
+		Creator:        c.secret.AccountAddress(),
 		Root:           root,
 		Indexes:        indexes,
 		SignatureECDSA: signature,
 	}
 
+	return c.Submit(msg)
+}
+
+func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	builder := c.txConfig.NewTxBuilder()
-	err := builder.SetMsgs(msg)
+	err := builder.SetMsgs(msgs...)
 	if err != nil {
 		return err
 	}
@@ -66,7 +79,7 @@ func (c *ConfirmConnector) SubmitConfirmation(indexes []string, root string, sig
 	builder.SetGasLimit(gasLimit)
 	builder.SetFeeAmount(types.Coins{types.NewInt64Coin(coinName, int64(gasLimit*minGasPrice))})
 
-	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.secret.AccountAddressStr()})
+	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.secret.AccountAddress()})
 	if err != nil {
 		panic(err)
 	}
@@ -90,15 +103,15 @@ func (c *ConfirmConnector) SubmitConfirmation(indexes []string, root string, sig
 	}
 
 	signerData := xauthsigning.SignerData{
-		ChainID:       c.params.ChainId(),
+		ChainID:       chainId,
 		AccountNumber: account.AccountNumber,
 		Sequence:      account.Sequence,
 	}
 
-	sigV2, err := clienttx.SignWithPrivKey(
-		c.txConfig.SignModeHandler().DefaultMode(), signerData,
-		builder, c.secret.AccountPrvKey(), c.txConfig, account.Sequence,
-	)
+	sigV2, err := c.secret.SignTransaction(c.txConfig, signerData, builder, &account)
+	if err != nil {
+		return err
+	}
 
 	err = builder.SetSignatures(sigV2)
 	if err != nil {
@@ -120,6 +133,8 @@ func (c *ConfirmConnector) SubmitConfirmation(indexes []string, root string, sig
 	if err != nil {
 		return err
 	}
+
+	c.log.Infof("Submitted tx: %s", grpcRes.TxResponse.TxHash)
 
 	if grpcRes.TxResponse.Code != successTxCode {
 		c.log.Debug(grpcRes.String())

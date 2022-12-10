@@ -59,24 +59,53 @@ func (ss StringSlice) Value() (driver.Value, error) {
 		v[i] = `"` + strings.Replace(strings.Replace(s, `\`, `\\\`, -1), `"`, `\"`, -1) + `"`
 	}
 	return "{" + strings.Join(v, ",") + "}", nil
-} // GorpMigration represents a row from 'public.gorp_migrations'.
+} // DefaultSessionDatum represents a row from 'public.default_session_data'.
+type DefaultSessionDatum struct {
+	ID        int64          `db:"id"`        // id
+	Parties   StringSlice    `db:"parties"`   // parties
+	Proposer  sql.NullString `db:"proposer"`  // proposer
+	Indexes   StringSlice    `db:"indexes"`   // indexes
+	Root      sql.NullString `db:"root"`      // root
+	Accepted  StringSlice    `db:"accepted"`  // accepted
+	Signature sql.NullString `db:"signature"` // signature
+
+}
+
+// GorpMigration represents a row from 'public.gorp_migrations'.
 type GorpMigration struct {
 	ID        string       `db:"id"`         // id
 	AppliedAt sql.NullTime `db:"applied_at"` // applied_at
 
 }
 
+// KeygenSessionDatum represents a row from 'public.keygen_session_data'.
+type KeygenSessionDatum struct {
+	ID      int64          `db:"id"`      // id
+	Parties StringSlice    `db:"parties"` // parties
+	Key     sql.NullString `db:"key"`     // key
+
+}
+
+// ReshareSessionDatum represents a row from 'public.reshare_session_data'.
+type ReshareSessionDatum struct {
+	ID           int64          `db:"id"`            // id
+	Parties      StringSlice    `db:"parties"`       // parties
+	Proposer     sql.NullString `db:"proposer"`      // proposer
+	OldKey       sql.NullString `db:"old_key"`       // old_key
+	NewKey       sql.NullString `db:"new_key"`       // new_key
+	KeySignature sql.NullString `db:"key_signature"` // key_signature
+	Signature    sql.NullString `db:"signature"`     // signature
+	Root         sql.NullString `db:"root"`          // root
+
+}
+
 // Session represents a row from 'public.sessions'.
 type Session struct {
-	ID         int64          `db:"id"`          // id
-	Status     int            `db:"status"`      // status
-	Indexes    StringSlice    `db:"indexes"`     // indexes
-	Root       sql.NullString `db:"root"`        // root
-	Proposer   sql.NullString `db:"proposer"`    // proposer
-	Signature  sql.NullString `db:"signature"`   // signature
-	BeginBlock int64          `db:"begin_block"` // begin_block
-	EndBlock   int64          `db:"end_block"`   // end_block
-	Accepted   StringSlice    `db:"accepted"`    // accepted
-	Signed     StringSlice    `db:"signed"`      // signed
+	ID          int64         `db:"id"`           // id
+	Status      int           `db:"status"`       // status
+	BeginBlock  int64         `db:"begin_block"`  // begin_block
+	EndBlock    int64         `db:"end_block"`    // end_block
+	SessionType sql.NullInt64 `db:"session_type"` // session_type
+	DataID      sql.NullInt64 `db:"data_id"`      // data_id
 
 }

@@ -3,23 +3,23 @@ log:
   level: debug
 
 db:
-  url: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+  url: "postgres://tss:tss@192.168.10.12:5432/tss?sslmode=disable"
 
 listener:
-  addr: :8000
+  addr: :8092
 
 core:
-  addr: tcp://127.0.0.1:26657
+  addr: tcp://192.168.10.2:26657
 
 cosmos:
-  addr: 127.0.0.1:9090
+  addr: 192.168.10.2:9090
 
 session:
-  start_block:
-  start_session_id:
-  last_signature:
+  start_block: 5
+  start_session_id: 1
 
 prv:
-  prv_key_hex:
-  account_prv_hex:
+  #0x048532e8ef71b7be2fb024967a6cc2bf9da15b8ea35040ce1460331a68f5d5e171bbca7cae8fb4d9f5a2852458d67ec78a37e5598f0cd98fd16b27f8a54e567492
+  prv_key_hex: "0x574dff65f4e92c50d1c30f281c906fb284d22728efbb484403a9204825d3c1b7"
+  account_prv_hex: "0xfe97e1dd39da6252485e1ac92e18c2ddfee953b9874488fadcce08317290f430"
   chain_id: rarimo
