@@ -45,7 +45,7 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 		return err
 	}
 
-	if !core.Equal(sender, &p.data.Proposer) {
+	if !Equal(sender, &p.data.Proposer) {
 		return ErrSenderIsNotProposer
 	}
 
@@ -55,7 +55,7 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 
 	proposal := new(types.ProposalRequest)
 	if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
-		return errors.Wrap(err, "error unmarshalling request")
+		return errors.Wrap(err, "Error unmarshalling request")
 	}
 
 	p.log.Infof("Received proposal request from %s for session type=%s", sender.Account, proposal.Type.String())
@@ -64,7 +64,7 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (p *ProposalController) Run(ctx context.Context) {
-	p.log.Infof("Starting %s", p.Type().String())
+	p.log.Infof("Starting: %s", p.Type().String())
 	p.wg.Add(1)
 	go p.run(ctx)
 }
@@ -87,15 +87,15 @@ func (p *ProposalController) Type() types.ControllerType {
 
 func (p *ProposalController) run(ctx context.Context) {
 	defer func() {
-		p.log.Infof("%s finished", p.Type().String())
+		p.log.Infof("Finishing: %s", p.Type().String())
 		p.updateSessionData()
 		p.wg.Done()
 	}()
 
-	p.log.Infof("Session proposer: %v", p.data.Proposer)
+	p.log.Debugf("Session %d proposer: %v", p.data.SessionId, p.data.Proposer)
 
 	if p.data.Proposer.Account != p.data.Secret.AccountAddress() {
-		p.log.Info("Proposer is another party")
+		p.log.Debug("Proposer is another party. No actions required")
 		return
 	}
 
@@ -131,7 +131,7 @@ func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.Se
 
 	data := new(types.DefaultSessionProposalData)
 	if err := proto.Unmarshal(details.Value, data); err != nil {
-		d.log.WithError(err).Error("error unmarshalling request")
+		d.log.WithError(err).Error("Error unmarshalling request")
 		return
 	}
 
@@ -153,7 +153,7 @@ func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.Se
 	if hexutil.Encode(merkle.NewTree(eth.Keccak256, contents...).Root()) == data.Root {
 		d.mu.Lock()
 		defer d.mu.Unlock()
-		d.log.Infof("Proposal data is correct")
+		d.log.Infof("Proposal data is correct. Proposal accepted.")
 		d.data.SessionType = types.SessionType_DefaultSession
 		d.data.Processing = true
 		d.data.Root = data.Root
@@ -162,7 +162,7 @@ func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.Se
 }
 
 func (d *DefaultProposalController) shareProposal(ctx context.Context) {
-	d.log.Infof("Making sign proposal")
+	d.log.Debugf("Making sign proposal")
 	ids, root, err := d.getNewPool()
 	if err != nil {
 		d.log.WithError(err).Error("Error preparing pool to propose")
@@ -209,12 +209,12 @@ func (d *DefaultProposalController) updateSessionData() {
 
 	session, err := d.pg.SessionQ().SessionByID(int64(d.data.SessionId), false)
 	if err != nil {
-		d.log.WithError(err).Error("error selecting session")
+		d.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		d.log.Error("session entry is not initialized")
+		d.log.Error("Session entry is not initialized")
 		return
 	}
 
@@ -238,7 +238,7 @@ func (d *DefaultProposalController) updateSessionData() {
 	})
 
 	if err != nil {
-		d.log.WithError(err).Error("error creating session data entry")
+		d.log.WithError(err).Error("Error creating session data entry")
 		return
 	}
 
@@ -248,7 +248,7 @@ func (d *DefaultProposalController) updateSessionData() {
 	}
 
 	if err = d.pg.SessionQ().Update(session); err != nil {
-		d.log.WithError(err).Error("error updating session entry")
+		d.log.WithError(err).Error("Error updating session entry")
 	}
 }
 
@@ -294,7 +294,7 @@ func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.Se
 
 	data := new(types.ReshareSessionProposalData)
 	if err := proto.Unmarshal(details.Value, data); err != nil {
-		r.log.WithError(err).Error("error unmarshalling request")
+		r.log.WithError(err).Error("Error unmarshalling request")
 		return
 	}
 
@@ -302,17 +302,18 @@ func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.Se
 	if checkSet(data.Set, r.data.Set) {
 		r.mu.Lock()
 		defer r.mu.Unlock()
-		r.log.Infof("Proposal data is correct")
+		r.log.Infof("Proposal data is correct. Proposal accepted.")
 		r.data.SessionType = types.SessionType_ReshareSession
 		r.data.Processing = true
 	}
 }
 
 func (r *ReshareProposalController) shareProposal(ctx context.Context) {
-	r.log.Infof("Making reshare proposal")
-	data := &types.ReshareSessionProposalData{
-		Set: getSet(r.data.Set),
-	}
+	r.log.Debugf("Making reshare proposal")
+	set := getSet(r.data.Set)
+	data := &types.ReshareSessionProposalData{Set: set}
+
+	r.log.Infof("Performed set for updating to: %v", set)
 
 	details, err := cosmostypes.NewAnyWithValue(data)
 	if err != nil {
@@ -344,12 +345,12 @@ func (r *ReshareProposalController) updateSessionData() {
 	defer r.mu.Unlock()
 	session, err := r.pg.SessionQ().SessionByID(int64(r.data.SessionId), false)
 	if err != nil {
-		r.log.WithError(err).Error("error selecting session")
+		r.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		r.log.Error("session entry is not initialized")
+		r.log.Error("Session entry is not initialized")
 		return
 	}
 
@@ -372,7 +373,7 @@ func (r *ReshareProposalController) updateSessionData() {
 	})
 
 	if err != nil {
-		r.log.WithError(err).Error("error creating session data entry")
+		r.log.WithError(err).Error("Error creating session data entry")
 		return
 	}
 
@@ -382,6 +383,6 @@ func (r *ReshareProposalController) updateSessionData() {
 	}
 
 	if err = r.pg.SessionQ().Update(session); err != nil {
-		r.log.WithError(err).Error("error updating session entry")
+		r.log.WithError(err).Error("Error updating session entry")
 	}
 }

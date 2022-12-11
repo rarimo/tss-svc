@@ -33,17 +33,17 @@ func (r *RequestAuthorizer) Auth(request *types.MsgSubmitRequest) (*rarimo.Party
 
 	signature, err := hexutil.Decode(request.Signature)
 	if err != nil {
-		r.log.WithError(err).Debug("failed to decode signature")
+		r.log.WithError(err).Debug("Failed to decode signature")
 		return nil, ErrInvalidSignature
 	}
 
 	pub, err := crypto.Ecrecover(hash, signature)
 	if err != nil {
-		r.log.WithError(err).Debug("failed to recover signature pub key")
+		r.log.WithError(err).Debug("Failed to recover signature pub key")
 		return nil, ErrInvalidSignature
 	}
 
-	// TODO make log(n)
+	// TODO optimize: make log(n)
 	key := hexutil.Encode(pub)
 	for _, p := range r.parties {
 		if p.PubKey == key {

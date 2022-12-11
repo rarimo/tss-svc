@@ -41,7 +41,7 @@ func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSub
 			_, err := b.Submit(ctx, *party, request)
 
 			if err != nil {
-				b.log.WithError(err).Errorf("error submitting request to party: %s addr: %s", party.Account, party.Address)
+				b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", party.Account, party.Address)
 				failed = append(failed, party)
 			}
 		}
@@ -52,27 +52,15 @@ func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSub
 
 func (b *BroadcastConnector) MustSubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) {
 	for _, party := range parties {
-		retry = 0
 		if party.Account != b.sc.AccountAddress() {
 			for {
 				if _, err := b.Submit(ctx, *party, request); err != nil {
-					b.logErr(err)
+					b.log.WithError(err).Errorf("Error submitting request to the party %s", party.Account)
 					time.Sleep(time.Second)
 					continue
 				}
 				break
 			}
 		}
-	}
-}
-
-var retry = 0
-
-// log every 10 retries
-func (b *BroadcastConnector) logErr(err error) {
-	retry++
-	if retry%10 == 0 {
-		b.log.Infof("Retry #%d", retry)
-		b.log.WithError(err).Error("error sending request")
 	}
 }

@@ -69,7 +69,7 @@ func (s *Session) NewBlock(height uint64) {
 		return
 	}
 
-	s.log.Infof("Running next block on keygen session #%d", s.id)
+	s.log.Infof("[Session] Running next block %d on keygen session #%d", height, s.id)
 
 	if s.bounds.SessionEnd <= height {
 		s.stopController()
@@ -117,7 +117,7 @@ func (s *Session) stopController() {
 func (s *Session) initSessionData() {
 	session, err := s.data.SessionQ().SessionByID(int64(s.id), false)
 	if err != nil {
-		s.log.WithError(err).Error("error selecting session")
+		s.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
@@ -130,7 +130,7 @@ func (s *Session) initSessionData() {
 		})
 
 		if err != nil {
-			s.log.WithError(err).Error("error creating session entry")
+			s.log.WithError(err).Error("Error creating session entry")
 		}
 	}
 }

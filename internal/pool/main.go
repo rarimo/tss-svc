@@ -86,7 +86,7 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 				res = append(res, id)
 				collected++
 			default:
-				p.log.WithError(err).Error("error querying operation")
+				p.log.WithError(err).Error("[Pool] Error querying operation")
 				p.rawOrder <- id
 				return res, nil
 			}

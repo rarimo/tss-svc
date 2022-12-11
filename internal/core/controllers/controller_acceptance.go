@@ -30,7 +30,7 @@ type AcceptanceController struct {
 var _ IController = &AcceptanceController{}
 
 func (a *AcceptanceController) Run(ctx context.Context) {
-	a.log.Infof("Starting %s", a.Type().String())
+	a.log.Infof("Starting: %s", a.Type().String())
 	a.wg.Add(1)
 	go a.run(ctx)
 }
@@ -74,7 +74,7 @@ func (a *AcceptanceController) Type() types.ControllerType {
 
 func (a *AcceptanceController) run(ctx context.Context) {
 	defer func() {
-		a.log.Infof("%s finished", a.Type().String())
+		a.log.Infof("Finishing: %s", a.Type().String())
 		a.updateSessionData()
 		a.wg.Done()
 	}()
@@ -88,7 +88,7 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	// adding self
 	a.data.Acceptances[a.data.Secret.AccountAddress()] = struct{}{}
 
-	a.log.Infof("Acceptances: %v", a.data.Acceptances)
+	a.log.Infof("Received acceptances list: %v", a.data.Acceptances)
 	a.finish()
 }
 
@@ -127,7 +127,7 @@ func (a *DefaultAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 
 	details := new(types.DefaultSessionAcceptanceData)
 	if err := proto.Unmarshal(any.Value, details); err != nil {
-		a.log.WithError(err).Error("error unmarshalling request")
+		a.log.WithError(err).Error("Error unmarshalling request")
 	}
 
 	return details.Root == a.data.Root
@@ -136,13 +136,13 @@ func (a *DefaultAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
 	details, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionAcceptanceData{Root: a.data.Root})
 	if err != nil {
-		a.log.WithError(err).Error("error parsing details")
+		a.log.WithError(err).Error("Error parsing details")
 		return
 	}
 
 	details, err = cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Type: types.SessionType_DefaultSession, Details: details})
 	if err != nil {
-		a.log.WithError(err).Error("error parsing details")
+		a.log.WithError(err).Error("Error parsing details")
 		return
 	}
 
@@ -157,29 +157,29 @@ func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
 func (a *DefaultAcceptanceController) updateSessionData() {
 	session, err := a.pg.SessionQ().SessionByID(int64(a.data.SessionId), false)
 	if err != nil {
-		a.log.WithError(err).Error("error selecting session")
+		a.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		a.log.Error("session entry is not initialized")
+		a.log.Error("Session entry is not initialized")
 		return
 	}
 
 	data, err := a.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
 	if err != nil {
-		a.log.WithError(err).Error("error selecting session data")
+		a.log.WithError(err).Error("Error selecting session data")
 		return
 	}
 
 	if data == nil {
-		a.log.Error("session data is not initialized")
+		a.log.Error("Session data is not initialized")
 		return
 	}
 
 	data.Accepted = acceptancesToArr(a.data.Acceptances)
 	if err = a.pg.DefaultSessionDatumQ().Update(data); err != nil {
-		a.log.WithError(err).Error("error updating session data entry")
+		a.log.WithError(err).Error("Error updating session data entry")
 	}
 }
 
@@ -216,7 +216,7 @@ func (a *ReshareAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 
 	details := new(types.ReshareSessionAcceptanceData)
 	if err := proto.Unmarshal(any.Value, details); err != nil {
-		a.log.WithError(err).Error("error unmarshalling request")
+		a.log.WithError(err).Error("Error unmarshalling request")
 	}
 
 	return checkSet(details.New, a.data.Set)
@@ -225,13 +225,13 @@ func (a *ReshareAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 func (a *ReshareAcceptanceController) shareAcceptance(ctx context.Context) {
 	details, err := cosmostypes.NewAnyWithValue(&types.ReshareSessionAcceptanceData{New: getSet(a.data.Set)})
 	if err != nil {
-		a.log.WithError(err).Error("error parsing details")
+		a.log.WithError(err).Error("Error parsing details")
 		return
 	}
 
 	details, err = cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Type: types.SessionType_ReshareSession, Details: details})
 	if err != nil {
-		a.log.WithError(err).Error("error parsing details")
+		a.log.WithError(err).Error("Error parsing details")
 		return
 	}
 

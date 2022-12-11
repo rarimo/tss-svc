@@ -49,7 +49,7 @@ func (b *BlockSubscriber) Run() {
 
 			switch data := c.Data.(type) {
 			case types.EventDataNewBlock:
-				b.log.Debugf("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
+				b.log.Infof("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
 				b.timer.newBlock(uint64(data.Block.Height))
 				break
 			}

@@ -50,7 +50,7 @@ func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (k *KeygenController) Run(ctx context.Context) {
-	k.log.Infof("Starting %s", k.Type().String())
+	k.log.Infof("Starting: %s", k.Type().String())
 	k.party.Run(ctx)
 	k.wg.Add(1)
 	go k.run(ctx)
@@ -66,7 +66,7 @@ func (k *KeygenController) Type() types.ControllerType {
 
 func (k *KeygenController) run(ctx context.Context) {
 	defer func() {
-		k.log.Infof("%s finished", k.Type().String())
+		k.log.Infof("Finishing: %s", k.Type().String())
 		k.updateSessionData()
 		k.wg.Done()
 	}()
@@ -109,12 +109,12 @@ func (d *DefaultKeygenController) Next() IController {
 func (d *DefaultKeygenController) updateSessionData() {
 	session, err := d.pg.SessionQ().SessionByID(int64(d.data.SessionId), false)
 	if err != nil {
-		d.log.WithError(err).Error("error selecting session")
+		d.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		d.log.Error("session entry is not initialized")
+		d.log.Error("Session entry is not initialized")
 		return
 	}
 
@@ -138,12 +138,12 @@ func (d *DefaultKeygenController) updateSessionData() {
 	})
 
 	if err != nil {
-		d.log.WithError(err).Error("error creating session data entry")
+		d.log.WithError(err).Error("Error creating session data entry")
 		return
 	}
 
 	if err = d.pg.SessionQ().Update(session); err != nil {
-		d.log.WithError(err).Error("error updating session entry")
+		d.log.WithError(err).Error("Error updating session entry")
 	}
 }
 
@@ -184,23 +184,23 @@ func (r *ReshareKeygenController) Next() IController {
 func (r *ReshareKeygenController) updateSessionData() {
 	session, err := r.pg.SessionQ().SessionByID(int64(r.data.SessionId), false)
 	if err != nil {
-		r.log.WithError(err).Error("error selecting session")
+		r.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		r.log.Error("session entry is not initialized")
+		r.log.Error("Session entry is not initialized")
 		return
 	}
 
 	data, err := r.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
 	if err != nil {
-		r.log.WithError(err).Error("error selecting session data")
+		r.log.WithError(err).Error("Error selecting session data")
 		return
 	}
 
 	if data == nil {
-		r.log.Error("session data is not initialized")
+		r.log.Error("Session data is not initialized")
 		return
 	}
 
@@ -210,7 +210,7 @@ func (r *ReshareKeygenController) updateSessionData() {
 	}
 
 	if err = r.pg.ReshareSessionDatumQ().Update(data); err != nil {
-		r.log.WithError(err).Error("error updating session data entry")
+		r.log.WithError(err).Error("Error updating session data entry")
 	}
 }
 

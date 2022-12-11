@@ -134,7 +134,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 		return err
 	}
 
-	c.log.Infof("Submitted tx: %s", grpcRes.TxResponse.TxHash)
+	c.log.Debugf("Submitted transaction to the core: %s", grpcRes.TxResponse.TxHash)
 
 	if grpcRes.TxResponse.Code != successTxCode {
 		c.log.Debug(grpcRes.String())

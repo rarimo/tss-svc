@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"context"
+	"encoding/binary"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	eth "github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	merkle "gitlab.com/rarify-protocol/go-merkle"
 	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
@@ -13,6 +16,18 @@ import (
 	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
+
+func GetProposer(parties []*rarimo.Party, sig string, sessionId uint64) rarimo.Party {
+	sigBytes := hexutil.MustDecode(sig)
+	idBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(idBytes, sessionId)
+	hash := eth.Keccak256(sigBytes, idBytes)
+	return *parties[int(hash[len(hash)-1])%len(parties)]
+}
+
+func Equal(p1 *rarimo.Party, p2 *rarimo.Party) bool {
+	return p1.Account == p2.Account
+}
 
 func GetOperations(client *grpc.ClientConn, ids ...string) ([]*rarimo.Operation, error) {
 	operations := make([]*rarimo.Operation, 0, len(ids))
@@ -50,14 +65,6 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 
 		case rarimo.OpType_CHANGE_PARTIES:
 			// Currently not supported here
-			//content, err := GetChangePartiesContent(op)
-			//if err != nil {
-			//	return nil, err
-			//}
-			//
-			//if content != nil {
-			//	contents = append(contents, content)
-			//}
 		default:
 			return nil, ErrUnsupportedContent
 		}
@@ -93,16 +100,6 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 
 	content, err := pkg.GetTransferContent(&itemResp.Item, params.Params.Networks[transfer.ToChain], transfer)
 	return content, errors.Wrap(err, "error creating content")
-}
-
-func GetChangePartiesContent(op *rarimo.Operation) (merkle.Content, error) {
-	change, err := pkg.GetChangeParties(*op)
-	if err != nil {
-		return nil, errors.Wrap(err, "error parsing operation details")
-	}
-
-	// TODO check
-	return pkg.GetChangePartiesContent(change)
 }
 
 func checkSet(proposal *types.Set, input *core.InputSet) bool {

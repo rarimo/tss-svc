@@ -38,8 +38,8 @@ func (s *Session) Receive(*types.MsgSubmitRequest) error {
 	return nil
 }
 
-func (s *Session) NewBlock(uint64) {
-	s.log.Info("Running next block on empty session")
+func (s *Session) NewBlock(height uint64) {
+	s.log.Infof("[Empty session] Running next block %d", height)
 }
 
 func (s *Session) NextSession() core.ISession {

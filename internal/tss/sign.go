@@ -41,7 +41,7 @@ func NewSignParty(data string, id uint64, parties []*rarimo.Party, secret *secre
 	return &SignParty{
 		wg:       &sync.WaitGroup{},
 		log:      log,
-		parties:  core.PartiesByAccountMapping(parties),
+		parties:  partiesByAccountMapping(parties),
 		partyIds: core.PartyIds(parties),
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(parties, secret, log),
@@ -53,15 +53,15 @@ func NewSignParty(data string, id uint64, parties []*rarimo.Party, secret *secre
 func (p *SignParty) Run(ctx context.Context) {
 	p.log.Infof("Running TSS signing on set: %v", p.parties)
 	self := p.partyIds.FindByKey(core.GetTssPartyKey(p.secret.AccountAddress()))
-	out := make(chan tss.Message, 1000)
-	end := make(chan common.SignatureData, 1)
+	out := make(chan tss.Message, OutChannelSize)
+	end := make(chan common.SignatureData, EndChannelSize)
 	peerCtx := tss.NewPeerContext(p.partyIds)
 	params := tss.NewParameters(s256k1.S256(), peerCtx, self, p.partyIds.Len(), crypto.GetThreshold(p.partyIds.Len()))
 	p.party = p.secret.GetSignParty(new(big.Int).SetBytes(hexutil.MustDecode(p.data)), params, out, end)
 	go func() {
 		err := p.party.Start()
 		if err != nil {
-			p.log.WithError(err).Error("error running tss party")
+			p.log.WithError(err).Error("Error running tss party")
 			close(end)
 		}
 	}()
@@ -85,11 +85,11 @@ func (p *SignParty) Data() string {
 
 func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) {
 	if p.party != nil {
-		p.log.Infof("Received signing request from %s id: %d", sender.Account, p.id)
+		p.log.Debugf("Received signing request from %s id: %d", sender.Account, p.id)
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
 		_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 		if err != nil {
-			p.log.WithError(err).Debug("error updating party")
+			p.log.WithError(err).Debug("Error updating party")
 		}
 	}
 }
@@ -109,7 +109,7 @@ func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
 		p.result = &result
 		p.log.Infof("Signed data %s signature %s", p.data, hexutil.Encode(append(p.result.Signature, p.result.SignatureRecovery...)))
 	default:
-		p.log.Info("Signature process has not been finished yet or has some errors")
+		p.log.Error("Signature process has not been finished yet or has some errors")
 	}
 }
 
@@ -149,13 +149,12 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				to = p.partyIds
 			}
 
-			p.log.Infof("Sending to %v", to)
 			for _, to := range to {
-				p.log.Infof("Sending message to %s", to.Id)
+				p.log.Debugf("Sending message to %s", to.Id)
 				party, _ := p.parties[to.Id]
 
 				if party.Account == p.secret.AccountAddress() {
-					p.log.Info("Sending to self")
+					p.log.Debug("Sending to self")
 					p.Receive(party, msg.IsBroadcast(), details.Value)
 					continue
 				}

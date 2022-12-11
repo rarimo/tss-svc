@@ -53,7 +53,7 @@ func (s *ServerImpl) Submit(_ context.Context, request *types.MsgSubmitRequest) 
 func (s *ServerImpl) AddOperation(_ context.Context, request *types.MsgAddOperationRequest) (*types.MsgAddOperationResponse, error) {
 	err := s.pool.Add(request.Index)
 	if err != nil {
-		s.log.WithError(err).Error("error adding to the pool")
+		s.log.WithError(err).Error("[GRPC] Error adding to the pool")
 		return nil, status.Errorf(codes.InvalidArgument, "Invalid request index: maybe already signed")
 	}
 	return &types.MsgAddOperationResponse{}, nil
@@ -88,7 +88,7 @@ func (s *ServerImpl) Session(_ context.Context, request *types.MsgSessionRequest
 func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
 	session, err := s.pg.SessionQ().SessionByID(int64(id), false)
 	if err != nil {
-		s.log.WithError(err).Error("error selecting current session by id")
+		s.log.WithError(err).Error("[GRPC] Error selecting current session by id")
 		return nil, status.Error(codes.Internal, "Internal error")
 	}
 
@@ -102,7 +102,7 @@ func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
 	case int64(types.SessionType_DefaultSession):
 		data, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
 		if err != nil {
-			s.log.WithError(err).Error("error selecting current session data by id")
+			s.log.WithError(err).Error("[GRPC] Error selecting current session data by id")
 			return nil, status.Error(codes.Internal, "Internal error")
 		}
 
@@ -122,7 +122,7 @@ func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
 	case int64(types.SessionType_ReshareSession):
 		data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
 		if err != nil {
-			s.log.WithError(err).Error("error selecting current session data by id")
+			s.log.WithError(err).Error("[GRPC] Error selecting current session data by id")
 			return nil, status.Error(codes.Internal, "Internal error")
 		}
 
@@ -143,7 +143,7 @@ func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
 	case int64(types.SessionType_KeygenSession):
 		data, err := s.pg.KeygenSessionDatumQ().KeygenSessionDatumByID(session.DataID.Int64, false)
 		if err != nil {
-			s.log.WithError(err).Error("error selecting current session data by id")
+			s.log.WithError(err).Error("[GRPC] Error selecting current session data by id")
 			return nil, status.Error(codes.Internal, "Internal error")
 		}
 
@@ -158,7 +158,7 @@ func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
 	}
 
 	if err != nil {
-		s.log.WithError(err).Error("failed to parse details data")
+		s.log.WithError(err).Error("[GRPC] Failed to parse details data")
 		return nil, status.Error(codes.Internal, "Internal error")
 	}
 

@@ -58,7 +58,7 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 }
 
 func (s *SignatureController) Run(ctx context.Context) {
-	s.log.Infof("Starting %s controller", s.Type().String())
+	s.log.Infof("Starting: %s", s.Type().String())
 	s.party.Run(ctx)
 	s.wg.Add(1)
 	go s.run(ctx)
@@ -74,7 +74,7 @@ func (s *SignatureController) Type() types.ControllerType {
 
 func (s *SignatureController) run(ctx context.Context) {
 	defer func() {
-		s.log.Infof("%s finished", s.Type().String())
+		s.log.Infof("Finishing: %s", s.Type().String())
 		s.updateSessionData()
 		s.wg.Done()
 	}()
@@ -136,23 +136,23 @@ func (s *KeySignatureController) finish(signature string) {
 func (s *KeySignatureController) updateSessionData() {
 	session, err := s.pg.SessionQ().SessionByID(int64(s.data.SessionId), false)
 	if err != nil {
-		s.log.WithError(err).Error("error selecting session")
+		s.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		s.log.Error("session entry is not initialized")
+		s.log.Error("Session entry is not initialized")
 		return
 	}
 
 	data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
 	if err != nil {
-		s.log.WithError(err).Error("error selecting session data")
+		s.log.WithError(err).Error("Error selecting session data")
 		return
 	}
 
 	if data == nil {
-		s.log.Error("session data is not initialized")
+		s.log.Error("Session data is not initialized")
 		return
 	}
 
@@ -162,7 +162,7 @@ func (s *KeySignatureController) updateSessionData() {
 	}
 
 	if err = s.pg.ReshareSessionDatumQ().Update(data); err != nil {
-		s.log.WithError(err).Error("error updating session data entry")
+		s.log.WithError(err).Error("Error updating session data entry")
 	}
 }
 
@@ -189,12 +189,12 @@ func (s *RootSignatureController) finish(signature string) {
 func (s *RootSignatureController) updateSessionData() {
 	session, err := s.pg.SessionQ().SessionByID(int64(s.data.SessionId), false)
 	if err != nil {
-		s.log.WithError(err).Error("error selecting session")
+		s.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		s.log.Error("session entry is not initialized")
+		s.log.Error("Session entry is not initialized")
 		return
 	}
 
@@ -202,12 +202,12 @@ func (s *RootSignatureController) updateSessionData() {
 	case types.SessionType_DefaultSession:
 		data, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
 		if err != nil {
-			s.log.WithError(err).Error("error selecting session data")
+			s.log.WithError(err).Error("Error selecting session data")
 			return
 		}
 
 		if data == nil {
-			s.log.Error("session data is not initialized")
+			s.log.Error("Session data is not initialized")
 			return
 		}
 
@@ -220,12 +220,12 @@ func (s *RootSignatureController) updateSessionData() {
 	case types.SessionType_ReshareSession:
 		data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
 		if err != nil {
-			s.log.WithError(err).Error("error selecting session data")
+			s.log.WithError(err).Error("Error selecting session data")
 			return
 		}
 
 		if data == nil {
-			s.log.Error("session data is not initialized")
+			s.log.Error("Session data is not initialized")
 			return
 		}
 
@@ -242,6 +242,6 @@ func (s *RootSignatureController) updateSessionData() {
 	}
 
 	if err != nil {
-		s.log.WithError(err).Error("error updating session data entry")
+		s.log.WithError(err).Error("Error updating session data entry")
 	}
 }

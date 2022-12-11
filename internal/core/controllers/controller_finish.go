@@ -32,10 +32,10 @@ func (f *FinishController) Receive(*types.MsgSubmitRequest) error {
 }
 
 func (f *FinishController) Run(context.Context) {
-	f.log.Infof("Starting %s", f.Type().String())
+	f.log.Infof("Starting: %s", f.Type().String())
 	f.wg.Add(1)
 	defer func() {
-		f.log.Infof("%s finished", f.Type().String())
+		f.log.Infof("Finishing: %s", f.Type().String())
 		f.updateSessionEntry()
 		f.wg.Done()
 	}()
@@ -58,12 +58,12 @@ func (f *FinishController) Type() types.ControllerType {
 func (f *FinishController) updateSessionEntry() {
 	session, err := f.pg.SessionQ().SessionByID(int64(f.data.SessionId), false)
 	if err != nil {
-		f.log.WithError(err).Error("error selecting session")
+		f.log.WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		f.log.Error("session entry is not initialized")
+		f.log.Error("Session entry is not initialized")
 		return
 	}
 
@@ -73,7 +73,7 @@ func (f *FinishController) updateSessionEntry() {
 	}
 
 	if err := f.pg.SessionQ().Update(session); err != nil {
-		f.log.Error("error updating session entry")
+		f.log.Error("Error updating session entry")
 	}
 }
 
@@ -92,7 +92,7 @@ var _ IFinishController = &KeygenFinishController{}
 
 func (k *KeygenFinishController) finish() {
 	if k.data.Processing {
-		k.log.Info("Successful session finish")
+		k.log.Infof("Session %d finished successfully", k.data.SessionId)
 		if err := k.storage.SetTssSecret(k.data.NewSecret); err != nil {
 			panic(err)
 		}
@@ -110,7 +110,7 @@ func (k *KeygenFinishController) finish() {
 		return
 	}
 
-	k.log.Info("Unsuccessful session finish")
+	k.log.Infof("Session %d finished unsuccessfully", k.data.SessionId)
 }
 
 type DefaultFinishController struct {
@@ -124,14 +124,15 @@ var _ IFinishController = &DefaultFinishController{}
 
 func (d *DefaultFinishController) finish() {
 	if d.data.Processing {
-		d.log.Info("Successful session finish")
+		d.log.Infof("Session %d finished successfully", d.data.SessionId)
 		d.log.Info("Submitting confirmation message to finish default session.")
 		if err := d.core.SubmitConfirmation(d.data.Indexes, d.data.Root, d.data.OperationSignature); err != nil {
 			d.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
 		}
 		return
 	}
-	d.log.Info("Unsuccessful session finish")
+
+	d.log.Infof("Session %d finished unsuccessfully", d.data.SessionId)
 
 	// try to return indexes back to the pool
 	for _, index := range d.data.Indexes {
@@ -150,7 +151,7 @@ var _ IFinishController = &ReshareFinishController{}
 
 func (r *ReshareFinishController) finish() {
 	if r.data.Processing {
-		r.log.Info("Successful session finish")
+		r.log.Infof("Session %d finished successfully", r.data.SessionId)
 		if err := r.storage.SetTssSecret(r.data.NewSecret); err != nil {
 			panic(err)
 		}
@@ -181,5 +182,5 @@ func (r *ReshareFinishController) finish() {
 		return
 	}
 
-	r.log.Info("Unsuccessful session finish")
+	r.log.Infof("Session %d finished unsuccessfully", r.data.SessionId)
 }

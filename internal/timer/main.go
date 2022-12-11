@@ -63,6 +63,6 @@ func (t *Timer) notifyAll(height uint64) {
 
 func (t *Timer) notify(height uint64, name string, f BlockNotifier) {
 	if err := f(height); err != nil {
-		t.log.WithError(err).Errorf("got an error notifying for the new block %s", name)
+		t.log.WithError(err).Errorf("[Block] Got an error notifying for the new block %s", name)
 	}
 }

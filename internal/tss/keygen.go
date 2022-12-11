@@ -43,7 +43,7 @@ func NewKeygenParty(id uint64, parties []*rarimo.Party, secret *secret.TssSecret
 		wg:       &sync.WaitGroup{},
 		log:      log,
 		partyIds: core.PartyIds(parties),
-		parties:  core.PartiesByAccountMapping(parties),
+		parties:  partiesByAccountMapping(parties),
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(parties, secret, log),
 	}
@@ -54,19 +54,19 @@ func (k *KeygenParty) Result() *keygen.LocalPartySaveData {
 }
 
 func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) {
-	k.log.Infof("Received keygen request from %s", sender.Account)
+	k.log.Debugf("Received keygen request from %s", sender.Account)
 	_, data, _ := bech32.DecodeAndConvert(sender.Account)
 	_, err := k.party.UpdateFromBytes(details, k.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 	if err != nil {
-		k.log.WithError(err).Debug("error updating party")
+		k.log.WithError(err).Debug("Error updating party")
 	}
 }
 
 func (k *KeygenParty) Run(ctx context.Context) {
 	k.log.Infof("Running TSS key generation on set: %v", k.parties)
 	self := k.partyIds.FindByKey(core.GetTssPartyKey(k.secret.AccountAddress()))
-	out := make(chan tss.Message, 1000)
-	end := make(chan keygen.LocalPartySaveData, 1)
+	out := make(chan tss.Message, OutChannelSize)
+	end := make(chan keygen.LocalPartySaveData, EndChannelSize)
 	peerCtx := tss.NewPeerContext(k.partyIds)
 	params := tss.NewParameters(s256k1.S256(), peerCtx, self, k.partyIds.Len(), crypto.GetThreshold(k.partyIds.Len()))
 
@@ -74,7 +74,7 @@ func (k *KeygenParty) Run(ctx context.Context) {
 	go func() {
 		err := k.party.Start()
 		if err != nil {
-			k.log.WithError(err).Error("error running tss party")
+			k.log.WithError(err).Error("Error running tss party")
 			close(end)
 		}
 	}()
@@ -100,10 +100,10 @@ func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveD
 			return
 		}
 
-		k.log.Infof("Pub key: %s", hexutil.Encode(elliptic.Marshal(s256k1.S256(), result.ECDSAPub.X(), result.ECDSAPub.Y())))
+		k.log.Infof("New generated public key: %s", hexutil.Encode(elliptic.Marshal(s256k1.S256(), result.ECDSAPub.X(), result.ECDSAPub.Y())))
 		k.result = &result
 	default:
-		k.log.Info("Reshare process has not been finished yet or has some errors")
+		k.log.Error("Keygen process has not been finished yet or has some errors")
 	}
 }
 
@@ -117,7 +117,7 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 		case msg := <-out:
 			details, err := cosmostypes.NewAnyWithValue(msg.WireMsg().Message)
 			if err != nil {
-				k.log.WithError(err).Error("failed to parse details")
+				k.log.WithError(err).Error("Failed to parse details")
 				continue
 			}
 
@@ -133,13 +133,12 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 				to = k.partyIds
 			}
 
-			k.log.Infof("Sending to %v", to)
 			for _, to := range to {
-				k.log.Infof("Sending message to %s", to.Id)
+				k.log.Debugf("Sending message to %s", to.Id)
 				party, _ := k.parties[to.Id]
 
 				if party.Account == k.secret.AccountAddress() {
-					k.log.Info("Sending to self")
+					k.log.Debug("Sending to self")
 					k.Receive(party, msg.IsBroadcast(), request.Details.Value)
 					continue
 				}

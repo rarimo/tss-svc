@@ -45,13 +45,13 @@ func (o *OperationSubscriber) Run() {
 			c, ok := <-out
 			if !ok {
 				if err := o.client.Unsubscribe(context.Background(), OpServiceName, o.query); err != nil {
-					o.log.WithError(err).Error("[Pool] failed to unsubscribe from new operations")
+					o.log.WithError(err).Error("[Pool] Failed to unsubscribe from new operations")
 				}
 				break
 			}
 
 			for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeNewOperation, rarimo.AttributeKeyOperationId)] {
-				o.log.Debugf("[Pool] New operation found index=%s", index)
+				o.log.Infof("[Pool] New operation found index=%s", index)
 				o.pool.Add(index)
 			}
 
