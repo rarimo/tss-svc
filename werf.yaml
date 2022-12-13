@@ -19,6 +19,8 @@ shell:
     - apk add git build-base
     - git config --global url."https://gitlab-ci-token:{{ env "CI_JOB_TOKEN" }}@gitlab.com/".insteadOf https://gitlab.com/
     - go env -w GOPRIVATE=gitlab.com/*
+    - go env -w GONOSUMDB=gitlab.com/*
+    - go env -w GONOPROXY=gitlab.com/*
     - cd /go/src/gitlab.com/rarimo/tss/tss-svc
     - go mod tidy
     - go mod vendor
