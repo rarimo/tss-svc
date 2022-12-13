@@ -3,8 +3,8 @@ package cli
 import (
 	migrate "github.com/rubenv/sql-migrate"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/rarify-protocol/tss-svc/internal/assets"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarimo/tss/tss-svc/internal/assets"
+	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 var migrations = &migrate.EmbedFileSystemMigrationSource{

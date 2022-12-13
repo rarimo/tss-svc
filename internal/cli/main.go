@@ -9,14 +9,14 @@ import (
 	tsskg "github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/empty"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/keygen"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core/sign"
-	"gitlab.com/rarify-protocol/tss-svc/internal/grpc"
-	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/timer"
+	"gitlab.com/rarimo/tss/tss-svc/internal/config"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core/empty"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core/keygen"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core/sign"
+	"gitlab.com/rarimo/tss/tss-svc/internal/grpc"
+	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
+	"gitlab.com/rarimo/tss/tss-svc/internal/timer"
 )
 
 func Run(args []string) bool {

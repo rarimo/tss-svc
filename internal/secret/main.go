@@ -19,9 +19,9 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 var (

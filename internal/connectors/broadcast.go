@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 // BroadcastConnector uses SubmitConnector to broadcast request to all parties, except of self.

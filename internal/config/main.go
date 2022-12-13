@@ -5,7 +5,7 @@ import (
 	"gitlab.com/distributed_lab/kit/comfig"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/kit/pgdb"
-	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
+	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"google.golang.org/grpc"
 )
 

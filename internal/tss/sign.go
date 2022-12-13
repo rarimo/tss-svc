@@ -12,12 +12,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	"gitlab.com/rarimo/rarimo-core/x/rarimocore/crypto"
+	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core"
+	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 type SignParty struct {

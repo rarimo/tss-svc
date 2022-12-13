@@ -10,7 +10,7 @@ import (
 
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 const (

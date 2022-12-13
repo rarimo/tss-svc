@@ -4,7 +4,7 @@ import (
 	goerr "errors"
 	"sync"
 
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 var (

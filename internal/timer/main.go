@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 // Timer implements the singleton pattern

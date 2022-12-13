@@ -3,8 +3,8 @@ package core
 import (
 	"context"
 
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	token "gitlab.com/rarify-protocol/rarimo-core/x/tokenmanager/types"
+	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	token "gitlab.com/rarimo/rarimo-core/x/tokenmanager/types"
 	"google.golang.org/grpc"
 )
 

@@ -9,12 +9,12 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/crypto/pkg"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
-	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	"gitlab.com/rarimo/rarimo-core/x/rarimocore/crypto/pkg"
+	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core"
+	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
+	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 // SignatureController is responsible for signing data by signature producers.

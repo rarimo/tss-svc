@@ -5,7 +5,7 @@ import (
 
 	"github.com/bnb-chain/tss-lib/tss"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
+	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 )
 
 func GetTssPartyKey(account string) *big.Int {

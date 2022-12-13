@@ -10,12 +10,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/data"
-	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
-	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core"
+	"gitlab.com/rarimo/tss/tss-svc/internal/data"
+	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
+	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 // KeygenController is responsible for initial key generation. It can only be launched with empty secret storage and

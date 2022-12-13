@@ -2,7 +2,7 @@ package config
 
 import (
 	"gitlab.com/distributed_lab/kit/pgdb"
-	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
+	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 )
 
 func (c *config) Storage() *pg.Storage {

@@ -5,12 +5,12 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarify-protocol/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
-	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
-	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
+	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
+	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
+	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 // FinishController is responsible for finishing sessions. For example: submit transactions, update session entry, etc.

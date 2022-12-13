@@ -4,14 +4,14 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
-	"gitlab.com/rarify-protocol/tss-svc/internal/connectors"
-	"gitlab.com/rarify-protocol/tss-svc/internal/core"
-	"gitlab.com/rarify-protocol/tss-svc/internal/data/pg"
-	"gitlab.com/rarify-protocol/tss-svc/internal/pool"
-	"gitlab.com/rarify-protocol/tss-svc/internal/secret"
-	"gitlab.com/rarify-protocol/tss-svc/internal/tss"
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	"gitlab.com/rarimo/tss/tss-svc/internal/config"
+	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core"
+	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
+	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
+	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
+	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
 

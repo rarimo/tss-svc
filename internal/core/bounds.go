@@ -3,7 +3,7 @@ package core
 import (
 	"sync"
 
-	"gitlab.com/rarify-protocol/tss-svc/pkg/types"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 const (

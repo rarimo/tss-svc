@@ -6,7 +6,7 @@ import (
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"github.com/tendermint/tendermint/types"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarify-protocol/tss-svc/internal/config"
+	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 const (
