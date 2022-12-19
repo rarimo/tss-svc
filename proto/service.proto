@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+option go_package = "gitlab.com/rarimo/tss/tss-svc/pkg/types";
+
+import "request.proto";
+import "session.proto";
+import "google/protobuf/any.proto";
+
+service Service {
+  rpc Submit(MsgSubmitRequest) returns (MsgSubmitResponse);
+  rpc Info(MsgInfoRequest) returns (MsgInfoResponse);
+  rpc Session(MsgSessionRequest) returns (MsgSessionResponse);
+  rpc AddOperation(MsgAddOperationRequest) returns (MsgAddOperationResponse);
+}
+
+enum RequestType {
+  Proposal = 0;
+  Acceptance = 1;
+  Sign = 2;
+  Reshare = 3;
+  Keygen = 4;
+}
+
+message MsgSubmitRequest {
+  uint64 id = 1;
+  string signature = 2;
+  bool isBroadcast = 3;
+  RequestType type = 4;
+  google.protobuf.Any details = 5;
+}
+
+message MsgSubmitResponse {}
+
+
+message MsgInfoRequest{}
+
+message MsgInfoResponse {
+  string localAccount = 1;
+  string localPublicKey = 2;
+  uint64 currentSessionId = 3;
+  Session sessionData = 4;
+}
+
+message MsgSessionRequest{
+  uint64 id = 1;
+}
+
+message MsgSessionResponse {
+  Session data = 1;
+}
+
+message MsgAddOperationRequest {
+  string index = 1;
+}
+
+message MsgAddOperationResponse {}

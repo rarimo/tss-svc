@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option go_package = "gitlab.com/rarimo/tss/tss-svc/pkg/types";
+
+import "google/protobuf/any.proto";
+
+enum ControllerType {
+  CONTROLLER_KEYGEN = 0;
+  CONTROLLER_PROPOSAL = 1;
+  CONTROLLER_RESHARE = 2;
+  CONTROLLER_ACCEPTANCE = 3;
+  CONTROLLER_SIGN = 5;
+  CONTROLLER_FINISH = 6;
+}

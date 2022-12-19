@@ -1,0 +1,25 @@
+log:
+  disable_sentry: true
+  level: debug
+
+db:
+  url: "postgres://tss:tss@192.168.10.14:5432/tss?sslmode=disable"
+
+listener:
+  addr: :8093
+
+core:
+  addr: tcp://192.168.10.2:26657
+
+cosmos:
+  addr: 192.168.10.2:9090
+
+session:
+  start_block: 53
+  start_session_id: 3
+
+prv:
+  #0x0489fda594f2357ccc5581368d59c8984b747a4334f1b29f6c968c4e942534d5474adb472a9024a460128a0a367be2d6dd25e0d56de997f8018081421e90db7021
+  prv_key_hex: "0x40bb75ca59e8ca6d1957b6a56e10f3186d8f2a47393151eb7e8986a7785806fb"
+  account_prv_hex: "0xe6972a30c11151cc1c0dedf4296988a66af02b47d37010357e57f129e3067117"
+  chain_id: rarimo

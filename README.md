@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://gitlab.com/rarify-protocol/threshold-sign.git
+git remote add origin https://gitlab.com/rarimo/threshold-sign.git
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.com/rarify-protocol/threshold-sign/-/settings/integrations)
+- [ ] [Set up project integrations](https://gitlab.com/rarimo/threshold-sign/-/settings/integrations)
 
 ## Collaborate with your team
 

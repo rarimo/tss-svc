@@ -1,0 +1,27 @@
+log:
+  disable_sentry: true
+  level: debug
+
+db:
+  url: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
+listener:
+  addr: :8000
+
+core:
+  addr: tcp://127.0.0.1:26657
+
+cosmos:
+  addr: 127.0.0.1:9090
+
+
+session:
+  start_block: 230
+  start_session_id: 9
+  last_signature: "0x00"
+
+prv:
+  prv_key_hex: "0xdd0913790c4d1a911ceb81b86d330a34a361623e04e43e8dbd44906d87879940"
+  #inquiry dirt embody anchor empower trust luxury burger armor aisle catch dust copper month bone bamboo robust shoot shield month increase oak usage skirt
+  account_prv_hex: "0xdd0913790c4d1a911ceb81b86d330a34a361623e04e43e8dbd44906d87879940"
+  chain_id: rarimo
