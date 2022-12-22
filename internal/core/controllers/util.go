@@ -62,7 +62,6 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 			if content != nil {
 				contents = append(contents, content)
 			}
-
 		case rarimo.OpType_CHANGE_PARTIES:
 			// Currently not supported here
 		default:
@@ -84,10 +83,9 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 		return nil, errors.Wrap(err, "error getting token info entry")
 	}
 
-	itemResp, err := token.NewQueryClient(client).Item(context.TODO(), &token.QueryGetItemRequest{
-		TokenAddress: infoResp.Info.Chains[transfer.ToChain].TokenAddress,
-		TokenId:      infoResp.Info.Chains[transfer.ToChain].TokenId,
-		Chain:        transfer.ToChain,
+	itemResp, err := token.NewQueryClient(client).ItemByChain(context.TODO(), &token.QueryGetItemByChainRequest{
+		InfoIndex: infoResp.Info.Index,
+		Chain:     transfer.ToChain,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting token item entry")
@@ -98,8 +96,14 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 		return nil, errors.Wrap(err, "error getting params")
 	}
 
-	content, err := pkg.GetTransferContent(&itemResp.Item, params.Params.Networks[transfer.ToChain], transfer)
-	return content, errors.Wrap(err, "error creating content")
+	for _, param := range params.Params.Networks {
+		if param.Name == transfer.ToChain {
+			content, err := pkg.GetTransferContent(&itemResp.Item, param, transfer)
+			return content, errors.Wrap(err, "error creating content")
+		}
+	}
+
+	return nil, nil
 }
 
 func checkSet(proposal *types.Set, input *core.InputSet) bool {
