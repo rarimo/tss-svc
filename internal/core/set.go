@@ -4,7 +4,6 @@ import (
 	"context"
 
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	token "gitlab.com/rarimo/rarimo-core/x/tokenmanager/types"
 	"google.golang.org/grpc"
 )
 
@@ -16,17 +15,11 @@ type InputSet struct {
 	Parties           []*rarimo.Party
 	VerifiedParties   []*rarimo.Party
 	UnverifiedParties []*rarimo.Party
-	Chains            map[string]*token.ChainParams
 	LastSignature     string
 }
 
 func NewInputSet(client *grpc.ClientConn) *InputSet {
 	tssP, err := rarimo.NewQueryClient(client).Params(context.TODO(), &rarimo.QueryParamsRequest{})
-	if err != nil {
-		panic(err)
-	}
-
-	tokenP, err := token.NewQueryClient(client).Params(context.TODO(), &token.QueryParamsRequest{})
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +42,6 @@ func NewInputSet(client *grpc.ClientConn) *InputSet {
 		Parties:           tssP.Params.Parties,
 		VerifiedParties:   verifiedParties,
 		UnverifiedParties: unverifiedParties,
-		Chains:            tokenP.Params.Networks,
 		LastSignature:     tssP.Params.LastSignature,
 	}
 }
