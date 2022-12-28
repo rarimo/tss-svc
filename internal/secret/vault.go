@@ -104,7 +104,7 @@ func (v *VaultStorage) loadSecret() (*TssSecret, error) {
 	}
 
 	pre := new(keygen.LocalPreParams)
-	if err := json.Unmarshal([]byte(v.kvSecret.Data[preKey].(string)), data); err != nil {
+	if err := json.Unmarshal([]byte(v.kvSecret.Data[preKey].(string)), pre); err != nil {
 		v.log.Info("[Vault] Generating tss pre-params")
 		pre = loadParams()
 	}
@@ -113,7 +113,8 @@ func (v *VaultStorage) loadSecret() (*TssSecret, error) {
 
 	// Can be empty if TSS data set
 	var prv *ecdsa.PrivateKey
-	if prvBytes, err := hexutil.Decode(v.kvSecret.Data[trialKey].(string)); err != nil {
+	if prvBytes, err := hexutil.Decode(v.kvSecret.Data[trialKey].(string)); err == nil {
+		v.log.Info("[Vault] Trial private key found")
 		prv, _ = crypto.ToECDSA(prvBytes)
 	}
 
