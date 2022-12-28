@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	vault "github.com/hashicorp/vault/api"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
@@ -28,6 +29,7 @@ var vaultStorage *VaultStorage
 
 type VaultStorage struct {
 	mu       sync.Mutex
+	log      *logan.Entry
 	secret   *TssSecret
 	kvSecret *vault.KVSecret
 	client   *vault.KVv2
@@ -38,6 +40,7 @@ func NewVaultStorage(cfg config.Config) *VaultStorage {
 	if vaultStorage == nil {
 		vaultStorage = &VaultStorage{
 			client: cfg.Vault(),
+			log:    cfg.Log(),
 			path:   os.Getenv(config.VaultSecretPath),
 		}
 	}
@@ -79,8 +82,8 @@ func (v *VaultStorage) SetTssSecret(secret *TssSecret) error {
 		return err
 	}
 
-	v.kvSecret.Data[dataKey] = dataJson
-	v.kvSecret.Data[preKey] = preJson
+	v.kvSecret.Data[dataKey] = string(dataJson)
+	v.kvSecret.Data[preKey] = string(preJson)
 	// Account and Trial Private Key will not be changed by tss instance, so - skipped
 
 	v.kvSecret, err = v.client.Put(context.TODO(), v.path, v.kvSecret.Data)
@@ -96,10 +99,13 @@ func (v *VaultStorage) loadSecret() (*TssSecret, error) {
 
 	data := new(keygen.LocalPartySaveData)
 	// Data can be empty
-	_ = json.Unmarshal([]byte(v.kvSecret.Data[dataKey].(string)), data)
+	if err = json.Unmarshal([]byte(v.kvSecret.Data[dataKey].(string)), data); err != nil {
+		v.log.Info("[Vault] TSS Save Data is empty")
+	}
 
 	pre := new(keygen.LocalPreParams)
 	if err := json.Unmarshal([]byte(v.kvSecret.Data[preKey].(string)), data); err != nil {
+		v.log.Info("[Vault] Generating tss pre-params")
 		pre = loadParams()
 	}
 
