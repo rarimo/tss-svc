@@ -33,7 +33,7 @@ func NewServer(manager *core.SessionManager, cfg config.Config) *ServerImpl {
 		log:      cfg.Log(),
 		listener: cfg.Listener(),
 		pg:       cfg.Storage(),
-		storage:  secret.NewLocalStorage(cfg),
+		storage:  secret.NewVaultStorage(cfg),
 		pool:     pool.NewPool(cfg),
 	}
 }

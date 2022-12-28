@@ -37,15 +37,16 @@ type TssSecret struct {
 }
 
 func NewTssSecret(prv *ecdsa.PrivateKey, account cryptotypes.PrivKey, data *tsskeygen.LocalPartySaveData, params *tsskeygen.LocalPreParams) *TssSecret {
-	if prv == nil {
-		if data == nil || data.Xi == nil {
-			panic(ErrUninitializedPrivateKey)
-		}
+	if data != nil && data.Xi != nil {
 		var err error
 		prv, err = eth.ToECDSA(data.Xi.Bytes())
 		if err != nil {
 			panic(err)
 		}
+	}
+
+	if prv == nil {
+		panic(ErrUninitializedPrivateKey)
 	}
 
 	return &TssSecret{
