@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"os"
 	"sync"
 
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
@@ -16,11 +17,10 @@ import (
 )
 
 const (
-	vaultTssSecretPath = "tss"
-	dataKey            = "data"
-	preKey             = "pre"
-	accountKey         = "account"
-	trialKey           = "trial"
+	dataKey    = "data"
+	preKey     = "pre"
+	accountKey = "account"
+	trialKey   = "trial"
 )
 
 // VaultStorage implements singleton pattern
@@ -31,12 +31,14 @@ type VaultStorage struct {
 	secret   *TssSecret
 	kvSecret *vault.KVSecret
 	client   *vault.KVv2
+	path     string
 }
 
 func NewVaultStorage(cfg config.Config) *VaultStorage {
 	if vaultStorage == nil {
 		vaultStorage = &VaultStorage{
-			client: nil,
+			client: cfg.Vault(),
+			path:   os.Getenv(config.VaultSecretPath),
 		}
 	}
 
@@ -81,13 +83,13 @@ func (v *VaultStorage) SetTssSecret(secret *TssSecret) error {
 	v.kvSecret.Data[preKey] = preJson
 	// Account and Trial Private Key will not be changed by tss instance, so - skipped
 
-	v.kvSecret, err = v.client.Put(context.TODO(), vaultTssSecretPath, v.kvSecret.Data)
+	v.kvSecret, err = v.client.Put(context.TODO(), v.path, v.kvSecret.Data)
 	return err
 }
 
 func (v *VaultStorage) loadSecret() (*TssSecret, error) {
 	var err error
-	v.kvSecret, err = v.client.Get(context.Background(), vaultTssSecretPath)
+	v.kvSecret, err = v.client.Get(context.Background(), v.path)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get secret data")
 	}

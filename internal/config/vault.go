@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	VaultPathEnv   = "VAULT_PATH"
-	VaultTokenEnv  = "VAULT_TOKEN"
-	VaultMountPath = "MOUNT_PATH"
+	VaultPathEnv    = "VAULT_PATH"
+	VaultTokenEnv   = "VAULT_TOKEN"
+	VaultMountPath  = "MOUNT_PATH"
+	VaultSecretPath = "SECRET_PATH"
 )
 
 func (c *config) Vault() *vault.KVv2 {
