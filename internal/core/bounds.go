@@ -15,9 +15,6 @@ const (
 	KeygenDuration     = 4
 )
 
-// Default: 0-5 proposal 6-11 acceptance 12-17 sign 17-35 finish
-// Reshare 0-5 proposal 6-11 acceptance 12-17 reshare 18-23 sign 24-29 sign 30-35 finish
-
 // Default: 0-3 proposal 4-7 acceptance 8-11 sign 12-23 finish
 // Reshare 0-3 proposal 4-7 acceptance 8-11 reshare 12-15 sign 16-19 sign 20-23 finish
 

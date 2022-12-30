@@ -1,6 +1,7 @@
 package config
 
 import (
+	vault "github.com/hashicorp/vault/api"
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/kit/comfig"
 	"gitlab.com/distributed_lab/kit/kv"
@@ -18,7 +19,7 @@ type Config interface {
 	Cosmos() *grpc.ClientConn
 	Storage() *pg.Storage
 	Session() *SessionInfo
-	Private() *PrivateInfo
+	Vault() *vault.KVv2
 }
 
 type config struct {
@@ -31,6 +32,7 @@ type config struct {
 	storage    comfig.Once
 	session    comfig.Once
 	private    comfig.Once
+	vault      comfig.Once
 
 	getter kv.Getter
 }

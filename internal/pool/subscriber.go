@@ -35,26 +35,32 @@ func NewTransferOperationSubscriber(cfg config.Config) *OperationSubscriber {
 }
 
 func (o *OperationSubscriber) Run() {
+	go func() {
+		for {
+			o.runner()
+			o.log.Info("[Pool] Resubscribing to the pool...")
+		}
+	}()
+}
+
+func (o *OperationSubscriber) runner() {
 	out, err := o.client.Subscribe(context.Background(), OpServiceName, o.query, OpPoolSize)
 	if err != nil {
 		panic(err)
 	}
 
-	go func() {
-		for {
-			c, ok := <-out
-			if !ok {
-				if err := o.client.Unsubscribe(context.Background(), OpServiceName, o.query); err != nil {
-					o.log.WithError(err).Error("[Pool] Failed to unsubscribe from new operations")
-				}
-				break
+	for {
+		c, ok := <-out
+		if !ok {
+			if err := o.client.Unsubscribe(context.Background(), OpServiceName, o.query); err != nil {
+				o.log.WithError(err).Error("[Pool] Failed to unsubscribe from new operations")
 			}
-
-			for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeNewOperation, rarimo.AttributeKeyOperationId)] {
-				o.log.Infof("[Pool] New operation found index=%s", index)
-				o.pool.Add(index)
-			}
-
+			break
 		}
-	}()
+
+		for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeNewOperation, rarimo.AttributeKeyOperationId)] {
+			o.log.Infof("[Pool] New operation found index=%s", index)
+			o.pool.Add(index)
+		}
+	}
 }

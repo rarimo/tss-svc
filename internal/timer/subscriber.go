@@ -32,28 +32,35 @@ func NewBlockSubscriber(cfg config.Config) *BlockSubscriber {
 }
 
 func (b *BlockSubscriber) Run() {
+	go func() {
+		for {
+			b.runner()
+			b.log.Info("[Block] Resubscribing to the blocks...")
+		}
+	}()
+}
+
+func (b *BlockSubscriber) runner() {
 	out, err := b.client.Subscribe(context.Background(), BlockServiceName, BlockQuery)
 	if err != nil {
 		panic(err)
 	}
 
-	go func() {
-		for {
-			c, ok := <-out
-			if !ok {
-				if err := b.client.Unsubscribe(context.Background(), BlockServiceName, BlockQuery); err != nil {
-					b.log.WithError(err).Error("[Block] failed to unsubscribe from new blocks")
-				}
-				break
+	for {
+		c, ok := <-out
+		if !ok {
+			if err := b.client.Unsubscribe(context.Background(), BlockServiceName, BlockQuery); err != nil {
+				b.log.WithError(err).Error("[Block] failed to unsubscribe from new blocks")
 			}
-
-			switch data := c.Data.(type) {
-			case types.EventDataNewBlock:
-				b.log.Infof("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
-				b.timer.newBlock(uint64(data.Block.Height))
-				break
-			}
-
+			break
 		}
-	}()
+
+		switch data := c.Data.(type) {
+		case types.EventDataNewBlock:
+			b.log.Infof("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
+			b.timer.newBlock(uint64(data.Block.Height))
+			break
+		}
+
+	}
 }
