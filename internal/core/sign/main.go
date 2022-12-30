@@ -124,7 +124,7 @@ func (s *Session) runController() {
 }
 
 func (s *Session) stopController() {
-	if s.current != nil {
+	if s.current != nil && s.cancel != nil {
 		s.cancel()
 		s.current.WaitFor()
 	}
