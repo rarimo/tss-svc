@@ -1,12 +1,16 @@
 package cli
 
 import (
+	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/alecthomas/kingpin"
 	tsskg "github.com/bnb-chain/tss-lib/ecdsa/keygen"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/internal/config"
@@ -37,6 +41,7 @@ func Run(args []string) bool {
 	serviceCmd := runCmd.Command("service", "run service")
 	keygenCmd := runCmd.Command("keygen", "run keygen")
 	paramgenCmd := runCmd.Command("paramgen", "run paramgen")
+	prvgenCmd := runCmd.Command("prvgen", "run prvgen")
 
 	migrateCmd := app.Command("migrate", "migrate command")
 	migrateUpCmd := migrateCmd.Command("up", "migrate db up")
@@ -77,6 +82,10 @@ func Run(args []string) bool {
 		}
 
 		fmt.Println(string(data))
+	case prvgenCmd.FullCommand():
+		keypair, _ := crypto.GenerateKey()
+		fmt.Println("Pub: " + hexutil.Encode(elliptic.Marshal(secp256k1.S256(), keypair.X, keypair.Y)))
+		fmt.Println("Prv: " + hexutil.Encode(keypair.D.Bytes()))
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():
