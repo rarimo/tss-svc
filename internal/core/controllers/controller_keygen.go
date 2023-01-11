@@ -204,9 +204,11 @@ func (r *ReshareKeygenController) updateSessionData() {
 		return
 	}
 
-	data.NewKey = sql.NullString{
-		String: r.data.NewSecret.GlobalPubKey(),
-		Valid:  r.data.Processing,
+	if r.data.Processing {
+		data.NewKey = sql.NullString{
+			String: r.data.NewSecret.GlobalPubKey(),
+			Valid:  r.data.Processing,
+		}
 	}
 
 	if err = r.pg.ReshareSessionDatumQ().Update(data); err != nil {
