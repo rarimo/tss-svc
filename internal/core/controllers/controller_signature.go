@@ -20,7 +20,6 @@ import (
 // SignatureController is responsible for signing data by signature producers.
 type SignatureController struct {
 	ISignatureController
-	mu   sync.Mutex
 	wg   *sync.WaitGroup
 	data *LocalSessionData
 
@@ -82,9 +81,6 @@ func (s *SignatureController) run(ctx context.Context) {
 	<-ctx.Done()
 
 	s.party.WaitFor()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	result := s.party.Result()
 	if result == nil {
