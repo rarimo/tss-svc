@@ -4,6 +4,7 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -11,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/internal/config"
@@ -24,6 +26,8 @@ import (
 )
 
 func Run(args []string) bool {
+	go profiling()
+
 	log := logan.New()
 
 	defer func() {
@@ -33,8 +37,8 @@ func Run(args []string) bool {
 	}()
 
 	cfg := config.New(kv.MustFromEnv())
-	log = cfg.Log()
 
+	log = cfg.Log()
 	app := kingpin.New("tss-svc", "")
 
 	runCmd := app.Command("run", "run command")
@@ -99,4 +103,11 @@ func Run(args []string) bool {
 		return false
 	}
 	return true
+}
+
+func profiling() {
+	http.Handle("/metrics", promhttp.Handler())
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
 }
