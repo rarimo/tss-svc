@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -106,7 +107,14 @@ func Run(args []string) bool {
 }
 
 func profiling() {
-	http.Handle("/metrics", promhttp.Handler())
+	r := http.NewServeMux()
+	r.HandleFunc("/debug/pprof/", pprof.Index)
+	r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	r.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	r.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	r.Handle("/metrics", promhttp.Handler())
+
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}
