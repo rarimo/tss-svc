@@ -10,12 +10,12 @@ const (
 	SessionDuration    = 26
 	ProposalDuration   = 2
 	AcceptanceDuration = 2
-	SignDuration       = 5
-	KeygenDuration     = 5
+	SignDuration       = 6
+	KeygenDuration     = 4
 )
 
-// Default: 0-2 proposal 3-5 acceptance 6-11 sign 12-26 finish
-// Reshare 0-2 proposal 3-5 acceptance 6-11 keygen 12-17 sign 18-23 sign 24-26 finish
+// Default: 0-2 proposal 3-5 acceptance 6-12 sign 13-26 finish
+// Reshare 0-2 proposal 3-5 acceptance 6-10 keygen 11-17 sign 18-24 sign 25-26 finish
 
 var durationByControllers = map[types.ControllerType]uint64{
 	types.ControllerType_CONTROLLER_KEYGEN:     KeygenDuration,
