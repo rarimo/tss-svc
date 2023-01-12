@@ -85,11 +85,16 @@ func (k *KeygenParty) Run(ctx context.Context) {
 }
 
 func (k *KeygenParty) WaitFor() {
+	k.log.Debug("Waiting for finishing keygen party group")
 	k.wg.Wait()
+	k.log.Debug("Keygen party group finished")
 }
 
 func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveData) {
-	defer k.wg.Done()
+	defer func() {
+		k.log.Debug("Listening to keygen party result finished")
+		k.wg.Done()
+	}()
 
 	<-ctx.Done()
 
@@ -108,7 +113,10 @@ func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveD
 }
 
 func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
-	defer k.wg.Done()
+	defer func() {
+		k.log.Debug("Listening to keygen party output finished")
+		k.wg.Done()
+	}()
 
 	for {
 		select {

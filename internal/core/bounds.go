@@ -8,22 +8,20 @@ import (
 
 const (
 	SessionDuration    = 23
-	ProposalDuration   = 3
-	AcceptanceDuration = 3
+	ProposalDuration   = 2
+	AcceptanceDuration = 2
 	SignDuration       = 3
-	ReshareDuration    = 3
-	KeygenDuration     = 4
+	KeygenDuration     = 6
 )
 
-// Default: 0-3 proposal 4-7 acceptance 8-11 sign 12-23 finish
-// Reshare 0-3 proposal 4-7 acceptance 8-11 reshare 12-15 sign 16-19 sign 20-23 finish
+// Default: 0-2 proposal 3-5 acceptance 6-9 sign 10-23 finish
+// Reshare 0-2 proposal 3-5 acceptance 6-12 keygen 13-16 sign 17-20 sign 21-23 finish
 
 var durationByControllers = map[types.ControllerType]uint64{
 	types.ControllerType_CONTROLLER_KEYGEN:     KeygenDuration,
 	types.ControllerType_CONTROLLER_PROPOSAL:   ProposalDuration,
 	types.ControllerType_CONTROLLER_ACCEPTANCE: AcceptanceDuration,
 	types.ControllerType_CONTROLLER_SIGN:       SignDuration,
-	types.ControllerType_CONTROLLER_RESHARE:    ReshareDuration,
 }
 
 type Bounds struct {

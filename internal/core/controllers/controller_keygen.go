@@ -92,7 +92,6 @@ type IKeygenController interface {
 
 // DefaultKeygenController represents custom logic for types.SessionType_KeygenSession
 type DefaultKeygenController struct {
-	mu      sync.Mutex
 	data    *LocalSessionData
 	pg      *pg.Storage
 	log     *logan.Entry
@@ -148,9 +147,6 @@ func (d *DefaultKeygenController) updateSessionData() {
 }
 
 func (d *DefaultKeygenController) finish(result *keygen.LocalPartySaveData) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
 	if result == nil {
 		d.data.Processing = false
 		return
@@ -163,7 +159,6 @@ func (d *DefaultKeygenController) finish(result *keygen.LocalPartySaveData) {
 
 // ReshareKeygenController represents custom logic for types.SessionType_ReshareSession
 type ReshareKeygenController struct {
-	mu      sync.Mutex
 	data    *LocalSessionData
 	pg      *pg.Storage
 	log     *logan.Entry

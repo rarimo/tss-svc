@@ -72,7 +72,9 @@ func (p *SignParty) Run(ctx context.Context) {
 }
 
 func (p *SignParty) WaitFor() {
+	p.log.Debug("Waiting for finishing sign party group")
 	p.wg.Wait()
+	p.log.Debug("Sign party group finished")
 }
 
 func (p *SignParty) Result() *common.SignatureData {
@@ -95,7 +97,10 @@ func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []by
 }
 
 func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
-	defer p.wg.Done()
+	defer func() {
+		p.log.Debug("Listening to sign party result finished")
+		p.wg.Done()
+	}()
 
 	<-ctx.Done()
 
@@ -114,7 +119,10 @@ func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
 }
 
 func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
-	defer p.wg.Done()
+	defer func() {
+		p.log.Debug("Listening to sign party output finished")
+		p.wg.Done()
+	}()
 
 	for {
 		select {
