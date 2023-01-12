@@ -7,15 +7,15 @@ import (
 )
 
 const (
-	SessionDuration    = 23
+	SessionDuration    = 26
 	ProposalDuration   = 2
 	AcceptanceDuration = 2
-	SignDuration       = 3
-	KeygenDuration     = 6
+	SignDuration       = 5
+	KeygenDuration     = 5
 )
 
-// Default: 0-2 proposal 3-5 acceptance 6-9 sign 10-23 finish
-// Reshare 0-2 proposal 3-5 acceptance 6-12 keygen 13-16 sign 17-20 sign 21-23 finish
+// Default: 0-2 proposal 3-5 acceptance 6-11 sign 12-26 finish
+// Reshare 0-2 proposal 3-5 acceptance 6-11 keygen 12-17 sign 18-23 sign 24-26 finish
 
 var durationByControllers = map[types.ControllerType]uint64{
 	types.ControllerType_CONTROLLER_KEYGEN:     KeygenDuration,
