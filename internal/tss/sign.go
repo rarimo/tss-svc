@@ -167,9 +167,11 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 					continue
 				}
 
-				if failed := p.con.SubmitTo(ctx, request, party); len(failed) != 0 {
-					go p.con.SubmitTo(ctx, request, party)
-				}
+				go func() {
+					if failed := p.con.SubmitTo(ctx, request, party); len(failed) != 0 {
+						p.con.SubmitTo(ctx, request, party)
+					}
+				}()
 			}
 		}
 	}

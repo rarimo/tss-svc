@@ -2,7 +2,7 @@ package connectors
 
 import (
 	"context"
-	"time"
+	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
@@ -34,33 +34,28 @@ func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSu
 }
 
 func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
-	failed := make([]*rarimo.Party, 0, len(b.parties))
-
-	for _, party := range parties {
-		if party.Account != b.sc.AccountAddress() {
-			_, err := b.Submit(ctx, *party, request)
-
-			if err != nil {
-				b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", party.Account, party.Address)
-				failed = append(failed, party)
-			}
-		}
+	failed := struct {
+		mu  sync.Mutex
+		arr []*rarimo.Party
+	}{
+		arr: make([]*rarimo.Party, 0, len(b.parties)),
 	}
 
-	return failed
-}
-
-func (b *BroadcastConnector) MustSubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) {
 	for _, party := range parties {
 		if party.Account != b.sc.AccountAddress() {
-			for {
+			go func() {
 				if _, err := b.Submit(ctx, *party, request); err != nil {
-					b.log.WithError(err).Errorf("Error submitting request to the party %s", party.Account)
-					time.Sleep(time.Second)
-					continue
+					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", party.Account, party.Address)
+
+					func() {
+						failed.mu.Lock()
+						defer failed.mu.Unlock()
+						failed.arr = append(failed.arr, party)
+					}()
 				}
-				break
-			}
+			}()
 		}
 	}
+
+	return failed.arr
 }
