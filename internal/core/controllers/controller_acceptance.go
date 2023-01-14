@@ -146,7 +146,7 @@ func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
 		return
 	}
 
-	a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+	go a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Id:          a.data.SessionId,
 		Type:        types.RequestType_Acceptance,
 		IsBroadcast: true,
@@ -235,7 +235,7 @@ func (a *ReshareAcceptanceController) shareAcceptance(ctx context.Context) {
 		return
 	}
 
-	a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+	go a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Id:          a.data.SessionId,
 		Type:        types.RequestType_Acceptance,
 		IsBroadcast: true,

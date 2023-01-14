@@ -188,7 +188,7 @@ func (d *DefaultProposalController) shareProposal(ctx context.Context) {
 		return
 	}
 
-	d.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+	go d.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Id:          d.data.SessionId,
 		Type:        types.RequestType_Proposal,
 		IsBroadcast: true,
@@ -327,7 +327,7 @@ func (r *ReshareProposalController) shareProposal(ctx context.Context) {
 		return
 	}
 
-	r.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+	go r.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Id:          r.data.SessionId,
 		Type:        types.RequestType_Proposal,
 		IsBroadcast: true,
