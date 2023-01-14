@@ -49,6 +49,9 @@ func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, reques
 	var client *con
 	var err error
 
+	// client will be initialized later
+	defer client.mu.Unlock()
+
 	func() {
 		clientsBuffer.mu.Lock()
 		defer clientsBuffer.mu.Unlock()
@@ -57,8 +60,6 @@ func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, reques
 		// getClient will return empty &con{} instead of nil
 		client.mu.Lock()
 	}()
-
-	defer client.mu.Unlock()
 
 	if err != nil {
 		return nil, err
