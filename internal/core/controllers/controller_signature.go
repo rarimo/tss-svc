@@ -51,7 +51,7 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 	}
 
 	if sign.Data == s.party.Data() {
-		s.party.Receive(sender, request.IsBroadcast, sign.Details.Value)
+		go s.party.Receive(sender, request.IsBroadcast, sign.Details.Value)
 	}
 	return nil
 }

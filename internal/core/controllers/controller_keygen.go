@@ -44,7 +44,7 @@ func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	k.party.Receive(sender, request.IsBroadcast, request.Details.Value)
+	go k.party.Receive(sender, request.IsBroadcast, request.Details.Value)
 
 	return nil
 }
