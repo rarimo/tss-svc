@@ -147,11 +147,11 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 
 				if party.Account == k.secret.AccountAddress() {
 					k.log.Debug("Sending to self")
-					k.Receive(party, msg.IsBroadcast(), request.Details.Value)
+					go k.Receive(party, msg.IsBroadcast(), request.Details.Value)
 					continue
 				}
 
-				k.con.SubmitTo(ctx, request, party)
+				go k.con.SubmitTo(ctx, request, party)
 			}
 		}
 	}

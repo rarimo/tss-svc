@@ -163,12 +163,12 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 
 				if party.Account == p.secret.AccountAddress() {
 					p.log.Debug("Sending to self")
-					p.Receive(party, msg.IsBroadcast(), details.Value)
+					go p.Receive(party, msg.IsBroadcast(), details.Value)
 					continue
 				}
 
 				if failed := p.con.SubmitTo(ctx, request, party); len(failed) != 0 {
-					p.con.SubmitTo(ctx, request, party)
+					go p.con.SubmitTo(ctx, request, party)
 				}
 			}
 		}
