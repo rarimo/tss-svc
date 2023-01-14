@@ -15,6 +15,7 @@ import (
 var ErrorConnectorClosed = errors.New("connector already closed")
 
 type con struct {
+	mu       sync.Mutex
 	client   *grpc.ClientConn
 	lastUsed time.Time
 }
@@ -45,32 +46,44 @@ func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, reques
 		return nil, err
 	}
 
-	clientsBuffer.mu.Lock()
-	defer clientsBuffer.mu.Unlock()
+	var client *con
+	var err error
 
-	client, err := s.getClient(party.Address)
+	func() {
+		clientsBuffer.mu.Lock()
+		defer clientsBuffer.mu.Unlock()
+
+		client, err = s.getClient(party.Address)
+		// getClient will return empty &con{} instead of nil
+		client.mu.Lock()
+	}()
+
+	defer client.mu.Unlock()
+
 	if err != nil {
 		return nil, err
 	}
 
-	return types.NewServiceClient(client).Submit(ctx, request)
+	return types.NewServiceClient(client.client).Submit(ctx, request)
 }
 
-func (s *SubmitConnector) getClient(addr string) (*grpc.ClientConn, error) {
+func (s *SubmitConnector) getClient(addr string) (*con, error) {
 	if client, ok := clientsBuffer.clients[addr]; ok && client != nil {
 		client.lastUsed = time.Now().UTC()
-		return client.client, nil
+		return client, nil
 	}
 
 	client, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
-		return nil, err
+		return &con{}, err
 	}
 
-	clientsBuffer.clients[addr] = &con{
+	con := &con{
 		client:   client,
 		lastUsed: time.Now().UTC(),
 	}
 
-	return client, nil
+	clientsBuffer.clients[addr] = con
+
+	return con, nil
 }
