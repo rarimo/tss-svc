@@ -15,7 +15,6 @@ import (
 var ErrorConnectorClosed = errors.New("connector already closed")
 
 type con struct {
-	mu       sync.Mutex
 	client   *grpc.ClientConn
 	lastUsed time.Time
 }
@@ -49,16 +48,11 @@ func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, reques
 	var client *con
 	var err error
 
-	// client will be initialized later
-	defer client.mu.Unlock()
-
 	func() {
 		clientsBuffer.mu.Lock()
 		defer clientsBuffer.mu.Unlock()
 
 		client, err = s.getClient(party.Address)
-		// getClient will return empty &con{} instead of nil
-		client.mu.Lock()
 	}()
 
 	if err != nil {
@@ -76,7 +70,7 @@ func (s *SubmitConnector) getClient(addr string) (*con, error) {
 
 	client, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
-		return &con{}, err
+		return nil, err
 	}
 
 	con := &con{
