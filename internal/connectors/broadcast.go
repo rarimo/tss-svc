@@ -43,14 +43,15 @@ func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSub
 
 	for _, party := range parties {
 		if party.Account != b.sc.AccountAddress() {
+			to := *party
 			go func() {
-				if _, err := b.Submit(ctx, *party, request); err != nil {
-					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", party.Account, party.Address)
+				if _, err := b.Submit(ctx, to, request); err != nil {
+					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", to.Account, to.Address)
 
 					func() {
 						failed.mu.Lock()
 						defer failed.mu.Unlock()
-						failed.arr = append(failed.arr, party)
+						failed.arr = append(failed.arr, &to)
 					}()
 				}
 			}()

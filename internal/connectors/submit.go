@@ -2,7 +2,6 @@ package connectors
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
@@ -11,8 +10,6 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 )
-
-var ErrorConnectorClosed = errors.New("connector already closed")
 
 type con struct {
 	client   *grpc.ClientConn
