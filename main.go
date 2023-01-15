@@ -8,7 +8,8 @@ import (
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(2)
+
 	if !cli.Run(os.Args) {
 		os.Exit(1)
 	}

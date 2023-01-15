@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"runtime"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -40,6 +41,7 @@ func Run(args []string) bool {
 	cfg := config.New(kv.MustFromEnv())
 
 	log = cfg.Log()
+
 	app := kingpin.New("tss-svc", "")
 
 	runCmd := app.Command("run", "run command")
@@ -57,6 +59,8 @@ func Run(args []string) bool {
 		log.WithError(err).Error("failed to parse arguments")
 		return false
 	}
+
+	log.Infof("GOMAXPROCS = %d", runtime.GOMAXPROCS(0))
 
 	switch cmd {
 	case serviceCmd.FullCommand():
