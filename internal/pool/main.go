@@ -14,8 +14,8 @@ import (
 const poolSz = 10000
 
 var (
-	// ErrOpIsNotInitialized appears when someone tries to add operation that has been already signed
-	ErrOpIsNotInitialized = errors.New("operation is not INITIALIZED")
+	// ErrOpShouldBeApproved appears when someone tries to add operation that has been already signed
+	ErrOpShouldBeApproved = errors.New("operation should be approved")
 )
 
 // Pool implements singleton pattern
@@ -78,7 +78,7 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 		case id := <-p.rawOrder:
 			err := p.checkStatus(id)
 			switch err {
-			case ErrOpIsNotInitialized:
+			case ErrOpShouldBeApproved:
 				delete(p.index, id)
 				continue
 			case nil:
@@ -104,8 +104,8 @@ func (p *Pool) checkStatus(id string) error {
 		return err
 	}
 
-	if resp.Operation.Status != rarimo.OpStatus_INITIALIZED {
-		return ErrOpIsNotInitialized
+	if resp.Operation.Status != rarimo.OpStatus_APPROVED {
+		return ErrOpShouldBeApproved
 	}
 
 	return nil

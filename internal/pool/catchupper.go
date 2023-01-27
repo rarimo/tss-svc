@@ -36,8 +36,8 @@ func (o *OperationCatchupper) Run() {
 		}
 
 		for _, op := range operations.Operation {
-			if op.Status != rarimo.OpStatus_INITIALIZED {
-				o.log.Debug("[Pool] Operation is not INITIALIZED")
+			if op.Status != rarimo.OpStatus_APPROVED {
+				o.log.Debug("[Pool] Operation is not APPROVED")
 				continue
 			}
 

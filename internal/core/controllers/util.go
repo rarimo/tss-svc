@@ -48,8 +48,8 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 	contents := make([]merkle.Content, 0, len(operations))
 
 	for _, op := range operations {
-		if op.Status != rarimo.OpStatus_INITIALIZED {
-			return nil, pool.ErrOpIsNotInitialized
+		if op.Status != rarimo.OpStatus_APPROVED {
+			return nil, pool.ErrOpShouldBeApproved
 		}
 
 		switch op.OperationType {
