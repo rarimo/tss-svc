@@ -9,7 +9,6 @@ require (
 	github.com/cosmos/cosmos-sdk v0.45.5
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/gogo/protobuf v1.3.3
-	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/vault/api v1.8.2
 	github.com/prometheus/client_golang v1.12.2
 	github.com/rubenv/sql-migrate v1.2.0
@@ -18,7 +17,7 @@ require (
 	gitlab.com/distributed_lab/kit v1.11.1
 	gitlab.com/distributed_lab/logan v3.8.1+incompatible
 	gitlab.com/rarimo/go-merkle v0.0.0-20221212103215-4a9612e1bed1
-	gitlab.com/rarimo/rarimo-core v0.0.0-20221222131825-9a2dbbb97758
+	gitlab.com/rarimo/rarimo-core v0.0.0-20230127141359-c4bc1694d6dd
 	google.golang.org/grpc v1.51.0
 )
 
@@ -69,6 +68,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.0.1 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
@@ -167,6 +167,6 @@ require (
 
 replace (
 	github.com/agl/ed25519 => github.com/bnb-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
-	github.com/cosmos/cosmos-sdk v0.45.5 => gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.4
+	github.com/cosmos/cosmos-sdk v0.45.5 => gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.5
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 )

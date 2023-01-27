@@ -12,7 +12,7 @@ import (
 
 const (
 	OpServiceName   = "op-subscriber"
-	OpQueryTransfer = "tm.event='Tx' AND new_operation.operation_type='TRANSFER'"
+	OpQueryTransfer = "tm.event='Tx' AND operation_approved.operation_type='TRANSFER'"
 	OpPoolSize      = 1000
 )
 
