@@ -60,7 +60,10 @@ func (o *OperationSubscriber) runner() {
 
 		for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeNewOperation, rarimo.AttributeKeyOperationId)] {
 			o.log.Infof("[Pool] New operation found index=%s", index)
-			o.pool.Add(index)
+			if err := o.pool.Add(index); err != nil {
+				o.log.WithError(err).Error("error adding operation to the pool")
+			}
+
 		}
 	}
 }

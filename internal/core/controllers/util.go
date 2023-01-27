@@ -48,8 +48,8 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 	contents := make([]merkle.Content, 0, len(operations))
 
 	for _, op := range operations {
-		if op.Signed {
-			return nil, pool.ErrOpAlreadySigned
+		if op.Status != rarimo.OpStatus_INITIALIZED {
+			return nil, pool.ErrOpIsNotInitialized
 		}
 
 		switch op.OperationType {
@@ -78,32 +78,23 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 		return nil, errors.Wrap(err, "error parsing operation details")
 	}
 
-	infoResp, err := token.NewQueryClient(client).Info(context.TODO(), &token.QueryGetInfoRequest{Index: transfer.TokenIndex})
+	collectionDataResp, err := token.NewQueryClient(client).CollectionData(context.TODO(), &token.QueryGetCollectionDataRequest{Chain: transfer.To.Chain, Address: transfer.To.Address})
 	if err != nil {
-		return nil, errors.Wrap(err, "error getting token info entry")
+		return nil, errors.Wrap(err, "error getting collection data entry")
 	}
 
-	itemResp, err := token.NewQueryClient(client).ItemByChain(context.TODO(), &token.QueryGetItemByChainRequest{
-		InfoIndex: infoResp.Info.Index,
-		Chain:     transfer.ToChain,
-	})
+	onChainItemResp, err := token.NewQueryClient(client).OnChainItem(context.TODO(), &token.QueryGetOnChainItemRequest{Chain: transfer.To.Chain, Address: transfer.To.Address, TokenID: transfer.To.TokenID})
 	if err != nil {
-		return nil, errors.Wrap(err, "error getting token item entry")
+		return nil, errors.Wrap(err, "error getting on chain item entry")
 	}
 
-	params, err := token.NewQueryClient(client).Params(context.TODO(), &token.QueryParamsRequest{})
+	itemResp, err := token.NewQueryClient(client).Item(context.TODO(), &token.QueryGetItemRequest{Index: onChainItemResp.Item.Item})
 	if err != nil {
-		return nil, errors.Wrap(err, "error getting params")
+		return nil, errors.Wrap(err, "error getting item entry")
 	}
 
-	for _, param := range params.Params.Networks {
-		if param.Name == transfer.ToChain {
-			content, err := pkg.GetTransferContent(&itemResp.Item, param, transfer)
-			return content, errors.Wrap(err, "error creating content")
-		}
-	}
-
-	return nil, nil
+	content, err := pkg.GetTransferContent(collectionDataResp.Data, itemResp.Item, transfer)
+	return content, errors.Wrap(err, "error creating content")
 }
 
 func checkSet(proposal *types.Set, input *core.InputSet) bool {

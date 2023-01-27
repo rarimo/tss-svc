@@ -14,8 +14,8 @@ import (
 const poolSz = 10000
 
 var (
-	// ErrOpAlreadySigned appears when someone tries to add operation that has been already signed
-	ErrOpAlreadySigned = errors.New("operation already signed")
+	// ErrOpIsNotInitialized appears when someone tries to add operation that has been already signed
+	ErrOpIsNotInitialized = errors.New("operation is not INITIALIZED")
 )
 
 // Pool implements singleton pattern
@@ -51,7 +51,7 @@ func NewPool(cfg config.Config) *Pool {
 // Add will add operation index to the pool with signed flag check.
 // Returns an error if signed check fails (cause or rpc errors).
 func (p *Pool) Add(id string) error {
-	if err := p.checkUnsigned(id); err != nil {
+	if err := p.checkStatus(id); err != nil {
 		return err
 	}
 
@@ -76,9 +76,9 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 	for collected < n {
 		select {
 		case id := <-p.rawOrder:
-			err := p.checkUnsigned(id)
+			err := p.checkStatus(id)
 			switch err {
-			case ErrOpAlreadySigned:
+			case ErrOpIsNotInitialized:
 				delete(p.index, id)
 				continue
 			case nil:
@@ -98,14 +98,14 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 	return res, nil
 }
 
-func (p *Pool) checkUnsigned(id string) error {
+func (p *Pool) checkStatus(id string) error {
 	resp, err := rarimo.NewQueryClient(p.rarimo).Operation(context.TODO(), &rarimo.QueryGetOperationRequest{Index: id})
 	if err != nil {
 		return err
 	}
 
-	if resp.Operation.Signed {
-		return ErrOpAlreadySigned
+	if resp.Operation.Status != rarimo.OpStatus_INITIALIZED {
+		return ErrOpIsNotInitialized
 	}
 
 	return nil
