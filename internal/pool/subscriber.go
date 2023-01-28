@@ -52,13 +52,14 @@ func (o *OperationSubscriber) runner() {
 	for {
 		c, ok := <-out
 		if !ok {
+			o.log.Info("[Pool] WS unsubscribed. Resubscribing...")
 			if err := o.client.Unsubscribe(context.Background(), OpServiceName, o.query); err != nil {
 				o.log.WithError(err).Error("[Pool] Failed to unsubscribe from new operations")
 			}
 			break
 		}
 
-		for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeNewOperation, rarimo.AttributeKeyOperationId)] {
+		for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeOperationApproved, rarimo.AttributeKeyOperationId)] {
 			o.log.Infof("[Pool] New operation found index=%s", index)
 			if err := o.pool.Add(index); err != nil {
 				o.log.WithError(err).Error("error adding operation to the pool")

@@ -42,7 +42,7 @@ func NewEmptySession(cfg config.Config, creator func(cfg config.Config) core.ISe
 	sessionEnd := sessionId*(core.SessionDuration+1) + cfg.Session().StartBlock - 1
 
 	// Changing config to start next session
-	cfg.Session().StartSessionId = sessionId
+	cfg.Session().StartSessionId = sessionId + 1
 	cfg.Session().StartBlock = sessionEnd + 1
 
 	return &Session{

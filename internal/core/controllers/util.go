@@ -93,7 +93,12 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 		return nil, errors.Wrap(err, "error getting item entry")
 	}
 
-	content, err := pkg.GetTransferContent(collectionDataResp.Data, itemResp.Item, transfer)
+	networkResp, err := token.NewQueryClient(client).NetworkParams(context.TODO(), &token.QueryNetworkParamsRequest{Name: transfer.To.Chain})
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting network param entry")
+	}
+
+	content, err := pkg.GetTransferContent(collectionDataResp.Data, itemResp.Item, networkResp.Params, transfer)
 	return content, errors.Wrap(err, "error creating content")
 }
 
