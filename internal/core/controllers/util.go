@@ -83,6 +83,11 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 		return nil, errors.Wrap(err, "error getting collection data entry")
 	}
 
+	collectionResp, err := token.NewQueryClient(client).Collection(context.TODO(), &token.QueryGetCollectionRequest{Index: collectionDataResp.Data.Collection})
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting collection data entry")
+	}
+
 	onChainItemResp, err := token.NewQueryClient(client).OnChainItem(context.TODO(), &token.QueryGetOnChainItemRequest{Chain: transfer.To.Chain, Address: transfer.To.Address, TokenID: transfer.To.TokenID})
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting on chain item entry")
@@ -98,7 +103,7 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 		return nil, errors.Wrap(err, "error getting network param entry")
 	}
 
-	content, err := pkg.GetTransferContent(collectionDataResp.Data, itemResp.Item, networkResp.Params, transfer)
+	content, err := pkg.GetTransferContent(collectionResp.Collection, collectionDataResp.Data, itemResp.Item, networkResp.Params, transfer)
 	return content, errors.Wrap(err, "error creating content")
 }
 
