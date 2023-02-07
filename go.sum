@@ -1000,6 +1000,8 @@ gitlab.com/rarimo/rarimo-core v0.0.0-20230130150127-b8e98054fe4b h1:dAIdDvwnBN14
 gitlab.com/rarimo/rarimo-core v0.0.0-20230130150127-b8e98054fe4b/go.mod h1:0XWNH55wHu8adSu5f4go26ZxDp7uUblS6dZNlDrQ0zM=
 gitlab.com/rarimo/rarimo-core v0.0.0-20230201182240-b2b174c1751c h1:RI6skiEYmXRujV/MXcN1yw4daon4Yd6XxLk0481TpW0=
 gitlab.com/rarimo/rarimo-core v0.0.0-20230201182240-b2b174c1751c/go.mod h1:xjlYTjVFX5CZauaRWTEmLYvqpHtOVaNe6KHgf8hbi0E=
+gitlab.com/rarimo/rarimo-core v0.0.0-20230207130938-6dbb8f6b0263 h1:MTg+8YQ+/TuAqLbA0vyKG4Wz01XWi2IpeTBWMhDmC0o=
+gitlab.com/rarimo/rarimo-core v0.0.0-20230207130938-6dbb8f6b0263/go.mod h1:0XWNH55wHu8adSu5f4go26ZxDp7uUblS6dZNlDrQ0zM=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
