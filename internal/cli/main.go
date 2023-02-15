@@ -21,10 +21,12 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core/empty"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core/keygen"
+	"gitlab.com/rarimo/tss/tss-svc/internal/core/reshare"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core/sign"
 	"gitlab.com/rarimo/tss/tss-svc/internal/grpc"
 	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
 	"gitlab.com/rarimo/tss/tss-svc/internal/timer"
+	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 func Run(args []string) bool {
@@ -64,20 +66,27 @@ func Run(args []string) bool {
 
 	switch cmd {
 	case serviceCmd.FullCommand():
-		go timer.NewBlockSubscriber(cfg).Run()
-		go pool.NewTransferOperationSubscriber(cfg).Run()
+		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
+		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
 		go pool.NewOperationCatchupper(cfg).Run()
 
-		manager := core.NewSessionManager(empty.NewEmptySession(cfg, sign.NewSession))
-		timer.NewTimer(cfg).SubscribeToBlocks("session-manager", manager.NewBlock)
+		manager := core.NewSessionManager()
+		manager.AddSession(types.SessionType_ReshareSession, empty.NewEmptySession(cfg, types.SessionType_ReshareSession, reshare.NewSession))
+		manager.AddSession(types.SessionType_DefaultSession, empty.NewEmptySession(cfg, types.SessionType_DefaultSession, sign.NewSession))
+
+		timer.GetTimer().SubscribeToBlocks("session-manager", manager.NewBlock)
+
 		err = grpc.NewServer(manager, cfg).Run()
 	case keygenCmd.FullCommand():
-		go timer.NewBlockSubscriber(cfg).Run()
-		go pool.NewTransferOperationSubscriber(cfg).Run()
+		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
+		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
 		go pool.NewOperationCatchupper(cfg).Run()
 
-		manager := core.NewSessionManager(empty.NewEmptySession(cfg, keygen.NewSession))
-		timer.NewTimer(cfg).SubscribeToBlocks("session-manager", manager.NewBlock)
+		manager := core.NewSessionManager()
+		manager.AddSession(types.SessionType_KeygenSession, empty.NewEmptySession(cfg, types.SessionType_KeygenSession, keygen.NewSession))
+
+		timer.GetTimer().SubscribeToBlocks("session-manager", manager.NewBlock)
+
 		err = grpc.NewServer(manager, cfg).Run()
 	case paramgenCmd.FullCommand():
 		params, err := tsskg.GeneratePreParams(10 * time.Minute)
@@ -103,6 +112,7 @@ func Run(args []string) bool {
 		log.Errorf("unknown command %s", cmd)
 		return false
 	}
+
 	if err != nil {
 		log.WithError(err).Error("failed to exec cmd")
 		return false

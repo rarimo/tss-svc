@@ -12,7 +12,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
@@ -106,7 +105,7 @@ func (d *DefaultKeygenController) Next() IController {
 }
 
 func (d *DefaultKeygenController) updateSessionData() {
-	session, err := d.pg.SessionQ().SessionByID(int64(d.data.SessionId), false)
+	session, err := d.pg.KeygenSessionDatumQ().KeygenSessionDatumByID(int64(d.data.SessionId), false)
 	if err != nil {
 		d.log.WithError(err).Error("Error selecting session")
 		return
@@ -117,31 +116,13 @@ func (d *DefaultKeygenController) updateSessionData() {
 		return
 	}
 
-	session.SessionType = sql.NullInt64{
-		Int64: int64(types.SessionType_KeygenSession),
-		Valid: true,
+	session.Parties = partyAccounts(d.data.Set.Parties)
+	session.Key = sql.NullString{
+		String: d.data.NewSecret.GlobalPubKey(),
+		Valid:  d.data.Processing,
 	}
 
-	session.DataID = sql.NullInt64{
-		Int64: session.ID,
-		Valid: true,
-	}
-
-	err = d.pg.KeygenSessionDatumQ().Insert(&data.KeygenSessionDatum{
-		ID:      session.ID,
-		Parties: partyAccounts(d.data.Set.Parties),
-		Key: sql.NullString{
-			String: d.data.NewSecret.GlobalPubKey(),
-			Valid:  d.data.Processing,
-		},
-	})
-
-	if err != nil {
-		d.log.WithError(err).Error("Error creating session data entry")
-		return
-	}
-
-	if err = d.pg.SessionQ().Update(session); err != nil {
+	if err = d.pg.KeygenSessionDatumQ().Update(session); err != nil {
 		d.log.WithError(err).Error("Error updating session entry")
 	}
 }
@@ -153,7 +134,6 @@ func (d *DefaultKeygenController) finish(result *keygen.LocalPartySaveData) {
 	}
 
 	d.data.NewSecret = d.data.Secret.NewWithData(result)
-	d.data.SessionType = types.SessionType_KeygenSession
 	d.data.Processing = true
 }
 
@@ -177,7 +157,7 @@ func (r *ReshareKeygenController) Next() IController {
 }
 
 func (r *ReshareKeygenController) updateSessionData() {
-	session, err := r.pg.SessionQ().SessionByID(int64(r.data.SessionId), false)
+	session, err := r.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(r.data.SessionId), false)
 	if err != nil {
 		r.log.WithError(err).Error("Error selecting session")
 		return
@@ -188,25 +168,12 @@ func (r *ReshareKeygenController) updateSessionData() {
 		return
 	}
 
-	data, err := r.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
-	if err != nil {
-		r.log.WithError(err).Error("Error selecting session data")
-		return
+	session.NewKey = sql.NullString{
+		String: r.data.NewSecret.GlobalPubKey(),
+		Valid:  r.data.Processing,
 	}
 
-	if data == nil {
-		r.log.Error("Session data is not initialized")
-		return
-	}
-
-	if r.data.Processing {
-		data.NewKey = sql.NullString{
-			String: r.data.NewSecret.GlobalPubKey(),
-			Valid:  r.data.Processing,
-		}
-	}
-
-	if err = r.pg.ReshareSessionDatumQ().Update(data); err != nil {
+	if err = r.pg.ReshareSessionDatumQ().Update(session); err != nil {
 		r.log.WithError(err).Error("Error updating session data entry")
 	}
 }

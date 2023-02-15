@@ -60,24 +60,36 @@ func (s *ServerImpl) AddOperation(_ context.Context, request *types.MsgAddOperat
 }
 
 func (s *ServerImpl) Info(_ context.Context, _ *types.MsgInfoRequest) (*types.MsgInfoResponse, error) {
-	id := s.manager.ID()
-	session, err := s.getSessionResp(id)
-	if err != nil {
-		return nil, err
+	sessions := make(map[string]*types.Session)
+	sessionTypes := []types.SessionType{types.SessionType_DefaultSession, types.SessionType_ReshareSession, types.SessionType_KeygenSession}
+
+	for _, sessionType := range sessionTypes {
+		id, ok := s.manager.ID(sessionType)
+		if ok {
+			session, err := s.getSessionResp(sessionType, int64(id))
+			if err != nil {
+				return nil, err
+			}
+
+			sessions[sessionType.String()] = session
+		}
 	}
 
 	return &types.MsgInfoResponse{
-		LocalAccount:     s.storage.GetTssSecret().AccountAddress(),
-		LocalPublicKey:   s.storage.GetTssSecret().TssPubKey(),
-		CurrentSessionId: id,
-		SessionData:      session,
+		LocalAccount:   s.storage.GetTssSecret().AccountAddress(),
+		LocalPublicKey: s.storage.GetTssSecret().TssPubKey(),
+		Sessions:       sessions,
 	}, nil
 }
 
 func (s *ServerImpl) Session(_ context.Context, request *types.MsgSessionRequest) (*types.MsgSessionResponse, error) {
-	session, err := s.getSessionResp(request.Id)
+	session, err := s.getSessionResp(request.SessionType, int64(request.Id))
 	if err != nil {
 		return nil, err
+	}
+
+	if session == nil {
+		return nil, status.Errorf(codes.NotFound, "Session not found")
 	}
 
 	return &types.MsgSessionResponse{
@@ -85,89 +97,92 @@ func (s *ServerImpl) Session(_ context.Context, request *types.MsgSessionRequest
 	}, nil
 }
 
-func (s *ServerImpl) getSessionResp(id uint64) (*types.Session, error) {
-	session, err := s.pg.SessionQ().SessionByID(int64(id), false)
-	if err != nil {
-		s.log.WithError(err).Error("[GRPC] Error selecting current session by id")
-		return nil, status.Error(codes.Internal, "Internal error")
-	}
-
-	if session == nil {
-		return nil, status.Error(codes.NotFound, "Current session not found")
-	}
-
-	var details *cosmostypes.Any
-
-	switch session.SessionType.Int64 {
-	case int64(types.SessionType_DefaultSession):
-		data, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
+func (s *ServerImpl) getSessionResp(sessionType types.SessionType, id int64) (*types.Session, error) {
+	switch sessionType {
+	case types.SessionType_DefaultSession:
+		session, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(id, false)
 		if err != nil {
-			s.log.WithError(err).Error("[GRPC] Error selecting current session data by id")
+			s.log.WithError(err).Error("[GRPC] Error selecting session by id")
 			return nil, status.Error(codes.Internal, "Internal error")
 		}
 
-		if data == nil {
-			break
+		if session == nil {
+			return nil, nil
 		}
 
-		details, err = cosmostypes.NewAnyWithValue(&types.DefaultSessionData{
-			Parties:   data.Parties,
-			Proposer:  data.Proposer.String,
-			Indexes:   data.Indexes,
-			Root:      data.Root.String,
-			Accepted:  data.Accepted,
-			Signature: data.Signature.String,
+		details, _ := cosmostypes.NewAnyWithValue(&types.DefaultSessionData{
+			Parties:   session.Parties,
+			Proposer:  session.Proposer.String,
+			Indexes:   session.Indexes,
+			Root:      session.Root.String,
+			Accepted:  session.Accepted,
+			Signature: session.Signature.String,
 		})
 
-	case int64(types.SessionType_ReshareSession):
-		data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
+		return &types.Session{
+			Id:         uint64(session.ID),
+			Status:     types.SessionStatus(session.Status),
+			StartBlock: uint64(session.BeginBlock),
+			EndBlock:   uint64(session.EndBlock),
+			Type:       types.SessionType_DefaultSession,
+			Data:       details,
+		}, nil
+
+	case types.SessionType_ReshareSession:
+		session, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(id, false)
 		if err != nil {
-			s.log.WithError(err).Error("[GRPC] Error selecting current session data by id")
+			s.log.WithError(err).Error("[GRPC] Error selecting session by id")
 			return nil, status.Error(codes.Internal, "Internal error")
 		}
 
-		if data == nil {
-			break
+		if session == nil {
+			return nil, nil
 		}
 
-		details, err = cosmostypes.NewAnyWithValue(&types.ReshareSessionData{
-			Parties:      data.Parties,
-			Proposer:     data.Proposer.String,
-			OldKey:       data.OldKey.String,
-			NewKey:       data.NewKey.String,
-			Root:         data.Root.String,
-			KeySignature: data.KeySignature.String,
-			Signature:    data.Signature.String,
+		details, _ := cosmostypes.NewAnyWithValue(&types.ReshareSessionData{
+			Parties:      session.Parties,
+			Proposer:     session.Proposer.String,
+			OldKey:       session.OldKey.String,
+			NewKey:       session.NewKey.String,
+			Root:         session.Root.String,
+			KeySignature: session.KeySignature.String,
+			Signature:    session.Signature.String,
 		})
 
-	case int64(types.SessionType_KeygenSession):
-		data, err := s.pg.KeygenSessionDatumQ().KeygenSessionDatumByID(session.DataID.Int64, false)
+		return &types.Session{
+			Id:         uint64(session.ID),
+			Status:     types.SessionStatus(session.Status),
+			StartBlock: uint64(session.BeginBlock),
+			EndBlock:   uint64(session.EndBlock),
+			Type:       types.SessionType_DefaultSession,
+			Data:       details,
+		}, nil
+
+	case types.SessionType_KeygenSession:
+		session, err := s.pg.KeygenSessionDatumQ().KeygenSessionDatumByID(id, false)
 		if err != nil {
-			s.log.WithError(err).Error("[GRPC] Error selecting current session data by id")
+			s.log.WithError(err).Error("[GRPC] Error selecting session data by id")
 			return nil, status.Error(codes.Internal, "Internal error")
 		}
 
-		if data == nil {
-			break
+		if session == nil {
+			return nil, nil
 		}
 
-		details, err = cosmostypes.NewAnyWithValue(&types.KeygenSessionData{
-			Parties: data.Parties,
-			Key:     data.Key.String,
+		details, err := cosmostypes.NewAnyWithValue(&types.KeygenSessionData{
+			Parties: session.Parties,
+			Key:     session.Key.String,
 		})
+
+		return &types.Session{
+			Id:         uint64(session.ID),
+			Status:     types.SessionStatus(session.Status),
+			StartBlock: uint64(session.BeginBlock),
+			EndBlock:   uint64(session.EndBlock),
+			Type:       types.SessionType_DefaultSession,
+			Data:       details,
+		}, nil
 	}
 
-	if err != nil {
-		s.log.WithError(err).Error("[GRPC] Failed to parse details data")
-		return nil, status.Error(codes.Internal, "Internal error")
-	}
-
-	return &types.Session{
-		Id:         uint64(session.ID),
-		Status:     types.SessionStatus(session.Status),
-		StartBlock: uint64(session.BeginBlock),
-		EndBlock:   uint64(session.EndBlock),
-		Type:       types.SessionType(session.SessionType.Int64),
-		Data:       details,
-	}, nil
+	return nil, nil
 }

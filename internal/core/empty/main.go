@@ -14,9 +14,8 @@ type Session struct {
 	log   *logan.Entry
 }
 
-func NewEmptySession(cfg config.Config, creator func(cfg config.Config) core.ISession) *Session {
-	current := timer.NewTimer(cfg).CurrentBlock()
-	if current < cfg.Session().StartBlock {
+func NewEmptySession(cfg config.Config, sessionType types.SessionType, creator func(cfg config.Config) core.ISession) *Session {
+	if timer.GetTimer().CurrentBlock() < cfg.Session().StartBlock {
 		return &Session{
 			nextF: func() core.ISession {
 				return creator(cfg)
@@ -26,30 +25,15 @@ func NewEmptySession(cfg config.Config, creator func(cfg config.Config) core.ISe
 		}
 	}
 
-	// For core.SessionDuration = 23 blocks
-	// 10-33 34-57 58-81, start = 10 block
-
-	// id = (current - start) / 24 + 1
-	// current = 10 => id = (10 - 10) / 24 + 1 = 1
-	// current = 33 => id = (33 - 10) / 24 + 1 = 1
-	// current = 34 => id = (34 - 10) / 24 + 1 = 1 + 1 = 1
-	sessionId := (current-cfg.Session().StartBlock)/(core.SessionDuration+1) + cfg.Session().StartSessionId
-
-	// end = id*24 + start - 1
-	// id = 1 => end = 1 * 24 + 10 - 1 = 33
-	// id = 2 => end = 2 * 24 + 10 - 1 = 57
-	// id = 3 => end = 3 * 24 + 10 - 1 = 81
-	sessionEnd := sessionId*(core.SessionDuration+1) + cfg.Session().StartBlock - 1
-
 	// Changing config to start next session
-	cfg.Session().StartSessionId = sessionId + 1
-	cfg.Session().StartBlock = sessionEnd + 1
+	cfg.Session().StartSessionId = GetSessionId(cfg.Session().StartSessionId, cfg.Session().StartBlock, sessionType) + 1
+	cfg.Session().StartBlock = GetSessionEnd(cfg.Session().StartSessionId, cfg.Session().StartBlock, sessionType) + 1
 
 	return &Session{
 		nextF: func() core.ISession {
 			return creator(cfg)
 		},
-		end: sessionEnd,
+		end: cfg.Session().StartBlock - 1,
 		log: cfg.Log(),
 	}
 }

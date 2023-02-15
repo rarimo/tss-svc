@@ -37,7 +37,7 @@ type KeygenParty struct {
 	result *keygen.LocalPartySaveData
 }
 
-func NewKeygenParty(id uint64, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *KeygenParty {
+func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *KeygenParty {
 	return &KeygenParty{
 		id:       id,
 		wg:       &sync.WaitGroup{},
@@ -45,7 +45,7 @@ func NewKeygenParty(id uint64, parties []*rarimo.Party, secret *secret.TssSecret
 		partyIds: core.PartyIds(parties),
 		parties:  partiesByAccountMapping(parties),
 		secret:   secret,
-		con:      connectors.NewBroadcastConnector(parties, secret, log),
+		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
 	}
 }
 

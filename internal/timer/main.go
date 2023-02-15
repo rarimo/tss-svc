@@ -39,6 +39,11 @@ func NewTimer(cfg config.Config) *Timer {
 	return timer
 }
 
+// GetTimer returns existing instance of timer. Be aware to initialize it before using that function.
+func GetTimer() *Timer {
+	return timer
+}
+
 // Only for internal usage in block subscriber
 func (t *Timer) newBlock(height uint64) {
 	t.currentBlock = height

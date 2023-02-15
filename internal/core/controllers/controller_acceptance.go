@@ -7,7 +7,6 @@ import (
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
@@ -45,19 +44,10 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	acceptance := new(types.AcceptanceRequest)
-	if err := proto.Unmarshal(request.Details.Value, acceptance); err != nil {
-		return errors.Wrap(err, "error unmarshalling request")
-	}
-
-	if a.data.SessionType != acceptance.Type {
-		return ErrInvalidRequestType
-	}
-
-	if a.validate(acceptance.Details, acceptance.Type) {
+	if a.validate(request.Details, request.SessionType) {
 		a.mu.Lock()
 		defer a.mu.Unlock()
-		a.log.Infof("Received acceptance request from %s for session type=%s", sender.Account, acceptance.Type.String())
+		a.log.Infof("Received acceptance request from %s for session type=%s", sender.Account, request.SessionType.String())
 		a.data.Acceptances[sender.Account] = struct{}{}
 	}
 
@@ -140,12 +130,6 @@ func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
 		return
 	}
 
-	details, err = cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Type: types.SessionType_DefaultSession, Details: details})
-	if err != nil {
-		a.log.WithError(err).Error("Error parsing details")
-		return
-	}
-
 	go a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Id:          a.data.SessionId,
 		Type:        types.RequestType_Acceptance,
@@ -155,7 +139,7 @@ func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
 }
 
 func (a *DefaultAcceptanceController) updateSessionData() {
-	session, err := a.pg.SessionQ().SessionByID(int64(a.data.SessionId), false)
+	session, err := a.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(a.data.SessionId), false)
 	if err != nil {
 		a.log.WithError(err).Error("Error selecting session")
 		return
@@ -166,20 +150,9 @@ func (a *DefaultAcceptanceController) updateSessionData() {
 		return
 	}
 
-	data, err := a.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
-	if err != nil {
-		a.log.WithError(err).Error("Error selecting session data")
-		return
-	}
-
-	if data == nil {
-		a.log.Error("Session data is not initialized")
-		return
-	}
-
-	data.Accepted = acceptancesToArr(a.data.Acceptances)
-	if err = a.pg.DefaultSessionDatumQ().Update(data); err != nil {
-		a.log.WithError(err).Error("Error updating session data entry")
+	session.Accepted = acceptancesToArr(a.data.Acceptances)
+	if err = a.pg.DefaultSessionDatumQ().Update(session); err != nil {
+		a.log.WithError(err).Error("Error updating session entry")
 	}
 }
 
@@ -224,12 +197,6 @@ func (a *ReshareAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 
 func (a *ReshareAcceptanceController) shareAcceptance(ctx context.Context) {
 	details, err := cosmostypes.NewAnyWithValue(&types.ReshareSessionAcceptanceData{New: getSet(a.data.Set)})
-	if err != nil {
-		a.log.WithError(err).Error("Error parsing details")
-		return
-	}
-
-	details, err = cosmostypes.NewAnyWithValue(&types.AcceptanceRequest{Type: types.SessionType_ReshareSession, Details: details})
 	if err != nil {
 		a.log.WithError(err).Error("Error parsing details")
 		return

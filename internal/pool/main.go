@@ -48,6 +48,11 @@ func NewPool(cfg config.Config) *Pool {
 	return pool
 }
 
+// GetPool returns existing instance of pool. Be aware to initialize it before using that function.
+func GetPool() *Pool {
+	return pool
+}
+
 // Add will add operation index to the pool with signed flag check.
 // Returns an error if signed check fails (cause or rpc errors).
 func (p *Pool) Add(id string) error {

@@ -54,18 +54,18 @@ func (s Storage) DefaultSessionDatumQ() *DefaultSessionDatumQ {
 	return NewDefaultSessionDatumQ(s.DB())
 }
 
-var colsDefaultSessionDatum = `id, parties, proposer, indexes, root, accepted, signature`
+var colsDefaultSessionDatum = `id, status, begin_block, end_block, parties, proposer, indexes, root, accepted, signature`
 
 // InsertCtx inserts a DefaultSessionDatum to the database.
 func (q DefaultSessionDatumQ) InsertCtx(ctx context.Context, dsd *data.DefaultSessionDatum) error {
 	// sql insert query, primary key must be provided
 	sqlstr := `INSERT INTO public.default_session_data (` +
-		`id, parties, proposer, indexes, root, accepted, signature` +
+		`id, status, begin_block, end_block, parties, proposer, indexes, root, accepted, signature` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7` +
+		`$1, $2, $3, $4, $5, $6, $7, $8, $9, $10` +
 		`)`
 	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, dsd.ID, dsd.Parties, dsd.Proposer, dsd.Indexes, dsd.Root, dsd.Accepted, dsd.Signature)
+	err := q.db.ExecRawContext(ctx, sqlstr, dsd.ID, dsd.Status, dsd.BeginBlock, dsd.EndBlock, dsd.Parties, dsd.Proposer, dsd.Indexes, dsd.Root, dsd.Accepted, dsd.Signature)
 	return errors.Wrap(err, "failed to execute insert query")
 }
 
@@ -78,10 +78,10 @@ func (q DefaultSessionDatumQ) Insert(dsd *data.DefaultSessionDatum) error {
 func (q DefaultSessionDatumQ) UpdateCtx(ctx context.Context, dsd *data.DefaultSessionDatum) error {
 	// update with composite primary key
 	sqlstr := `UPDATE public.default_session_data SET ` +
-		`parties = $1, proposer = $2, indexes = $3, root = $4, accepted = $5, signature = $6 ` +
-		`WHERE id = $7`
+		`status = $1, begin_block = $2, end_block = $3, parties = $4, proposer = $5, indexes = $6, root = $7, accepted = $8, signature = $9 ` +
+		`WHERE id = $10`
 	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, dsd.Parties, dsd.Proposer, dsd.Indexes, dsd.Root, dsd.Accepted, dsd.Signature, dsd.ID)
+	err := q.db.ExecRawContext(ctx, sqlstr, dsd.Status, dsd.BeginBlock, dsd.EndBlock, dsd.Parties, dsd.Proposer, dsd.Indexes, dsd.Root, dsd.Accepted, dsd.Signature, dsd.ID)
 	return errors.Wrap(err, "failed to execute update")
 }
 
@@ -94,15 +94,15 @@ func (q DefaultSessionDatumQ) Update(dsd *data.DefaultSessionDatum) error {
 func (q DefaultSessionDatumQ) UpsertCtx(ctx context.Context, dsd *data.DefaultSessionDatum) error {
 	// upsert
 	sqlstr := `INSERT INTO public.default_session_data (` +
-		`id, parties, proposer, indexes, root, accepted, signature` +
+		`id, status, begin_block, end_block, parties, proposer, indexes, root, accepted, signature` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7` +
+		`$1, $2, $3, $4, $5, $6, $7, $8, $9, $10` +
 		`)` +
 		` ON CONFLICT (id) DO ` +
 		`UPDATE SET ` +
-		`parties = EXCLUDED.parties, proposer = EXCLUDED.proposer, indexes = EXCLUDED.indexes, root = EXCLUDED.root, accepted = EXCLUDED.accepted, signature = EXCLUDED.signature `
+		`status = EXCLUDED.status, begin_block = EXCLUDED.begin_block, end_block = EXCLUDED.end_block, parties = EXCLUDED.parties, proposer = EXCLUDED.proposer, indexes = EXCLUDED.indexes, root = EXCLUDED.root, accepted = EXCLUDED.accepted, signature = EXCLUDED.signature `
 	// run
-	if err := q.db.ExecRawContext(ctx, sqlstr, dsd.ID, dsd.Parties, dsd.Proposer, dsd.Indexes, dsd.Root, dsd.Accepted, dsd.Signature); err != nil {
+	if err := q.db.ExecRawContext(ctx, sqlstr, dsd.ID, dsd.Status, dsd.BeginBlock, dsd.EndBlock, dsd.Parties, dsd.Proposer, dsd.Indexes, dsd.Root, dsd.Accepted, dsd.Signature); err != nil {
 		return errors.Wrap(err, "failed to execute upsert stmt")
 	}
 	return nil
@@ -236,18 +236,18 @@ func (s Storage) KeygenSessionDatumQ() *KeygenSessionDatumQ {
 	return NewKeygenSessionDatumQ(s.DB())
 }
 
-var colsKeygenSessionDatum = `id, parties, key`
+var colsKeygenSessionDatum = `id, status, begin_block, end_block, parties, key`
 
 // InsertCtx inserts a KeygenSessionDatum to the database.
 func (q KeygenSessionDatumQ) InsertCtx(ctx context.Context, ksd *data.KeygenSessionDatum) error {
 	// sql insert query, primary key must be provided
 	sqlstr := `INSERT INTO public.keygen_session_data (` +
-		`id, parties, key` +
+		`id, status, begin_block, end_block, parties, key` +
 		`) VALUES (` +
-		`$1, $2, $3` +
+		`$1, $2, $3, $4, $5, $6` +
 		`)`
 	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, ksd.ID, ksd.Parties, ksd.Key)
+	err := q.db.ExecRawContext(ctx, sqlstr, ksd.ID, ksd.Status, ksd.BeginBlock, ksd.EndBlock, ksd.Parties, ksd.Key)
 	return errors.Wrap(err, "failed to execute insert query")
 }
 
@@ -260,10 +260,10 @@ func (q KeygenSessionDatumQ) Insert(ksd *data.KeygenSessionDatum) error {
 func (q KeygenSessionDatumQ) UpdateCtx(ctx context.Context, ksd *data.KeygenSessionDatum) error {
 	// update with composite primary key
 	sqlstr := `UPDATE public.keygen_session_data SET ` +
-		`parties = $1, key = $2 ` +
-		`WHERE id = $3`
+		`status = $1, begin_block = $2, end_block = $3, parties = $4, key = $5 ` +
+		`WHERE id = $6`
 	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, ksd.Parties, ksd.Key, ksd.ID)
+	err := q.db.ExecRawContext(ctx, sqlstr, ksd.Status, ksd.BeginBlock, ksd.EndBlock, ksd.Parties, ksd.Key, ksd.ID)
 	return errors.Wrap(err, "failed to execute update")
 }
 
@@ -276,15 +276,15 @@ func (q KeygenSessionDatumQ) Update(ksd *data.KeygenSessionDatum) error {
 func (q KeygenSessionDatumQ) UpsertCtx(ctx context.Context, ksd *data.KeygenSessionDatum) error {
 	// upsert
 	sqlstr := `INSERT INTO public.keygen_session_data (` +
-		`id, parties, key` +
+		`id, status, begin_block, end_block, parties, key` +
 		`) VALUES (` +
-		`$1, $2, $3` +
+		`$1, $2, $3, $4, $5, $6` +
 		`)` +
 		` ON CONFLICT (id) DO ` +
 		`UPDATE SET ` +
-		`parties = EXCLUDED.parties, key = EXCLUDED.key `
+		`status = EXCLUDED.status, begin_block = EXCLUDED.begin_block, end_block = EXCLUDED.end_block, parties = EXCLUDED.parties, key = EXCLUDED.key `
 	// run
-	if err := q.db.ExecRawContext(ctx, sqlstr, ksd.ID, ksd.Parties, ksd.Key); err != nil {
+	if err := q.db.ExecRawContext(ctx, sqlstr, ksd.ID, ksd.Status, ksd.BeginBlock, ksd.EndBlock, ksd.Parties, ksd.Key); err != nil {
 		return errors.Wrap(err, "failed to execute upsert stmt")
 	}
 	return nil
@@ -327,18 +327,18 @@ func (s Storage) ReshareSessionDatumQ() *ReshareSessionDatumQ {
 	return NewReshareSessionDatumQ(s.DB())
 }
 
-var colsReshareSessionDatum = `id, parties, proposer, old_key, new_key, key_signature, signature, root`
+var colsReshareSessionDatum = `id, status, begin_block, end_block, parties, proposer, old_key, new_key, key_signature, signature, root`
 
 // InsertCtx inserts a ReshareSessionDatum to the database.
 func (q ReshareSessionDatumQ) InsertCtx(ctx context.Context, rsd *data.ReshareSessionDatum) error {
 	// sql insert query, primary key must be provided
 	sqlstr := `INSERT INTO public.reshare_session_data (` +
-		`id, parties, proposer, old_key, new_key, key_signature, signature, root` +
+		`id, status, begin_block, end_block, parties, proposer, old_key, new_key, key_signature, signature, root` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7, $8` +
+		`$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11` +
 		`)`
 	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, rsd.ID, rsd.Parties, rsd.Proposer, rsd.OldKey, rsd.NewKey, rsd.KeySignature, rsd.Signature, rsd.Root)
+	err := q.db.ExecRawContext(ctx, sqlstr, rsd.ID, rsd.Status, rsd.BeginBlock, rsd.EndBlock, rsd.Parties, rsd.Proposer, rsd.OldKey, rsd.NewKey, rsd.KeySignature, rsd.Signature, rsd.Root)
 	return errors.Wrap(err, "failed to execute insert query")
 }
 
@@ -351,10 +351,10 @@ func (q ReshareSessionDatumQ) Insert(rsd *data.ReshareSessionDatum) error {
 func (q ReshareSessionDatumQ) UpdateCtx(ctx context.Context, rsd *data.ReshareSessionDatum) error {
 	// update with composite primary key
 	sqlstr := `UPDATE public.reshare_session_data SET ` +
-		`parties = $1, proposer = $2, old_key = $3, new_key = $4, key_signature = $5, signature = $6, root = $7 ` +
-		`WHERE id = $8`
+		`status = $1, begin_block = $2, end_block = $3, parties = $4, proposer = $5, old_key = $6, new_key = $7, key_signature = $8, signature = $9, root = $10 ` +
+		`WHERE id = $11`
 	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, rsd.Parties, rsd.Proposer, rsd.OldKey, rsd.NewKey, rsd.KeySignature, rsd.Signature, rsd.Root, rsd.ID)
+	err := q.db.ExecRawContext(ctx, sqlstr, rsd.Status, rsd.BeginBlock, rsd.EndBlock, rsd.Parties, rsd.Proposer, rsd.OldKey, rsd.NewKey, rsd.KeySignature, rsd.Signature, rsd.Root, rsd.ID)
 	return errors.Wrap(err, "failed to execute update")
 }
 
@@ -367,15 +367,15 @@ func (q ReshareSessionDatumQ) Update(rsd *data.ReshareSessionDatum) error {
 func (q ReshareSessionDatumQ) UpsertCtx(ctx context.Context, rsd *data.ReshareSessionDatum) error {
 	// upsert
 	sqlstr := `INSERT INTO public.reshare_session_data (` +
-		`id, parties, proposer, old_key, new_key, key_signature, signature, root` +
+		`id, status, begin_block, end_block, parties, proposer, old_key, new_key, key_signature, signature, root` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7, $8` +
+		`$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11` +
 		`)` +
 		` ON CONFLICT (id) DO ` +
 		`UPDATE SET ` +
-		`parties = EXCLUDED.parties, proposer = EXCLUDED.proposer, old_key = EXCLUDED.old_key, new_key = EXCLUDED.new_key, key_signature = EXCLUDED.key_signature, signature = EXCLUDED.signature, root = EXCLUDED.root `
+		`status = EXCLUDED.status, begin_block = EXCLUDED.begin_block, end_block = EXCLUDED.end_block, parties = EXCLUDED.parties, proposer = EXCLUDED.proposer, old_key = EXCLUDED.old_key, new_key = EXCLUDED.new_key, key_signature = EXCLUDED.key_signature, signature = EXCLUDED.signature, root = EXCLUDED.root `
 	// run
-	if err := q.db.ExecRawContext(ctx, sqlstr, rsd.ID, rsd.Parties, rsd.Proposer, rsd.OldKey, rsd.NewKey, rsd.KeySignature, rsd.Signature, rsd.Root); err != nil {
+	if err := q.db.ExecRawContext(ctx, sqlstr, rsd.ID, rsd.Status, rsd.BeginBlock, rsd.EndBlock, rsd.Parties, rsd.Proposer, rsd.OldKey, rsd.NewKey, rsd.KeySignature, rsd.Signature, rsd.Root); err != nil {
 		return errors.Wrap(err, "failed to execute upsert stmt")
 	}
 	return nil
@@ -401,97 +401,6 @@ func (q ReshareSessionDatumQ) DeleteCtx(ctx context.Context, rsd *data.ReshareSe
 // Delete deletes the ReshareSessionDatum from the database.
 func (q ReshareSessionDatumQ) Delete(rsd *data.ReshareSessionDatum) error {
 	return q.DeleteCtx(context.Background(), rsd)
-} // SessionQ represents helper struct to access row of 'sessions'.
-type SessionQ struct {
-	db *pgdb.DB
-}
-
-// NewSessionQ  - creates new instance
-func NewSessionQ(db *pgdb.DB) *SessionQ {
-	return &SessionQ{
-		db,
-	}
-}
-
-// SessionQ  - creates new instance of SessionQ
-func (s Storage) SessionQ() *SessionQ {
-	return NewSessionQ(s.DB())
-}
-
-var colsSession = `id, status, begin_block, end_block, session_type, data_id`
-
-// InsertCtx inserts a Session to the database.
-func (q SessionQ) InsertCtx(ctx context.Context, s *data.Session) error {
-	// sql insert query, primary key must be provided
-	sqlstr := `INSERT INTO public.sessions (` +
-		`id, status, begin_block, end_block, session_type, data_id` +
-		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6` +
-		`)`
-	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, s.ID, s.Status, s.BeginBlock, s.EndBlock, s.SessionType, s.DataID)
-	return errors.Wrap(err, "failed to execute insert query")
-}
-
-// Insert insert a Session to the database.
-func (q SessionQ) Insert(s *data.Session) error {
-	return q.InsertCtx(context.Background(), s)
-}
-
-// UpdateCtx updates a Session in the database.
-func (q SessionQ) UpdateCtx(ctx context.Context, s *data.Session) error {
-	// update with composite primary key
-	sqlstr := `UPDATE public.sessions SET ` +
-		`status = $1, begin_block = $2, end_block = $3, session_type = $4, data_id = $5 ` +
-		`WHERE id = $6`
-	// run
-	err := q.db.ExecRawContext(ctx, sqlstr, s.Status, s.BeginBlock, s.EndBlock, s.SessionType, s.DataID, s.ID)
-	return errors.Wrap(err, "failed to execute update")
-}
-
-// Update updates a Session in the database.
-func (q SessionQ) Update(s *data.Session) error {
-	return q.UpdateCtx(context.Background(), s)
-}
-
-// UpsertCtx performs an upsert for Session.
-func (q SessionQ) UpsertCtx(ctx context.Context, s *data.Session) error {
-	// upsert
-	sqlstr := `INSERT INTO public.sessions (` +
-		`id, status, begin_block, end_block, session_type, data_id` +
-		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6` +
-		`)` +
-		` ON CONFLICT (id) DO ` +
-		`UPDATE SET ` +
-		`status = EXCLUDED.status, begin_block = EXCLUDED.begin_block, end_block = EXCLUDED.end_block, session_type = EXCLUDED.session_type, data_id = EXCLUDED.data_id `
-	// run
-	if err := q.db.ExecRawContext(ctx, sqlstr, s.ID, s.Status, s.BeginBlock, s.EndBlock, s.SessionType, s.DataID); err != nil {
-		return errors.Wrap(err, "failed to execute upsert stmt")
-	}
-	return nil
-}
-
-// Upsert performs an upsert for Session.
-func (q SessionQ) Upsert(s *data.Session) error {
-	return q.UpsertCtx(context.Background(), s)
-}
-
-// DeleteCtx deletes the Session from the database.
-func (q SessionQ) DeleteCtx(ctx context.Context, s *data.Session) error {
-	// delete with single primary key
-	sqlstr := `DELETE FROM public.sessions ` +
-		`WHERE id = $1`
-	// run
-	if err := q.db.ExecRawContext(ctx, sqlstr, s.ID); err != nil {
-		return errors.Wrap(err, "failed to exec delete stmt")
-	}
-	return nil
-}
-
-// Delete deletes the Session from the database.
-func (q SessionQ) Delete(s *data.Session) error {
-	return q.DeleteCtx(context.Background(), s)
 }
 
 // DefaultSessionDatumByIDCtx retrieves a row from 'public.default_session_data' as a DefaultSessionDatum.
@@ -500,7 +409,7 @@ func (q SessionQ) Delete(s *data.Session) error {
 func (q DefaultSessionDatumQ) DefaultSessionDatumByIDCtx(ctx context.Context, id int64, isForUpdate bool) (*data.DefaultSessionDatum, error) {
 	// query
 	sqlstr := `SELECT ` +
-		`id, parties, proposer, indexes, root, accepted, signature ` +
+		`id, status, begin_block, end_block, parties, proposer, indexes, root, accepted, signature ` +
 		`FROM public.default_session_data ` +
 		`WHERE id = $1`
 	// run
@@ -566,7 +475,7 @@ func (q GorpMigrationQ) GorpMigrationByID(id string, isForUpdate bool) (*data.Go
 func (q KeygenSessionDatumQ) KeygenSessionDatumByIDCtx(ctx context.Context, id int64, isForUpdate bool) (*data.KeygenSessionDatum, error) {
 	// query
 	sqlstr := `SELECT ` +
-		`id, parties, key ` +
+		`id, status, begin_block, end_block, parties, key ` +
 		`FROM public.keygen_session_data ` +
 		`WHERE id = $1`
 	// run
@@ -599,7 +508,7 @@ func (q KeygenSessionDatumQ) KeygenSessionDatumByID(id int64, isForUpdate bool) 
 func (q ReshareSessionDatumQ) ReshareSessionDatumByIDCtx(ctx context.Context, id int64, isForUpdate bool) (*data.ReshareSessionDatum, error) {
 	// query
 	sqlstr := `SELECT ` +
-		`id, parties, proposer, old_key, new_key, key_signature, signature, root ` +
+		`id, status, begin_block, end_block, parties, proposer, old_key, new_key, key_signature, signature, root ` +
 		`FROM public.reshare_session_data ` +
 		`WHERE id = $1`
 	// run
@@ -624,70 +533,4 @@ func (q ReshareSessionDatumQ) ReshareSessionDatumByIDCtx(ctx context.Context, id
 // Generated from index 'reshare_session_data_pkey'.
 func (q ReshareSessionDatumQ) ReshareSessionDatumByID(id int64, isForUpdate bool) (*data.ReshareSessionDatum, error) {
 	return q.ReshareSessionDatumByIDCtx(context.Background(), id, isForUpdate)
-}
-
-// SessionByDataIDCtx retrieves a row from 'public.sessions' as a Session.
-//
-// Generated from index 'sessions_data_id_key'.
-func (q SessionQ) SessionByDataIDCtx(ctx context.Context, dataID sql.NullInt64, isForUpdate bool) (*data.Session, error) {
-	// query
-	sqlstr := `SELECT ` +
-		`id, status, begin_block, end_block, session_type, data_id ` +
-		`FROM public.sessions ` +
-		`WHERE data_id = $1`
-	// run
-	if isForUpdate {
-		sqlstr += " for update"
-	}
-	var res data.Session
-	err := q.db.GetRawContext(ctx, &res, sqlstr, dataID)
-	if err != nil {
-		if errors.Cause(err) == sql.ErrNoRows {
-			return nil, nil
-		}
-
-		return nil, errors.Wrap(err, "failed to exec select")
-	}
-
-	return &res, nil
-}
-
-// SessionByDataID retrieves a row from 'public.sessions' as a Session.
-//
-// Generated from index 'sessions_data_id_key'.
-func (q SessionQ) SessionByDataID(dataID sql.NullInt64, isForUpdate bool) (*data.Session, error) {
-	return q.SessionByDataIDCtx(context.Background(), dataID, isForUpdate)
-}
-
-// SessionByIDCtx retrieves a row from 'public.sessions' as a Session.
-//
-// Generated from index 'sessions_pkey'.
-func (q SessionQ) SessionByIDCtx(ctx context.Context, id int64, isForUpdate bool) (*data.Session, error) {
-	// query
-	sqlstr := `SELECT ` +
-		`id, status, begin_block, end_block, session_type, data_id ` +
-		`FROM public.sessions ` +
-		`WHERE id = $1`
-	// run
-	if isForUpdate {
-		sqlstr += " for update"
-	}
-	var res data.Session
-	err := q.db.GetRawContext(ctx, &res, sqlstr, id)
-	if err != nil {
-		if errors.Cause(err) == sql.ErrNoRows {
-			return nil, nil
-		}
-
-		return nil, errors.Wrap(err, "failed to exec select")
-	}
-
-	return &res, nil
-}
-
-// SessionByID retrieves a row from 'public.sessions' as a Session.
-//
-// Generated from index 'sessions_pkey'.
-func (q SessionQ) SessionByID(id int64, isForUpdate bool) (*data.Session, error) {
-	return q.SessionByIDCtx(context.Background(), id, isForUpdate)
 }

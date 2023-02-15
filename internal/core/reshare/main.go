@@ -1,4 +1,4 @@
-package sign
+package reshare
 
 import (
 	"context"
@@ -13,39 +13,36 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
-// Session represents default and reshare sessions that is a normal flow
+// Session represents reshare session that performs key-regeneration after updating parties set
 type Session struct {
 	log    *logan.Entry
 	mu     sync.Mutex
 	id     uint64
 	bounds *core.BoundsManager
 
-	// We are using lazy initialization to fetch session data just before session launch
-	isInitialized bool
-
 	factory   *controllers.ControllerFactory
 	current   controllers.IController
+	data      *pg.Storage
 	isStarted bool
 	cancel    context.CancelFunc
-
-	data *pg.Storage
 }
 
 // Implements core.ISession interface
 var _ core.ISession = &Session{}
 
 func NewSession(cfg config.Config) core.ISession {
-	factory := controllers.NewControllerFactory(cfg, types.SessionType_DefaultSession)
-	next := &Session{
+	factory := controllers.NewControllerFactory(cfg, types.SessionType_ReshareSession)
+
+	sess := &Session{
 		log:     cfg.Log(),
 		id:      cfg.Session().StartSessionId,
-		bounds:  core.NewBoundsManager(cfg.Session().StartBlock, types.SessionType_DefaultSession),
+		bounds:  core.NewBoundsManager(cfg.Session().StartBlock, types.SessionType_ReshareSession),
 		factory: factory,
 		data:    cfg.Storage(),
 		current: factory.GetProposalController(),
 	}
-	next.initSessionData()
-	return next
+	sess.initSessionData()
+	return sess
 }
 
 func (s *Session) ID() uint64 {
@@ -71,7 +68,7 @@ func (s *Session) NewBlock(height uint64) {
 		return
 	}
 
-	s.log.Infof("[Sign session] Running next block %d on session #%d", height, s.id)
+	s.log.Infof("[Reshare session] Running next block %d on session #%d", height, s.id)
 
 	if s.bounds.SessionEnd <= height {
 		s.stopController()
@@ -92,14 +89,14 @@ func (s *Session) NewBlock(height uint64) {
 }
 
 func (s *Session) NextSession() core.ISession {
-	factory := s.factory.NextFactory(types.SessionType_DefaultSession)
+	factory := s.factory.NextFactory(types.SessionType_ReshareSession)
 	next := &Session{
 		log:     s.log,
 		id:      s.id + 1,
-		bounds:  core.NewBoundsManager(s.End()+1, types.SessionType_DefaultSession),
+		bounds:  core.NewBoundsManager(s.End()+1, types.SessionType_ReshareSession),
 		factory: factory,
-		data:    s.data,
 		current: factory.GetProposalController(),
+		data:    s.data,
 	}
 	next.initSessionData()
 	return next
@@ -127,7 +124,7 @@ func (s *Session) stopController() {
 }
 
 func (s *Session) initSessionData() {
-	err := s.data.DefaultSessionDatumQ().Insert(&data.DefaultSessionDatum{
+	err := s.data.ReshareSessionDatumQ().Insert(&data.ReshareSessionDatum{
 		ID:         int64(s.id),
 		Status:     int(types.SessionStatus_SessionProcessing),
 		BeginBlock: int64(s.bounds.SessionStart),

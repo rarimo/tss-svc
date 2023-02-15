@@ -37,14 +37,14 @@ type SignParty struct {
 	result *common.SignatureData
 }
 
-func NewSignParty(data string, id uint64, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *SignParty {
+func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *SignParty {
 	return &SignParty{
 		wg:       &sync.WaitGroup{},
 		log:      log,
 		parties:  partiesByAccountMapping(parties),
 		partyIds: core.PartyIds(parties),
 		secret:   secret,
-		con:      connectors.NewBroadcastConnector(parties, secret, log),
+		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
 		data:     data,
 		id:       id,
 	}

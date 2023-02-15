@@ -14,7 +14,6 @@ import (
 	merkle "gitlab.com/rarimo/go-merkle"
 	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
@@ -53,13 +52,8 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	proposal := new(types.ProposalRequest)
-	if err := proto.Unmarshal(request.Details.Value, proposal); err != nil {
-		return errors.Wrap(err, "Error unmarshalling request")
-	}
-
-	p.log.Infof("Received proposal request from %s for session type=%s", sender.Account, proposal.Type.String())
-	p.accept(proposal.Details, proposal.Type)
+	p.log.Infof("Received proposal request from %s for session type=%s", sender.Account, request.SessionType.String())
+	p.accept(request.Details, request.SessionType)
 	return nil
 }
 
@@ -116,7 +110,6 @@ type DefaultProposalController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
 	client    *grpc.ClientConn
-	pool      *pool.Pool
 	pg        *pg.Storage
 	log       *logan.Entry
 }
@@ -125,7 +118,7 @@ type DefaultProposalController struct {
 var _ IProposalController = &DefaultProposalController{}
 
 func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.SessionType) {
-	if st != types.SessionType_DefaultSession {
+	if st != types.SessionType_DefaultSession || !d.data.Set.IsActive {
 		return
 	}
 
@@ -154,7 +147,6 @@ func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.Se
 		d.mu.Lock()
 		defer d.mu.Unlock()
 		d.log.Infof("Proposal data is correct. Proposal accepted.")
-		d.data.SessionType = types.SessionType_DefaultSession
 		d.data.Processing = true
 		d.data.Root = data.Root
 		d.data.Indexes = data.Indexes
@@ -162,6 +154,11 @@ func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.Se
 }
 
 func (d *DefaultProposalController) shareProposal(ctx context.Context) {
+	// Unable to perform signing if set is inactive, need to perform reshare first
+	if !d.data.Set.IsActive {
+		return
+	}
+
 	d.log.Debugf("Making sign proposal")
 	ids, root, err := d.getNewPool()
 	if err != nil {
@@ -182,12 +179,6 @@ func (d *DefaultProposalController) shareProposal(ctx context.Context) {
 		return
 	}
 
-	details, err = cosmostypes.NewAnyWithValue(&types.ProposalRequest{Type: types.SessionType_DefaultSession, Details: details})
-	if err != nil {
-		d.log.WithError(err).Error("Error parsing details")
-		return
-	}
-
 	go d.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Id:          d.data.SessionId,
 		Type:        types.RequestType_Proposal,
@@ -197,7 +188,6 @@ func (d *DefaultProposalController) shareProposal(ctx context.Context) {
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.data.SessionType = types.SessionType_DefaultSession
 	d.data.Root = root
 	d.data.Indexes = ids
 	d.data.Processing = true
@@ -207,7 +197,7 @@ func (d *DefaultProposalController) updateSessionData() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	session, err := d.pg.SessionQ().SessionByID(int64(d.data.SessionId), false)
+	session, err := d.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(d.data.SessionId), false)
 	if err != nil {
 		d.log.WithError(err).Error("Error selecting session")
 		return
@@ -218,42 +208,24 @@ func (d *DefaultProposalController) updateSessionData() {
 		return
 	}
 
-	session.SessionType = sql.NullInt64{
-		Int64: int64(types.SessionType_DefaultSession),
-		Valid: true,
+	session.Parties = partyAccounts(d.data.Set.Parties)
+	session.Proposer = sql.NullString{
+		String: d.data.Proposer.Account,
+		Valid:  true,
+	}
+	session.Indexes = d.data.Indexes
+	session.Root = sql.NullString{
+		String: d.data.Root,
+		Valid:  d.data.Root != "",
 	}
 
-	err = d.pg.DefaultSessionDatumQ().Insert(&data.DefaultSessionDatum{
-		ID:      session.ID,
-		Parties: partyAccounts(d.data.Set.Parties),
-		Proposer: sql.NullString{
-			String: d.data.Proposer.Account,
-			Valid:  true,
-		},
-		Indexes: d.data.Indexes,
-		Root: sql.NullString{
-			String: d.data.Root,
-			Valid:  d.data.Root != "",
-		},
-	})
-
-	if err != nil {
-		d.log.WithError(err).Error("Error creating session data entry")
-		return
-	}
-
-	session.DataID = sql.NullInt64{
-		Int64: session.ID,
-		Valid: true,
-	}
-
-	if err = d.pg.SessionQ().Update(session); err != nil {
+	if err = d.pg.DefaultSessionDatumQ().Update(session); err != nil {
 		d.log.WithError(err).Error("Error updating session entry")
 	}
 }
 
 func (d *DefaultProposalController) getNewPool() ([]string, string, error) {
-	ids, err := d.pool.GetNext(MaxPoolSize)
+	ids, err := pool.GetPool().GetNext(MaxPoolSize)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "error preparing pool")
 	}
@@ -288,7 +260,7 @@ type ReshareProposalController struct {
 var _ IProposalController = &ReshareProposalController{}
 
 func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.SessionType) {
-	if st != types.SessionType_ReshareSession {
+	if st != types.SessionType_ReshareSession || r.data.Set.IsActive {
 		return
 	}
 
@@ -303,12 +275,16 @@ func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.Se
 		r.mu.Lock()
 		defer r.mu.Unlock()
 		r.log.Infof("Proposal data is correct. Proposal accepted.")
-		r.data.SessionType = types.SessionType_ReshareSession
 		r.data.Processing = true
 	}
 }
 
 func (r *ReshareProposalController) shareProposal(ctx context.Context) {
+	// Unable to perform signing if set is active or public key does not exist.
+	if r.data.Set.IsActive || r.data.Set.GlobalPubKey == "" {
+		return
+	}
+
 	r.log.Debugf("Making reshare proposal")
 	set := getSet(r.data.Set)
 	data := &types.ReshareSessionProposalData{Set: set}
@@ -321,12 +297,6 @@ func (r *ReshareProposalController) shareProposal(ctx context.Context) {
 		return
 	}
 
-	details, err = cosmostypes.NewAnyWithValue(&types.ProposalRequest{Type: types.SessionType_ReshareSession, Details: details})
-	if err != nil {
-		r.log.WithError(err).Error("Error parsing details")
-		return
-	}
-
 	go r.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
 		Id:          r.data.SessionId,
 		Type:        types.RequestType_Proposal,
@@ -336,14 +306,14 @@ func (r *ReshareProposalController) shareProposal(ctx context.Context) {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.data.SessionType = types.SessionType_ReshareSession
 	r.data.Processing = true
 }
 
 func (r *ReshareProposalController) updateSessionData() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	session, err := r.pg.SessionQ().SessionByID(int64(r.data.SessionId), false)
+
+	session, err := r.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(r.data.SessionId), false)
 	if err != nil {
 		r.log.WithError(err).Error("Error selecting session")
 		return
@@ -354,35 +324,17 @@ func (r *ReshareProposalController) updateSessionData() {
 		return
 	}
 
-	session.SessionType = sql.NullInt64{
-		Int64: int64(types.SessionType_ReshareSession),
-		Valid: true,
+	session.Parties = partyAccounts(r.data.Set.Parties)
+	session.Proposer = sql.NullString{
+		String: r.data.Proposer.Account,
+		Valid:  true,
+	}
+	session.OldKey = sql.NullString{
+		String: r.data.Set.GlobalPubKey,
+		Valid:  true,
 	}
 
-	err = r.pg.ReshareSessionDatumQ().Insert(&data.ReshareSessionDatum{
-		ID:      session.ID,
-		Parties: partyAccounts(r.data.Set.Parties),
-		Proposer: sql.NullString{
-			String: r.data.Proposer.Account,
-			Valid:  true,
-		},
-		OldKey: sql.NullString{
-			String: r.data.Set.GlobalPubKey,
-			Valid:  true,
-		},
-	})
-
-	if err != nil {
-		r.log.WithError(err).Error("Error creating session data entry")
-		return
-	}
-
-	session.DataID = sql.NullInt64{
-		Int64: session.ID,
-		Valid: true,
-	}
-
-	if err = r.pg.SessionQ().Update(session); err != nil {
+	if err = r.pg.ReshareSessionDatumQ().Update(session); err != nil {
 		r.log.WithError(err).Error("Error updating session entry")
 	}
 }

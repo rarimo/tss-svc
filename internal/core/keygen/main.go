@@ -8,7 +8,6 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core/controllers"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core/sign"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
@@ -32,12 +31,12 @@ type Session struct {
 var _ core.ISession = &Session{}
 
 func NewSession(cfg config.Config) core.ISession {
-	factory := controllers.NewControllerFactory(cfg)
+	factory := controllers.NewControllerFactory(cfg, types.SessionType_KeygenSession)
 
 	sess := &Session{
 		log:     cfg.Log(),
 		id:      cfg.Session().StartSessionId,
-		bounds:  core.NewBoundsManager(cfg.Session().StartBlock),
+		bounds:  core.NewBoundsManager(cfg.Session().StartBlock, types.SessionType_KeygenSession),
 		factory: factory,
 		data:    cfg.Storage(),
 		current: factory.GetKeygenController(),
@@ -54,7 +53,7 @@ func (s *Session) Receive(request *types.MsgSubmitRequest) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.current != nil && request.Id == s.id {
+	if s.current != nil {
 		return s.current.Receive(request)
 	}
 
@@ -69,7 +68,7 @@ func (s *Session) NewBlock(height uint64) {
 		return
 	}
 
-	s.log.Infof("[Session] Running next block %d on keygen session #%d", height, s.id)
+	s.log.Infof("[Keygen session] Running next block %d on session #%d", height, s.id)
 
 	if s.bounds.SessionEnd <= height {
 		s.stopController()
@@ -90,7 +89,7 @@ func (s *Session) NewBlock(height uint64) {
 }
 
 func (s *Session) NextSession() core.ISession {
-	return sign.NewSessionWithData(s.id+1, s.End()+1, s.factory.NextFactory(), s.data, s.log)
+	return nil
 }
 
 func (s *Session) End() uint64 {
@@ -115,22 +114,15 @@ func (s *Session) stopController() {
 }
 
 func (s *Session) initSessionData() {
-	session, err := s.data.SessionQ().SessionByID(int64(s.id), false)
+	err := s.data.KeygenSessionDatumQ().Insert(&data.KeygenSessionDatum{
+		ID:         int64(s.id),
+		Status:     int(types.SessionStatus_SessionProcessing),
+		BeginBlock: int64(s.bounds.SessionStart),
+		EndBlock:   int64(s.bounds.SessionEnd),
+	})
+
 	if err != nil {
-		s.log.WithError(err).Error("Error selecting session")
-		return
+		s.log.WithError(err).Error("Error creating session entry")
 	}
 
-	if session == nil {
-		err := s.data.SessionQ().Insert(&data.Session{
-			ID:         int64(s.id),
-			Status:     int(types.SessionStatus_SessionProcessing),
-			BeginBlock: int64(s.bounds.SessionStart),
-			EndBlock:   int64(s.bounds.SessionEnd),
-		})
-
-		if err != nil {
-			s.log.WithError(err).Error("Error creating session entry")
-		}
-	}
 }

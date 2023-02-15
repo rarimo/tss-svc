@@ -14,14 +14,16 @@ import (
 // Is request submission fails, there will be ONE retry after last party submission.
 type BroadcastConnector struct {
 	*SubmitConnector
-	parties []*rarimo.Party
-	sc      *secret.TssSecret
-	log     *logan.Entry
+	sessionType types.SessionType
+	parties     []*rarimo.Party
+	sc          *secret.TssSecret
+	log         *logan.Entry
 }
 
-func NewBroadcastConnector(parties []*rarimo.Party, sc *secret.TssSecret, log *logan.Entry) *BroadcastConnector {
+func NewBroadcastConnector(sessionType types.SessionType, parties []*rarimo.Party, sc *secret.TssSecret, log *logan.Entry) *BroadcastConnector {
 	return &BroadcastConnector{
 		SubmitConnector: NewSubmitConnector(sc),
+		sessionType:     sessionType,
 		parties:         parties,
 		sc:              sc,
 		log:             log,
@@ -34,6 +36,8 @@ func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSu
 }
 
 func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
+	request.SessionType = b.sessionType
+
 	failed := struct {
 		mu  sync.Mutex
 		arr []*rarimo.Party
