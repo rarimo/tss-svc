@@ -70,7 +70,7 @@ var _ IFinishController = &KeygenFinishController{}
 
 func (k *KeygenFinishController) finish() {
 	if k.data.Processing {
-		k.log.Infof("Session %d finished successfully", k.data.SessionId)
+		k.log.Infof("Session %s #%d finished successfully", k.data.SessionType.String(), k.data.SessionId)
 		if err := k.storage.SetTssSecret(k.data.NewSecret); err != nil {
 			panic(err)
 		}
@@ -88,7 +88,7 @@ func (k *KeygenFinishController) finish() {
 		return
 	}
 
-	k.log.Infof("Session %d finished unsuccessfully", k.data.SessionId)
+	k.log.Infof("Session %s #%d finished unsuccessfully", k.data.SessionType.String(), k.data.SessionId)
 }
 
 func (k *KeygenFinishController) updateSessionEntry() {
@@ -124,7 +124,7 @@ var _ IFinishController = &DefaultFinishController{}
 
 func (d *DefaultFinishController) finish() {
 	if d.data.Processing {
-		d.log.Infof("Session %d finished successfully", d.data.SessionId)
+		d.log.Infof("Session %s #%d finished successfully", d.data.SessionType.String(), d.data.SessionId)
 		d.log.Info("Submitting confirmation message to finish default session.")
 		if err := d.core.SubmitConfirmation(d.data.Indexes, d.data.Root, d.data.OperationSignature); err != nil {
 			d.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
@@ -132,7 +132,7 @@ func (d *DefaultFinishController) finish() {
 		return
 	}
 
-	d.log.Infof("Session %d finished unsuccessfully", d.data.SessionId)
+	d.log.Infof("Session %s #%d finished unsuccessfully", d.data.SessionType.String(), d.data.SessionId)
 
 	// try to return indexes back to the pool
 	for _, index := range d.data.Indexes {
@@ -174,7 +174,7 @@ var _ IFinishController = &ReshareFinishController{}
 
 func (r *ReshareFinishController) finish() {
 	if r.data.Processing {
-		r.log.Infof("Session %d finished successfully", r.data.SessionId)
+		r.log.Infof("Session %s #%d finished successfully", r.data.SessionType.String(), r.data.SessionId)
 		if err := r.storage.SetTssSecret(r.data.NewSecret); err != nil {
 			panic(err)
 		}
@@ -205,7 +205,7 @@ func (r *ReshareFinishController) finish() {
 		return
 	}
 
-	r.log.Infof("Session %d finished unsuccessfully", r.data.SessionId)
+	r.log.Infof("Session %s #%d finished unsuccessfully", r.data.SessionType.String(), r.data.SessionId)
 }
 
 func (r *ReshareFinishController) updateSessionEntry() {

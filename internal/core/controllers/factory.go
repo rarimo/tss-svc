@@ -37,7 +37,7 @@ func NewControllerFactory(cfg config.Config, sessionType types.SessionType) *Con
 		client:  cfg.Cosmos(),
 		storage: secret.NewVaultStorage(cfg),
 		pg:      cfg.Storage(),
-		log:     cfg.Log(),
+		log:     cfg.Log().WithField("id", cfg.Session().StartSessionId).WithField("type", sessionType.String()),
 	}
 }
 
@@ -56,7 +56,7 @@ func (c *ControllerFactory) NextFactory(sessionType types.SessionType) *Controll
 		client:  c.client,
 		storage: c.storage,
 		pg:      c.pg,
-		log:     c.log,
+		log:     c.log.WithField("id", c.data.SessionId+1).WithField("type", sessionType.String()),
 	}
 }
 
