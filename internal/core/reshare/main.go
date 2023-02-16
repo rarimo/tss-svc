@@ -34,7 +34,7 @@ func NewSession(cfg config.Config) core.ISession {
 	factory := controllers.NewControllerFactory(cfg, types.SessionType_ReshareSession)
 
 	sess := &Session{
-		log:     cfg.Log(),
+		log:     cfg.Log().WithField("id", cfg.Session().StartSessionId).WithField("type", types.SessionType_ReshareSession.String()),
 		id:      cfg.Session().StartSessionId,
 		bounds:  core.NewBoundsManager(cfg.Session().StartBlock, types.SessionType_ReshareSession),
 		factory: factory,
@@ -91,7 +91,7 @@ func (s *Session) NewBlock(height uint64) {
 func (s *Session) NextSession() core.ISession {
 	factory := s.factory.NextFactory(types.SessionType_ReshareSession)
 	next := &Session{
-		log:     s.log,
+		log:     s.log.WithField("id", s.id+1).WithField("type", types.SessionType_ReshareSession.String()),
 		id:      s.id + 1,
 		bounds:  core.NewBoundsManager(s.End()+1, types.SessionType_ReshareSession),
 		factory: factory,

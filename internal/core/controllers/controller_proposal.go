@@ -86,7 +86,7 @@ func (p *ProposalController) run(ctx context.Context) {
 		p.wg.Done()
 	}()
 
-	p.log.Debugf("Session %d proposer: %v", p.data.SessionId, p.data.Proposer)
+	p.log.Debugf("Session %s %d proposer: %v", p.data.SessionType.String(), p.data.SessionId, p.data.Proposer)
 
 	if p.data.Proposer.Account != p.data.Secret.AccountAddress() {
 		p.log.Debug("Proposer is another party. No actions required")

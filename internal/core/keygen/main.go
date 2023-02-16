@@ -34,7 +34,7 @@ func NewSession(cfg config.Config) core.ISession {
 	factory := controllers.NewControllerFactory(cfg, types.SessionType_KeygenSession)
 
 	sess := &Session{
-		log:     cfg.Log(),
+		log:     cfg.Log().WithField("id", cfg.Session().StartSessionId).WithField("type", types.SessionType_KeygenSession.String()),
 		id:      cfg.Session().StartSessionId,
 		bounds:  core.NewBoundsManager(cfg.Session().StartBlock, types.SessionType_KeygenSession),
 		factory: factory,

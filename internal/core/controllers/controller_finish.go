@@ -128,12 +128,16 @@ func (d *DefaultFinishController) finish() {
 		d.log.Info("Submitting confirmation message to finish default session.")
 		if err := d.core.SubmitConfirmation(d.data.Indexes, d.data.Root, d.data.OperationSignature); err != nil {
 			d.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
+			d.returnToPool()
 		}
 		return
 	}
 
 	d.log.Infof("Session %s #%d finished unsuccessfully", d.data.SessionType.String(), d.data.SessionId)
+	d.returnToPool()
+}
 
+func (d *DefaultFinishController) returnToPool() {
 	// try to return indexes back to the pool
 	for _, index := range d.data.Indexes {
 		pool.GetPool().Add(index)
