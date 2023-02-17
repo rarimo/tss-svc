@@ -20,26 +20,22 @@ type Session struct {
 	id     uint64
 	bounds *core.BoundsManager
 
-	// We are using lazy initialization to fetch session data just before session launch
-	isInitialized bool
-
 	factory   *controllers.ControllerFactory
 	current   controllers.IController
 	isStarted bool
 	cancel    context.CancelFunc
-
-	data *pg.Storage
+	data      *pg.Storage
 }
 
 // Implements core.ISession interface
 var _ core.ISession = &Session{}
 
-func NewSession(cfg config.Config) core.ISession {
+func NewSession(cfg config.Config, id, startBlock uint64) core.ISession {
 	factory := controllers.NewControllerFactory(cfg, types.SessionType_DefaultSession)
 	next := &Session{
-		log:     cfg.Log().WithField("id", cfg.Session().StartSessionId).WithField("type", types.SessionType_DefaultSession.String()),
-		id:      cfg.Session().StartSessionId,
-		bounds:  core.NewBoundsManager(cfg.Session().StartBlock, types.SessionType_DefaultSession),
+		log:     cfg.Log().WithField("id", id).WithField("type", types.SessionType_DefaultSession.String()),
+		id:      id,
+		bounds:  core.NewBoundsManager(startBlock, types.SessionType_DefaultSession),
 		factory: factory,
 		data:    cfg.Storage(),
 		current: factory.GetProposalController(),

@@ -14,26 +14,25 @@ type Session struct {
 	log   *logan.Entry
 }
 
-func NewEmptySession(cfg config.Config, sessionType types.SessionType, creator func(cfg config.Config) core.ISession) *Session {
-	if timer.GetTimer().CurrentBlock() < cfg.Session().StartBlock {
-		return &Session{
-			nextF: func() core.ISession {
-				return creator(cfg)
-			},
-			end: cfg.Session().StartBlock - 1,
-			log: cfg.Log(),
-		}
-	}
+func NewEmptySession(cfg config.Config, sessionType types.SessionType, creator func(cfg config.Config, id, startBlock uint64) core.ISession) *Session {
+	currentId := cfg.Session().StartSessionId - 1
+	endBlock := cfg.Session().StartBlock - 1
 
-	// Changing config to start next session
-	cfg.Session().StartSessionId = GetSessionId(cfg.Session().StartSessionId, cfg.Session().StartBlock, sessionType) + 1
-	cfg.Session().StartBlock = GetSessionEnd(cfg.Session().StartSessionId, cfg.Session().StartBlock, sessionType) + 1
+	defer func() {
+		cfg.Log().Infof("[Empty Session] Running empty session for type=%s", sessionType.String())
+		cfg.Log().Infof("[Empty Session] ID = %d End = %d", currentId, endBlock)
+	}()
+
+	if timer.GetTimer().CurrentBlock() >= cfg.Session().StartBlock {
+		currentId = GetSessionId(cfg.Session().StartSessionId, cfg.Session().StartBlock, sessionType)
+		endBlock = GetSessionEnd(currentId, cfg.Session().StartBlock, sessionType)
+	}
 
 	return &Session{
 		nextF: func() core.ISession {
-			return creator(cfg)
+			return creator(cfg, currentId+1, endBlock+1)
 		},
-		end: cfg.Session().StartBlock - 1,
+		end: endBlock,
 		log: cfg.Log(),
 	}
 }

@@ -43,7 +43,7 @@ func GetSessionEnd(sessionId, startBlock uint64, sessionType types.SessionType) 
 	case types.SessionType_KeygenSession:
 		return startBlock + core.KeygenSessionDuration
 	case types.SessionType_ReshareSession:
-		return sessionId*(core.ReshareSessionSignDuration+1) + startBlock - 1
+		return sessionId*(core.ReshareSessionDuration+1) + startBlock - 1
 	}
 
 	// Should not appear

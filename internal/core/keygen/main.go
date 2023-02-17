@@ -30,13 +30,13 @@ type Session struct {
 // Implements core.ISession interface
 var _ core.ISession = &Session{}
 
-func NewSession(cfg config.Config) core.ISession {
+func NewSession(cfg config.Config, id, startBlock uint64) core.ISession {
 	factory := controllers.NewControllerFactory(cfg, types.SessionType_KeygenSession)
 
 	sess := &Session{
-		log:     cfg.Log().WithField("id", cfg.Session().StartSessionId).WithField("type", types.SessionType_KeygenSession.String()),
-		id:      cfg.Session().StartSessionId,
-		bounds:  core.NewBoundsManager(cfg.Session().StartBlock, types.SessionType_KeygenSession),
+		log:     cfg.Log().WithField("id", id).WithField("type", types.SessionType_KeygenSession.String()),
+		id:      id,
+		bounds:  core.NewBoundsManager(startBlock, types.SessionType_KeygenSession),
 		factory: factory,
 		data:    cfg.Storage(),
 		current: factory.GetKeygenController(),
