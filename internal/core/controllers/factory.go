@@ -32,7 +32,7 @@ func NewControllerFactory(cfg config.Config, id uint64, sessionType types.Sessio
 			Set:         set,
 			Acceptances: make(map[string]struct{}),
 			Secret:      secret.NewVaultStorage(cfg).GetTssSecret(),
-			Proposer:    GetProposer(set.Parties, set.LastSignature, cfg.Session().StartSessionId),
+			Proposer:    GetProposer(set.Parties, set.LastSignature, id),
 		},
 		client:  cfg.Cosmos(),
 		storage: secret.NewVaultStorage(cfg),
