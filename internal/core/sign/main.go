@@ -31,7 +31,7 @@ type Session struct {
 var _ core.ISession = &Session{}
 
 func NewSession(cfg config.Config, id, startBlock uint64) core.ISession {
-	factory := controllers.NewControllerFactory(cfg, types.SessionType_DefaultSession)
+	factory := controllers.NewControllerFactory(cfg, id, types.SessionType_DefaultSession)
 	next := &Session{
 		log:     cfg.Log().WithField("id", id).WithField("type", types.SessionType_DefaultSession.String()),
 		id:      id,

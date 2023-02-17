@@ -23,12 +23,12 @@ type ControllerFactory struct {
 	log     *logan.Entry
 }
 
-func NewControllerFactory(cfg config.Config, sessionType types.SessionType) *ControllerFactory {
+func NewControllerFactory(cfg config.Config, id uint64, sessionType types.SessionType) *ControllerFactory {
 	set := core.NewInputSet(cfg.Cosmos())
 	return &ControllerFactory{
 		data: &LocalSessionData{
 			SessionType: sessionType,
-			SessionId:   cfg.Session().StartSessionId,
+			SessionId:   id,
 			Set:         set,
 			Acceptances: make(map[string]struct{}),
 			Secret:      secret.NewVaultStorage(cfg).GetTssSecret(),
@@ -37,7 +37,7 @@ func NewControllerFactory(cfg config.Config, sessionType types.SessionType) *Con
 		client:  cfg.Cosmos(),
 		storage: secret.NewVaultStorage(cfg),
 		pg:      cfg.Storage(),
-		log:     cfg.Log().WithField("id", cfg.Session().StartSessionId).WithField("type", sessionType.String()),
+		log:     cfg.Log().WithField("id", id).WithField("type", sessionType.String()),
 	}
 }
 
