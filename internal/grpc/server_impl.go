@@ -154,7 +154,7 @@ func (s *ServerImpl) getSessionResp(sessionType types.SessionType, id int64) (*t
 			Status:     types.SessionStatus(session.Status),
 			StartBlock: uint64(session.BeginBlock),
 			EndBlock:   uint64(session.EndBlock),
-			Type:       types.SessionType_DefaultSession,
+			Type:       types.SessionType_ReshareSession,
 			Data:       details,
 		}, nil
 
@@ -179,7 +179,7 @@ func (s *ServerImpl) getSessionResp(sessionType types.SessionType, id int64) (*t
 			Status:     types.SessionStatus(session.Status),
 			StartBlock: uint64(session.BeginBlock),
 			EndBlock:   uint64(session.EndBlock),
-			Type:       types.SessionType_DefaultSession,
+			Type:       types.SessionType_ReshareSession,
 			Data:       details,
 		}, nil
 	}
