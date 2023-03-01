@@ -2,6 +2,7 @@ package timer
 
 import (
 	"context"
+	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/internal/config"
@@ -9,6 +10,7 @@ import (
 
 // Timer implements the singleton pattern
 var timer *Timer
+var once sync.Once
 
 type BlockNotifier func(height uint64) error
 
@@ -23,7 +25,7 @@ type Timer struct {
 // NewTimer returns new Timer but only once because Timer implements the singleton pattern for simple usage as
 // the same instance in all injections.
 func NewTimer(cfg config.Config) *Timer {
-	if timer == nil {
+	once.Do(func() {
 		info, err := cfg.Tendermint().Status(context.TODO())
 		if err != nil {
 			panic(err)
@@ -34,7 +36,7 @@ func NewTimer(cfg config.Config) *Timer {
 			toNotify:     make(map[string]BlockNotifier),
 			log:          cfg.Log(),
 		}
-	}
+	})
 
 	return timer
 }

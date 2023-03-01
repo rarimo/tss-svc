@@ -26,9 +26,10 @@ const (
 
 // VaultStorage implements singleton pattern
 var vaultStorage *VaultStorage
+var once sync.Once
 
 type VaultStorage struct {
-	mu       sync.Mutex
+	once     sync.Once
 	log      *logan.Entry
 	secret   *TssSecret
 	kvSecret *vault.KVSecret
@@ -37,13 +38,13 @@ type VaultStorage struct {
 }
 
 func NewVaultStorage(cfg config.Config) *VaultStorage {
-	if vaultStorage == nil {
+	once.Do(func() {
 		vaultStorage = &VaultStorage{
 			client: cfg.Vault(),
 			log:    cfg.Log(),
 			path:   os.Getenv(config.VaultSecretPath),
 		}
-	}
+	})
 
 	return vaultStorage
 }
@@ -52,24 +53,18 @@ func NewVaultStorage(cfg config.Config) *VaultStorage {
 var _ Storage = &VaultStorage{}
 
 func (v *VaultStorage) GetTssSecret() *TssSecret {
-	v.mu.Lock()
-	defer v.mu.Unlock()
-
-	if v.secret == nil {
-		secret, err := v.loadSecret()
+	v.once.Do(func() {
+		var err error
+		v.secret, err = v.loadSecret()
 		if err != nil {
 			panic(err)
 		}
-		v.secret = secret
-	}
+	})
 
 	return v.secret
 }
 
 func (v *VaultStorage) SetTssSecret(secret *TssSecret) error {
-	v.mu.Lock()
-	defer v.mu.Unlock()
-
 	v.secret = secret
 
 	dataJson, err := json.Marshal(secret.data)

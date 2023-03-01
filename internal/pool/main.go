@@ -20,6 +20,7 @@ var (
 
 // Pool implements singleton pattern
 var pool *Pool
+var once sync.Once
 
 // Pool represents the pool of operation to be signed by tss protocol.
 // It should take care about collecting validated state with unsigned operations only.
@@ -36,14 +37,14 @@ type Pool struct {
 // NewPool returns new Pool but only once because Pool implements the singleton pattern for simple usage as
 // the same instance in all injections.
 func NewPool(cfg config.Config) *Pool {
-	if pool == nil {
+	once.Do(func() {
 		pool = &Pool{
 			rarimo:   cfg.Cosmos(),
 			log:      cfg.Log(),
 			rawOrder: make(chan string, poolSz),
 			index:    make(map[string]struct{}),
 		}
-	}
+	})
 
 	return pool
 }
