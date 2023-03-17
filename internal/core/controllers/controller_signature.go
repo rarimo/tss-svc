@@ -20,7 +20,6 @@ import (
 // SignatureController is responsible for signing data by signature producers.
 type SignatureController struct {
 	ISignatureController
-	mu   sync.Mutex
 	wg   *sync.WaitGroup
 	data *LocalSessionData
 
@@ -52,7 +51,7 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 	}
 
 	if sign.Data == s.party.Data() {
-		s.party.Receive(sender, request.IsBroadcast, sign.Details.Value)
+		go s.party.Receive(sender, request.IsBroadcast, sign.Details.Value)
 	}
 	return nil
 }
@@ -82,9 +81,6 @@ func (s *SignatureController) run(ctx context.Context) {
 	<-ctx.Done()
 
 	s.party.WaitFor()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	result := s.party.Result()
 	if result == nil {
@@ -116,14 +112,6 @@ var _ ISignatureController = &KeySignatureController{}
 
 func (s *KeySignatureController) Next() IController {
 	if s.data.Processing {
-		op := &rarimo.ChangeParties{
-			Parties:      s.data.NewParties,
-			NewPublicKey: s.data.NewSecret.GlobalPubKey(),
-			Signature:    s.data.KeySignature,
-		}
-		content, _ := pkg.GetChangePartiesContent(op)
-		s.data.Root = hexutil.Encode(content.CalculateHash())
-		s.data.Indexes = []string{s.data.Root}
 		return s.factory.GetRootSignController(s.data.Root)
 	}
 	return s.factory.GetFinishController()
@@ -131,10 +119,18 @@ func (s *KeySignatureController) Next() IController {
 
 func (s *KeySignatureController) finish(signature string) {
 	s.data.KeySignature = signature
+	op := &rarimo.ChangeParties{
+		Parties:      s.data.NewParties,
+		NewPublicKey: s.data.NewSecret.GlobalPubKey(),
+		Signature:    s.data.KeySignature,
+	}
+	content, _ := pkg.GetChangePartiesContent(op)
+	s.data.Root = hexutil.Encode(content.CalculateHash())
+	s.data.Indexes = []string{s.data.Root}
 }
 
 func (s *KeySignatureController) updateSessionData() {
-	session, err := s.pg.SessionQ().SessionByID(int64(s.data.SessionId), false)
+	session, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(s.data.SessionId), false)
 	if err != nil {
 		s.log.WithError(err).Error("Error selecting session")
 		return
@@ -145,24 +141,13 @@ func (s *KeySignatureController) updateSessionData() {
 		return
 	}
 
-	data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
-	if err != nil {
-		s.log.WithError(err).Error("Error selecting session data")
-		return
-	}
-
-	if data == nil {
-		s.log.Error("Session data is not initialized")
-		return
-	}
-
-	data.Signature = sql.NullString{
+	session.Signature = sql.NullString{
 		String: s.data.OperationSignature,
 		Valid:  s.data.OperationSignature != "",
 	}
 
-	if err = s.pg.ReshareSessionDatumQ().Update(data); err != nil {
-		s.log.WithError(err).Error("Error updating session data entry")
+	if err = s.pg.ReshareSessionDatumQ().Update(session); err != nil {
+		s.log.WithError(err).Error("Error updating session entry")
 	}
 }
 
@@ -187,20 +172,9 @@ func (s *RootSignatureController) finish(signature string) {
 }
 
 func (s *RootSignatureController) updateSessionData() {
-	session, err := s.pg.SessionQ().SessionByID(int64(s.data.SessionId), false)
-	if err != nil {
-		s.log.WithError(err).Error("Error selecting session")
-		return
-	}
-
-	if session == nil {
-		s.log.Error("Session entry is not initialized")
-		return
-	}
-
 	switch s.data.SessionType {
 	case types.SessionType_DefaultSession:
-		data, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(session.DataID.Int64, false)
+		data, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(s.data.SessionId), false)
 		if err != nil {
 			s.log.WithError(err).Error("Error selecting session data")
 			return
@@ -218,7 +192,7 @@ func (s *RootSignatureController) updateSessionData() {
 
 		err = s.pg.DefaultSessionDatumQ().Update(data)
 	case types.SessionType_ReshareSession:
-		data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(session.DataID.Int64, false)
+		data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(s.data.SessionId), false)
 		if err != nil {
 			s.log.WithError(err).Error("Error selecting session data")
 			return
@@ -239,9 +213,5 @@ func (s *RootSignatureController) updateSessionData() {
 		}
 
 		err = s.pg.ReshareSessionDatumQ().Update(data)
-	}
-
-	if err != nil {
-		s.log.WithError(err).Error("Error updating session data entry")
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
-	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
@@ -19,36 +18,35 @@ import (
 type ControllerFactory struct {
 	data    *LocalSessionData
 	client  *grpc.ClientConn
-	pool    *pool.Pool
 	storage secret.Storage
 	pg      *pg.Storage
 	log     *logan.Entry
 }
 
-func NewControllerFactory(cfg config.Config) *ControllerFactory {
+func NewControllerFactory(cfg config.Config, id uint64, sessionType types.SessionType) *ControllerFactory {
 	set := core.NewInputSet(cfg.Cosmos())
-
 	return &ControllerFactory{
 		data: &LocalSessionData{
-			SessionId:   cfg.Session().StartSessionId,
+			SessionType: sessionType,
+			SessionId:   id,
 			Set:         set,
 			Acceptances: make(map[string]struct{}),
 			Secret:      secret.NewVaultStorage(cfg).GetTssSecret(),
-			Proposer:    GetProposer(set.Parties, set.LastSignature, cfg.Session().StartSessionId),
+			Proposer:    GetProposer(set.Parties, set.LastSignature, id),
 		},
 		client:  cfg.Cosmos(),
-		pool:    pool.NewPool(cfg),
 		storage: secret.NewVaultStorage(cfg),
 		pg:      cfg.Storage(),
-		log:     cfg.Log(),
+		log:     cfg.Log().WithField("id", id).WithField("type", sessionType.String()),
 	}
 }
 
-func (c *ControllerFactory) NextFactory() *ControllerFactory {
+func (c *ControllerFactory) NextFactory(sessionType types.SessionType) *ControllerFactory {
 	set := core.NewInputSet(c.client)
 
 	return &ControllerFactory{
 		data: &LocalSessionData{
+			SessionType: sessionType,
 			SessionId:   c.data.SessionId + 1,
 			Set:         set,
 			Acceptances: make(map[string]struct{}),
@@ -56,21 +54,35 @@ func (c *ControllerFactory) NextFactory() *ControllerFactory {
 			Proposer:    GetProposer(set.Parties, set.LastSignature, c.data.SessionId+1),
 		},
 		client:  c.client,
-		pool:    c.pool,
 		storage: c.storage,
 		pg:      c.pg,
-		log:     c.log,
+		log:     c.log.WithField("id", c.data.SessionId+1).WithField("type", sessionType.String()),
 	}
 }
 
 func (c *ControllerFactory) GetProposalController() IController {
-	if c.data.Set.IsActive {
+	switch c.data.SessionType {
+	case types.SessionType_DefaultSession:
 		return &ProposalController{
 			IProposalController: &DefaultProposalController{
 				data:      c.data,
-				broadcast: connectors.NewBroadcastConnector(c.data.Set.Parties, c.data.Secret, c.log),
+				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 				client:    c.client,
-				pool:      c.pool,
+				pg:        c.pg,
+				log:       c.log,
+			},
+			wg:      &sync.WaitGroup{},
+			data:    c.data,
+			auth:    core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
+			log:     c.log,
+			factory: c,
+		}
+
+	case types.SessionType_ReshareSession:
+		return &ProposalController{
+			IProposalController: &ReshareProposalController{
+				data:      c.data,
+				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 				pg:        c.pg,
 				log:       c.log,
 			},
@@ -82,19 +94,8 @@ func (c *ControllerFactory) GetProposalController() IController {
 		}
 	}
 
-	return &ProposalController{
-		IProposalController: &ReshareProposalController{
-			data:      c.data,
-			broadcast: connectors.NewBroadcastConnector(c.data.Set.Parties, c.data.Secret, c.log),
-			pg:        c.pg,
-			log:       c.log,
-		},
-		wg:      &sync.WaitGroup{},
-		data:    c.data,
-		auth:    core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
-		log:     c.log,
-		factory: c,
-	}
+	// Should not appear
+	panic("Invalid session type")
 }
 
 func (c *ControllerFactory) GetAcceptanceController() IController {
@@ -103,7 +104,7 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 		return &AcceptanceController{
 			IAcceptanceController: &DefaultAcceptanceController{
 				data:      c.data,
-				broadcast: connectors.NewBroadcastConnector(c.data.Set.Parties, c.data.Secret, c.log),
+				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 				log:       c.log,
 				pg:        c.pg,
 				factory:   c,
@@ -117,7 +118,7 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 		return &AcceptanceController{
 			IAcceptanceController: &ReshareAcceptanceController{
 				data:      c.data,
-				broadcast: connectors.NewBroadcastConnector(c.data.Set.Parties, c.data.Secret, c.log),
+				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 				log:       c.log,
 				pg:        c.pg,
 				factory:   c,
@@ -146,7 +147,7 @@ func (c *ControllerFactory) GetRootSignController(hash string) IController {
 		data:  c.data,
 		auth:  core.NewRequestAuthorizer(parties, c.log),
 		log:   c.log,
-		party: tss.NewSignParty(hash, c.data.SessionId, parties, c.data.Secret, c.log),
+		party: tss.NewSignParty(hash, c.data.SessionId, c.data.SessionType, parties, c.data.Secret, c.log),
 	}
 }
 
@@ -164,7 +165,7 @@ func (c *ControllerFactory) GetKeySignController(hash string) IController {
 		data:  c.data,
 		auth:  core.NewRequestAuthorizer(parties, c.log),
 		log:   c.log,
-		party: tss.NewSignParty(hash, c.data.SessionId, parties, c.data.Secret, c.log),
+		party: tss.NewSignParty(hash, c.data.SessionId, c.data.SessionType, parties, c.data.Secret, c.log),
 	}
 }
 
@@ -176,11 +177,11 @@ func (c *ControllerFactory) GetFinishController() IController {
 				data:    c.data,
 				storage: c.storage,
 				core:    connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
+				pg:      c.pg,
 				log:     c.log,
 			},
 			wg:   &sync.WaitGroup{},
 			data: c.data,
-			pg:   c.pg,
 			log:  c.log,
 		}
 	case types.SessionType_ReshareSession:
@@ -189,28 +190,29 @@ func (c *ControllerFactory) GetFinishController() IController {
 				data:    c.data,
 				storage: c.storage,
 				core:    connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
+				pg:      c.pg,
 				log:     c.log,
 			},
 			wg:   &sync.WaitGroup{},
 			data: c.data,
-			pg:   c.pg,
 			log:  c.log,
 		}
 	case types.SessionType_DefaultSession:
 		return &FinishController{
 			IFinishController: &DefaultFinishController{
 				data: c.data,
-				pool: c.pool,
 				core: connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 				log:  c.log,
+				pg:   c.pg,
 			},
 			wg:   &sync.WaitGroup{},
 			data: c.data,
-			pg:   c.pg,
 			log:  c.log,
 		}
 	}
-	return nil
+
+	// Should not appear
+	panic("Invalid session type")
 }
 
 func (c *ControllerFactory) GetKeygenController() IController {
@@ -227,9 +229,9 @@ func (c *ControllerFactory) GetKeygenController() IController {
 			data:  c.data,
 			auth:  core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
 			log:   c.log,
-			party: tss.NewKeygenParty(c.data.SessionId, c.data.Set.Parties, c.data.Secret, c.log),
+			party: tss.NewKeygenParty(c.data.SessionId, c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 		}
-	default:
+	case types.SessionType_KeygenSession:
 		return &KeygenController{
 			IKeygenController: &DefaultKeygenController{
 				data:    c.data,
@@ -241,7 +243,10 @@ func (c *ControllerFactory) GetKeygenController() IController {
 			data:  c.data,
 			auth:  core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
 			log:   c.log,
-			party: tss.NewKeygenParty(c.data.SessionId, c.data.Set.Parties, c.data.Secret, c.log),
+			party: tss.NewKeygenParty(c.data.SessionId, c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 		}
 	}
+
+	// Should not appear
+	panic("Invalid session type")
 }

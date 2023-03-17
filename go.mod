@@ -10,14 +10,14 @@ require (
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/gogo/protobuf v1.3.3
 	github.com/hashicorp/vault/api v1.8.2
+	github.com/prometheus/client_golang v1.12.2
 	github.com/rubenv/sql-migrate v1.2.0
-	github.com/spf13/cast v1.5.0
 	github.com/tendermint/tendermint v0.34.23
 	gitlab.com/distributed_lab/figure v2.1.0+incompatible
 	gitlab.com/distributed_lab/kit v1.11.1
 	gitlab.com/distributed_lab/logan v3.8.1+incompatible
 	gitlab.com/rarimo/go-merkle v0.0.0-20221212103215-4a9612e1bed1
-	gitlab.com/rarimo/rarimo-core v0.0.0-20221222131825-9a2dbbb97758
+	gitlab.com/rarimo/rarimo-core v0.0.0-20230207130938-6dbb8f6b0263
 	google.golang.org/grpc v1.51.0
 )
 
@@ -124,7 +124,6 @@ require (
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.12.2 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.34.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
@@ -134,6 +133,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
+	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.6.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -167,6 +167,6 @@ require (
 
 replace (
 	github.com/agl/ed25519 => github.com/bnb-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
-	github.com/cosmos/cosmos-sdk v0.45.5 => gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.4
+	github.com/cosmos/cosmos-sdk v0.45.5 => gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.5
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 )

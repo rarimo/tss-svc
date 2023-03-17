@@ -11,11 +11,10 @@ import (
 )
 
 var (
-	ErrSenderIsNotProposer          = goerr.New("party is not proposer")
-	ErrUnsupportedContent           = goerr.New("unsupported content")
-	ErrInvalidRequestType           = goerr.New("invalid request type")
-	ErrSenderHasNotAccepted         = goerr.New("sender has not accepted proposal")
-	ErrSecretDataAlreadyInitialized = goerr.New("secret data already initialized")
+	ErrSenderIsNotProposer  = goerr.New("party is not proposer")
+	ErrUnsupportedContent   = goerr.New("unsupported content")
+	ErrInvalidRequestType   = goerr.New("invalid request type")
+	ErrSenderHasNotAccepted = goerr.New("sender has not accepted proposal")
 )
 
 type (

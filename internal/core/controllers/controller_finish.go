@@ -19,9 +19,7 @@ type FinishController struct {
 	wg *sync.WaitGroup
 
 	data *LocalSessionData
-
-	pg  *pg.Storage
-	log *logan.Entry
+	log  *logan.Entry
 }
 
 // Implements IController interface
@@ -55,36 +53,16 @@ func (f *FinishController) Type() types.ControllerType {
 	return types.ControllerType_CONTROLLER_FINISH
 }
 
-func (f *FinishController) updateSessionEntry() {
-	session, err := f.pg.SessionQ().SessionByID(int64(f.data.SessionId), false)
-	if err != nil {
-		f.log.WithError(err).Error("Error selecting session")
-		return
-	}
-
-	if session == nil {
-		f.log.Error("Session entry is not initialized")
-		return
-	}
-
-	session.Status = int(types.SessionStatus_SessionSucceeded)
-	if !f.data.Processing {
-		session.Status = int(types.SessionStatus_SessionFailed)
-	}
-
-	if err := f.pg.SessionQ().Update(session); err != nil {
-		f.log.Error("Error updating session entry")
-	}
-}
-
 type IFinishController interface {
 	finish()
+	updateSessionEntry()
 }
 
 type KeygenFinishController struct {
 	data    *LocalSessionData
 	storage secret.Storage
 	core    *connectors.CoreConnector
+	pg      *pg.Storage
 	log     *logan.Entry
 }
 
@@ -92,7 +70,7 @@ var _ IFinishController = &KeygenFinishController{}
 
 func (k *KeygenFinishController) finish() {
 	if k.data.Processing {
-		k.log.Infof("Session %d finished successfully", k.data.SessionId)
+		k.log.Infof("Session %s #%d finished successfully", k.data.SessionType.String(), k.data.SessionId)
 		if err := k.storage.SetTssSecret(k.data.NewSecret); err != nil {
 			panic(err)
 		}
@@ -110,13 +88,35 @@ func (k *KeygenFinishController) finish() {
 		return
 	}
 
-	k.log.Infof("Session %d finished unsuccessfully", k.data.SessionId)
+	k.log.Infof("Session %s #%d finished unsuccessfully", k.data.SessionType.String(), k.data.SessionId)
+}
+
+func (k *KeygenFinishController) updateSessionEntry() {
+	session, err := k.pg.KeygenSessionDatumQ().KeygenSessionDatumByID(int64(k.data.SessionId), false)
+	if err != nil {
+		k.log.WithError(err).Error("Error selecting session")
+		return
+	}
+
+	if session == nil {
+		k.log.Error("Session entry is not initialized")
+		return
+	}
+
+	session.Status = int(types.SessionStatus_SessionSucceeded)
+	if !k.data.Processing {
+		session.Status = int(types.SessionStatus_SessionFailed)
+	}
+
+	if err := k.pg.KeygenSessionDatumQ().Update(session); err != nil {
+		k.log.Error("Error updating session entry")
+	}
 }
 
 type DefaultFinishController struct {
 	data *LocalSessionData
-	pool *pool.Pool
 	core *connectors.CoreConnector
+	pg   *pg.Storage
 	log  *logan.Entry
 }
 
@@ -124,19 +124,45 @@ var _ IFinishController = &DefaultFinishController{}
 
 func (d *DefaultFinishController) finish() {
 	if d.data.Processing {
-		d.log.Infof("Session %d finished successfully", d.data.SessionId)
+		d.log.Infof("Session %s #%d finished successfully", d.data.SessionType.String(), d.data.SessionId)
 		d.log.Info("Submitting confirmation message to finish default session.")
 		if err := d.core.SubmitConfirmation(d.data.Indexes, d.data.Root, d.data.OperationSignature); err != nil {
 			d.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
+			d.returnToPool()
 		}
 		return
 	}
 
-	d.log.Infof("Session %d finished unsuccessfully", d.data.SessionId)
+	d.log.Infof("Session %s #%d finished unsuccessfully", d.data.SessionType.String(), d.data.SessionId)
+	d.returnToPool()
+}
 
+func (d *DefaultFinishController) returnToPool() {
 	// try to return indexes back to the pool
 	for _, index := range d.data.Indexes {
-		d.pool.Add(index)
+		pool.GetPool().Add(index)
+	}
+}
+
+func (d *DefaultFinishController) updateSessionEntry() {
+	session, err := d.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(d.data.SessionId), false)
+	if err != nil {
+		d.log.WithError(err).Error("Error selecting session")
+		return
+	}
+
+	if session == nil {
+		d.log.Error("Session entry is not initialized")
+		return
+	}
+
+	session.Status = int(types.SessionStatus_SessionSucceeded)
+	if !d.data.Processing {
+		session.Status = int(types.SessionStatus_SessionFailed)
+	}
+
+	if err := d.pg.DefaultSessionDatumQ().Update(session); err != nil {
+		d.log.Error("Error updating session entry")
 	}
 }
 
@@ -144,6 +170,7 @@ type ReshareFinishController struct {
 	data    *LocalSessionData
 	storage secret.Storage
 	core    *connectors.CoreConnector
+	pg      *pg.Storage
 	log     *logan.Entry
 }
 
@@ -151,7 +178,7 @@ var _ IFinishController = &ReshareFinishController{}
 
 func (r *ReshareFinishController) finish() {
 	if r.data.Processing {
-		r.log.Infof("Session %d finished successfully", r.data.SessionId)
+		r.log.Infof("Session %s #%d finished successfully", r.data.SessionType.String(), r.data.SessionId)
 		if err := r.storage.SetTssSecret(r.data.NewSecret); err != nil {
 			panic(err)
 		}
@@ -182,5 +209,27 @@ func (r *ReshareFinishController) finish() {
 		return
 	}
 
-	r.log.Infof("Session %d finished unsuccessfully", r.data.SessionId)
+	r.log.Infof("Session %s #%d finished unsuccessfully", r.data.SessionType.String(), r.data.SessionId)
+}
+
+func (r *ReshareFinishController) updateSessionEntry() {
+	session, err := r.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(r.data.SessionId), false)
+	if err != nil {
+		r.log.WithError(err).Error("Error selecting session")
+		return
+	}
+
+	if session == nil {
+		r.log.Error("Session entry is not initialized")
+		return
+	}
+
+	session.Status = int(types.SessionStatus_SessionSucceeded)
+	if !r.data.Processing {
+		session.Status = int(types.SessionStatus_SessionFailed)
+	}
+
+	if err := r.pg.ReshareSessionDatumQ().Update(session); err != nil {
+		r.log.Error("Error updating session entry")
+	}
 }

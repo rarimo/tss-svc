@@ -37,7 +37,7 @@ type KeygenParty struct {
 	result *keygen.LocalPartySaveData
 }
 
-func NewKeygenParty(id uint64, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *KeygenParty {
+func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *KeygenParty {
 	return &KeygenParty{
 		id:       id,
 		wg:       &sync.WaitGroup{},
@@ -45,7 +45,7 @@ func NewKeygenParty(id uint64, parties []*rarimo.Party, secret *secret.TssSecret
 		partyIds: core.PartyIds(parties),
 		parties:  partiesByAccountMapping(parties),
 		secret:   secret,
-		con:      connectors.NewBroadcastConnector(parties, secret, log),
+		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
 	}
 }
 
@@ -85,11 +85,16 @@ func (k *KeygenParty) Run(ctx context.Context) {
 }
 
 func (k *KeygenParty) WaitFor() {
+	k.log.Debug("Waiting for finishing keygen party group")
 	k.wg.Wait()
+	k.log.Debug("Keygen party group finished")
 }
 
 func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveData) {
-	defer k.wg.Done()
+	defer func() {
+		k.log.Debug("Listening to keygen party result finished")
+		k.wg.Done()
+	}()
 
 	<-ctx.Done()
 
@@ -108,7 +113,10 @@ func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveD
 }
 
 func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
-	defer k.wg.Done()
+	defer func() {
+		k.log.Debug("Listening to keygen party output finished")
+		k.wg.Done()
+	}()
 
 	for {
 		select {
@@ -139,11 +147,15 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 
 				if party.Account == k.secret.AccountAddress() {
 					k.log.Debug("Sending to self")
-					k.Receive(party, msg.IsBroadcast(), request.Details.Value)
+					go k.Receive(party, msg.IsBroadcast(), request.Details.Value)
 					continue
 				}
 
-				k.con.MustSubmitTo(ctx, request, party)
+				go func() {
+					if failed := k.con.SubmitTo(ctx, request, party); len(failed) != 0 {
+						k.con.SubmitTo(ctx, request, party)
+					}
+				}()
 			}
 		}
 	}

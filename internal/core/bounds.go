@@ -6,25 +6,24 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
+// Default: 0-2 proposal 3-5 acceptance 6-12 sign 13-15 finish
+// Keygen: 0-10 11-13 finish
+// Reshare 0-2 proposal 3-5 acceptance 6-30 keygen 31-37 sign 38-44 sign 45-47 finish
 const (
-	SessionDuration    = 23
-	ProposalDuration   = 3
-	AcceptanceDuration = 3
-	SignDuration       = 3
-	ReshareDuration    = 3
-	KeygenDuration     = 4
+	DefaultSessionDuration           = 15
+	DefaultSessionProposalDuration   = 2
+	DefaultSessionAcceptanceDuration = 2
+	DefaultSessionSignDuration       = 6
+
+	KeygenSessionDuration       = 13
+	KeygenSessionKeygenDuration = 10
+
+	ReshareSessionDuration           = 47
+	ReshareSessionProposalDuration   = 2
+	ReshareSessionAcceptanceDuration = 2
+	ReshareSessionKeygenDuration     = 24
+	ReshareSessionSignDuration       = 6
 )
-
-// Default: 0-3 proposal 4-7 acceptance 8-11 sign 12-23 finish
-// Reshare 0-3 proposal 4-7 acceptance 8-11 reshare 12-15 sign 16-19 sign 20-23 finish
-
-var durationByControllers = map[types.ControllerType]uint64{
-	types.ControllerType_CONTROLLER_KEYGEN:     KeygenDuration,
-	types.ControllerType_CONTROLLER_PROPOSAL:   ProposalDuration,
-	types.ControllerType_CONTROLLER_ACCEPTANCE: AcceptanceDuration,
-	types.ControllerType_CONTROLLER_SIGN:       SignDuration,
-	types.ControllerType_CONTROLLER_RESHARE:    ReshareDuration,
-}
 
 type Bounds struct {
 	Start uint64
@@ -33,18 +32,55 @@ type Bounds struct {
 
 // BoundsManager is responsible for managing controllers bounds
 type BoundsManager struct {
-	mu           sync.Mutex
-	SessionStart uint64
-	SessionEnd   uint64
-	bounds       []*Bounds
+	mu                   sync.Mutex
+	SessionStart         uint64
+	SessionEnd           uint64
+	SessionDuration      uint64
+	durationByController map[types.ControllerType]uint64
+	bounds               []*Bounds
 }
 
-func NewBoundsManager(start uint64) *BoundsManager {
-	return &BoundsManager{
-		SessionStart: start,
-		SessionEnd:   start + SessionDuration,
-		bounds:       make([]*Bounds, 0, 6),
+func NewBoundsManager(start uint64, sessionType types.SessionType) *BoundsManager {
+	switch sessionType {
+	case types.SessionType_DefaultSession:
+		return &BoundsManager{
+			SessionStart:    start,
+			SessionDuration: DefaultSessionDuration,
+			SessionEnd:      start + DefaultSessionDuration,
+			bounds:          make([]*Bounds, 0, 4),
+			durationByController: map[types.ControllerType]uint64{
+				types.ControllerType_CONTROLLER_PROPOSAL:   DefaultSessionProposalDuration,
+				types.ControllerType_CONTROLLER_ACCEPTANCE: DefaultSessionAcceptanceDuration,
+				types.ControllerType_CONTROLLER_SIGN:       DefaultSessionSignDuration,
+			},
+		}
+	case types.SessionType_KeygenSession:
+		return &BoundsManager{
+			SessionStart:    start,
+			SessionDuration: KeygenSessionDuration,
+			SessionEnd:      start + KeygenSessionDuration,
+			bounds:          make([]*Bounds, 0, 2),
+			durationByController: map[types.ControllerType]uint64{
+				types.ControllerType_CONTROLLER_KEYGEN: KeygenSessionKeygenDuration,
+			},
+		}
+	case types.SessionType_ReshareSession:
+		return &BoundsManager{
+			SessionStart:    start,
+			SessionDuration: ReshareSessionDuration,
+			SessionEnd:      start + ReshareSessionDuration,
+			bounds:          make([]*Bounds, 0, 6),
+			durationByController: map[types.ControllerType]uint64{
+				types.ControllerType_CONTROLLER_PROPOSAL:   ReshareSessionProposalDuration,
+				types.ControllerType_CONTROLLER_ACCEPTANCE: ReshareSessionAcceptanceDuration,
+				types.ControllerType_CONTROLLER_KEYGEN:     ReshareSessionKeygenDuration,
+				types.ControllerType_CONTROLLER_SIGN:       ReshareSessionSignDuration,
+			},
+		}
 	}
+
+	// Should not appear
+	panic("Invalid session type")
 }
 
 func (b *BoundsManager) NextController(t types.ControllerType) *Bounds {
@@ -55,11 +91,11 @@ func (b *BoundsManager) NextController(t types.ControllerType) *Bounds {
 
 	bound := &Bounds{
 		Start: start,
-		End:   b.SessionEnd,
+		End:   b.SessionStart + b.SessionDuration,
 	}
 
 	if t != types.ControllerType_CONTROLLER_FINISH {
-		bound.End = start + durationByControllers[t]
+		bound.End = start + b.durationByController[t]
 	}
 
 	b.bounds = append(b.bounds, bound)
@@ -73,6 +109,6 @@ func (b *BoundsManager) Current() *Bounds {
 
 	return &Bounds{
 		Start: b.SessionStart,
-		End:   b.SessionEnd,
+		End:   b.SessionStart + b.SessionDuration,
 	}
 }

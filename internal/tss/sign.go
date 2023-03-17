@@ -37,14 +37,14 @@ type SignParty struct {
 	result *common.SignatureData
 }
 
-func NewSignParty(data string, id uint64, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *SignParty {
+func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *SignParty {
 	return &SignParty{
 		wg:       &sync.WaitGroup{},
 		log:      log,
 		parties:  partiesByAccountMapping(parties),
 		partyIds: core.PartyIds(parties),
 		secret:   secret,
-		con:      connectors.NewBroadcastConnector(parties, secret, log),
+		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
 		data:     data,
 		id:       id,
 	}
@@ -72,7 +72,9 @@ func (p *SignParty) Run(ctx context.Context) {
 }
 
 func (p *SignParty) WaitFor() {
+	p.log.Debug("Waiting for finishing sign party group")
 	p.wg.Wait()
+	p.log.Debug("Sign party group finished")
 }
 
 func (p *SignParty) Result() *common.SignatureData {
@@ -95,7 +97,10 @@ func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []by
 }
 
 func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
-	defer p.wg.Done()
+	defer func() {
+		p.log.Debug("Listening to sign party result finished")
+		p.wg.Done()
+	}()
 
 	<-ctx.Done()
 
@@ -114,7 +119,10 @@ func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
 }
 
 func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
-	defer p.wg.Done()
+	defer func() {
+		p.log.Debug("Listening to sign party output finished")
+		p.wg.Done()
+	}()
 
 	for {
 		select {
@@ -155,13 +163,15 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 
 				if party.Account == p.secret.AccountAddress() {
 					p.log.Debug("Sending to self")
-					p.Receive(party, msg.IsBroadcast(), details.Value)
+					go p.Receive(party, msg.IsBroadcast(), details.Value)
 					continue
 				}
 
-				if failed := p.con.SubmitTo(ctx, request, party); len(failed) != 0 {
-					p.con.SubmitTo(ctx, request, party)
-				}
+				go func() {
+					if failed := p.con.SubmitTo(ctx, request, party); len(failed) != 0 {
+						p.con.SubmitTo(ctx, request, party)
+					}
+				}()
 			}
 		}
 	}

@@ -14,12 +14,13 @@ import (
 const poolSz = 10000
 
 var (
-	// ErrOpAlreadySigned appears when someone tries to add operation that has been already signed
-	ErrOpAlreadySigned = errors.New("operation already signed")
+	// ErrOpShouldBeApproved appears when someone tries to add operation that has been already signed
+	ErrOpShouldBeApproved = errors.New("operation should be approved")
 )
 
 // Pool implements singleton pattern
 var pool *Pool
+var once sync.Once
 
 // Pool represents the pool of operation to be signed by tss protocol.
 // It should take care about collecting validated state with unsigned operations only.
@@ -36,22 +37,27 @@ type Pool struct {
 // NewPool returns new Pool but only once because Pool implements the singleton pattern for simple usage as
 // the same instance in all injections.
 func NewPool(cfg config.Config) *Pool {
-	if pool == nil {
+	once.Do(func() {
 		pool = &Pool{
 			rarimo:   cfg.Cosmos(),
 			log:      cfg.Log(),
 			rawOrder: make(chan string, poolSz),
 			index:    make(map[string]struct{}),
 		}
-	}
+	})
 
+	return pool
+}
+
+// GetPool returns existing instance of pool. Be aware to initialize it before using that function.
+func GetPool() *Pool {
 	return pool
 }
 
 // Add will add operation index to the pool with signed flag check.
 // Returns an error if signed check fails (cause or rpc errors).
 func (p *Pool) Add(id string) error {
-	if err := p.checkUnsigned(id); err != nil {
+	if err := p.checkStatus(id); err != nil {
 		return err
 	}
 
@@ -76,9 +82,9 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 	for collected < n {
 		select {
 		case id := <-p.rawOrder:
-			err := p.checkUnsigned(id)
+			err := p.checkStatus(id)
 			switch err {
-			case ErrOpAlreadySigned:
+			case ErrOpShouldBeApproved:
 				delete(p.index, id)
 				continue
 			case nil:
@@ -98,14 +104,14 @@ func (p *Pool) GetNext(n uint) ([]string, error) {
 	return res, nil
 }
 
-func (p *Pool) checkUnsigned(id string) error {
+func (p *Pool) checkStatus(id string) error {
 	resp, err := rarimo.NewQueryClient(p.rarimo).Operation(context.TODO(), &rarimo.QueryGetOperationRequest{Index: id})
 	if err != nil {
 		return err
 	}
 
-	if resp.Operation.Signed {
-		return ErrOpAlreadySigned
+	if resp.Operation.Status != rarimo.OpStatus_APPROVED {
+		return ErrOpShouldBeApproved
 	}
 
 	return nil
