@@ -188,10 +188,10 @@ func (r *ReshareKeygenController) finish(result *keygen.LocalPartySaveData) {
 		for j, party := range r.data.Set.Parties {
 			if party.Account == partyId.Id {
 				r.data.NewParties[j] = &rarimo.Party{
-					PubKey:   hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y())),
-					Address:  party.Address,
-					Account:  party.Account,
-					Verified: true,
+					PubKey:  hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y())),
+					Address: party.Address,
+					Account: party.Account,
+					Status:  rarimo.PartyStatus_Active,
 				}
 				break
 			}
