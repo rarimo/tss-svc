@@ -109,6 +109,7 @@ type DefaultProposalController struct {
 	mu        sync.Mutex
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
+	core      *connectors.CoreConnector
 	client    *grpc.ClientConn
 	pg        *pg.Storage
 	log       *logan.Entry
@@ -179,7 +180,7 @@ func (d *DefaultProposalController) shareProposal(ctx context.Context) {
 		return
 	}
 
-	go d.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+	go d.broadcast.SubmitAllWithReport(ctx, d.core, &types.MsgSubmitRequest{
 		Id:          d.data.SessionId,
 		Type:        types.RequestType_Proposal,
 		IsBroadcast: true,
@@ -252,6 +253,7 @@ type ReshareProposalController struct {
 	mu        sync.Mutex
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
+	core      *connectors.CoreConnector
 	log       *logan.Entry
 	pg        *pg.Storage
 }
@@ -297,7 +299,7 @@ func (r *ReshareProposalController) shareProposal(ctx context.Context) {
 		return
 	}
 
-	go r.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+	go r.broadcast.SubmitAllWithReport(ctx, r.core, &types.MsgSubmitRequest{
 		Id:          r.data.SessionId,
 		Type:        types.RequestType_Proposal,
 		IsBroadcast: true,

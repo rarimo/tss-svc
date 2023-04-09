@@ -30,9 +30,33 @@ func NewBroadcastConnector(sessionType types.SessionType, parties []*rarimo.Part
 	}
 }
 
+func (b *BroadcastConnector) SubmitAllWithReport(ctx context.Context, coreCon *CoreConnector, request *types.MsgSubmitRequest) {
+	retry := b.SubmitTo(ctx, request, b.parties...)
+	for _, party := range b.SubmitTo(ctx, request, retry...) {
+		go func(offender string) {
+			if err := coreCon.SubmitReport(request.Id, rarimo.ViolationType_Offline, offender, ""); err != nil {
+				b.log.WithError(err).Errorf("Error submitting violation report for party: %s", offender)
+			}
+		}(party.Account)
+	}
+}
+
 func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSubmitRequest) {
 	retry := b.SubmitTo(ctx, request, b.parties...)
 	b.SubmitTo(ctx, request, retry...)
+}
+
+func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *CoreConnector, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
+	failed := b.SubmitTo(ctx, request, parties...)
+	for _, party := range failed {
+		go func(offender string) {
+			if err := coreCon.SubmitReport(request.Id, rarimo.ViolationType_Offline, offender, ""); err != nil {
+				b.log.WithError(err).Errorf("Error submitting violation report for party: %s", offender)
+			}
+		}(party.Account)
+	}
+
+	return failed
 }
 
 func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {

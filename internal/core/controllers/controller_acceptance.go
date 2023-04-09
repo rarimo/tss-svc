@@ -95,6 +95,7 @@ type IAcceptanceController interface {
 type DefaultAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
+	core      *connectors.CoreConnector
 	log       *logan.Entry
 	pg        *pg.Storage
 	factory   *ControllerFactory
@@ -130,7 +131,7 @@ func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
 		return
 	}
 
-	go a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+	go a.broadcast.SubmitAllWithReport(ctx, a.core, &types.MsgSubmitRequest{
 		Id:          a.data.SessionId,
 		Type:        types.RequestType_Acceptance,
 		IsBroadcast: true,
@@ -166,6 +167,7 @@ func (a *DefaultAcceptanceController) finish() {
 type ReshareAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
+	core      *connectors.CoreConnector
 	log       *logan.Entry
 	pg        *pg.Storage
 	factory   *ControllerFactory
@@ -202,7 +204,7 @@ func (a *ReshareAcceptanceController) shareAcceptance(ctx context.Context) {
 		return
 	}
 
-	go a.broadcast.SubmitAll(ctx, &types.MsgSubmitRequest{
+	go a.broadcast.SubmitAllWithReport(ctx, a.core, &types.MsgSubmitRequest{
 		Id:          a.data.SessionId,
 		Type:        types.RequestType_Acceptance,
 		IsBroadcast: true,

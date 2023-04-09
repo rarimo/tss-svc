@@ -67,6 +67,7 @@ func (c *ControllerFactory) GetProposalController() IController {
 			IProposalController: &DefaultProposalController{
 				data:      c.data,
 				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
+				core:      connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 				client:    c.client,
 				pg:        c.pg,
 				log:       c.log,
@@ -83,6 +84,7 @@ func (c *ControllerFactory) GetProposalController() IController {
 			IProposalController: &ReshareProposalController{
 				data:      c.data,
 				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
+				core:      connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 				pg:        c.pg,
 				log:       c.log,
 			},
@@ -105,6 +107,7 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 			IAcceptanceController: &DefaultAcceptanceController{
 				data:      c.data,
 				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
+				core:      connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 				log:       c.log,
 				pg:        c.pg,
 				factory:   c,
@@ -119,6 +122,7 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 			IAcceptanceController: &ReshareAcceptanceController{
 				data:      c.data,
 				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
+				core:      connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 				log:       c.log,
 				pg:        c.pg,
 				factory:   c,
@@ -147,7 +151,7 @@ func (c *ControllerFactory) GetRootSignController(hash string) IController {
 		data:  c.data,
 		auth:  core.NewRequestAuthorizer(parties, c.log),
 		log:   c.log,
-		party: tss.NewSignParty(hash, c.data.SessionId, c.data.SessionType, parties, c.data.Secret, c.log),
+		party: tss.NewSignParty(hash, c.data.SessionId, c.data.SessionType, parties, c.data.Secret, c.client, c.log),
 	}
 }
 
@@ -165,7 +169,7 @@ func (c *ControllerFactory) GetKeySignController(hash string) IController {
 		data:  c.data,
 		auth:  core.NewRequestAuthorizer(parties, c.log),
 		log:   c.log,
-		party: tss.NewSignParty(hash, c.data.SessionId, c.data.SessionType, parties, c.data.Secret, c.log),
+		party: tss.NewSignParty(hash, c.data.SessionId, c.data.SessionType, parties, c.data.Secret, c.client, c.log),
 	}
 }
 
@@ -229,7 +233,7 @@ func (c *ControllerFactory) GetKeygenController() IController {
 			data:  c.data,
 			auth:  core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
 			log:   c.log,
-			party: tss.NewKeygenParty(c.data.SessionId, c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
+			party: tss.NewKeygenParty(c.data.SessionId, c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.client, c.log),
 		}
 	case types.SessionType_KeygenSession:
 		return &KeygenController{
@@ -243,7 +247,7 @@ func (c *ControllerFactory) GetKeygenController() IController {
 			data:  c.data,
 			auth:  core.NewRequestAuthorizer(c.data.Set.Parties, c.log),
 			log:   c.log,
-			party: tss.NewKeygenParty(c.data.SessionId, c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
+			party: tss.NewKeygenParty(c.data.SessionId, c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.client, c.log),
 		}
 	}
 

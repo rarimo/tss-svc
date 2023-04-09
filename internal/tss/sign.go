@@ -18,6 +18,7 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"google.golang.org/grpc"
 )
 
 type SignParty struct {
@@ -31,13 +32,14 @@ type SignParty struct {
 
 	party tss.Party
 	con   *connectors.BroadcastConnector
+	core  *connectors.CoreConnector
 
 	data   string
 	id     uint64
 	result *common.SignatureData
 }
 
-func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *SignParty {
+func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, cli *grpc.ClientConn, log *logan.Entry) *SignParty {
 	return &SignParty{
 		wg:       &sync.WaitGroup{},
 		log:      log,
@@ -45,6 +47,7 @@ func NewSignParty(data string, id uint64, sessionType types.SessionType, parties
 		partyIds: core.PartyIds(parties),
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
+		core:     connectors.NewCoreConnector(cli, secret, log),
 		data:     data,
 		id:       id,
 	}
@@ -169,7 +172,7 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 
 				go func() {
 					if failed := p.con.SubmitTo(ctx, request, party); len(failed) != 0 {
-						p.con.SubmitTo(ctx, request, party)
+						p.con.SubmitToWithReport(ctx, p.core, request, party)
 					}
 				}()
 			}

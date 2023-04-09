@@ -19,6 +19,7 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"google.golang.org/grpc"
 )
 
 type KeygenParty struct {
@@ -32,12 +33,13 @@ type KeygenParty struct {
 
 	party tss.Party
 	con   *connectors.BroadcastConnector
+	core  *connectors.CoreConnector
 
 	id     uint64
 	result *keygen.LocalPartySaveData
 }
 
-func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *KeygenParty {
+func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, cli *grpc.ClientConn, log *logan.Entry) *KeygenParty {
 	return &KeygenParty{
 		id:       id,
 		wg:       &sync.WaitGroup{},
@@ -46,6 +48,7 @@ func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.
 		parties:  partiesByAccountMapping(parties),
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
+		core:     connectors.NewCoreConnector(cli, secret, log),
 	}
 }
 
@@ -153,7 +156,7 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 
 				go func() {
 					if failed := k.con.SubmitTo(ctx, request, party); len(failed) != 0 {
-						k.con.SubmitTo(ctx, request, party)
+						k.con.SubmitToWithReport(ctx, k.core, request, party)
 					}
 				}()
 			}
