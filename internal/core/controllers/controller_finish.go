@@ -40,7 +40,12 @@ func (f *FinishController) Run(context.Context) {
 	}()
 
 	for offender := range f.data.Offenders {
-		if err := f.core.SubmitReport(f.data.SessionId, rarimo.ViolationType_Spam, offender, ""); err != nil {
+		if err := f.core.SubmitReport(
+			f.data.SessionId,
+			rarimo.ViolationType_Spam,
+			offender,
+			"Party shared invalid data or have not accepted valid proposal",
+		); err != nil {
 			f.log.WithError(err).Errorf("Error submitting violation report for party: %s", offender)
 		}
 	}
