@@ -88,15 +88,18 @@ func (p *SignParty) Data() string {
 	return p.data
 }
 
-func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) {
+func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
 	if p.party != nil {
 		p.log.Debugf("Received signing request from %s id: %d", sender.Account, p.id)
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
 		_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 		if err != nil {
 			p.log.WithError(err).Debug("Error updating party")
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {

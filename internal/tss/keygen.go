@@ -56,13 +56,18 @@ func (k *KeygenParty) Result() *keygen.LocalPartySaveData {
 	return k.result
 }
 
-func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) {
-	k.log.Debugf("Received keygen request from %s", sender.Account)
-	_, data, _ := bech32.DecodeAndConvert(sender.Account)
-	_, err := k.party.UpdateFromBytes(details, k.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
-	if err != nil {
-		k.log.WithError(err).Debug("Error updating party")
+func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
+	if k.party != nil {
+		k.log.Debugf("Received keygen request from %s", sender.Account)
+		_, data, _ := bech32.DecodeAndConvert(sender.Account)
+		_, err := k.party.UpdateFromBytes(details, k.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
+		if err != nil {
+			k.log.WithError(err).Debug("Error updating party")
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (k *KeygenParty) Run(ctx context.Context) {

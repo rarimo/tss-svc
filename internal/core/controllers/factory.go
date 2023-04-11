@@ -33,6 +33,7 @@ func NewControllerFactory(cfg config.Config, id uint64, sessionType types.Sessio
 			Acceptances: make(map[string]struct{}),
 			Secret:      secret.NewVaultStorage(cfg).GetTssSecret(),
 			Proposer:    GetProposer(set.Parties, set.LastSignature, id),
+			Offenders:   make(map[string]struct{}),
 		},
 		client:  cfg.Cosmos(),
 		storage: secret.NewVaultStorage(cfg),
@@ -52,6 +53,7 @@ func (c *ControllerFactory) NextFactory(sessionType types.SessionType) *Controll
 			Acceptances: make(map[string]struct{}),
 			Secret:      c.storage.GetTssSecret(),
 			Proposer:    GetProposer(set.Parties, set.LastSignature, c.data.SessionId+1),
+			Offenders:   make(map[string]struct{}),
 		},
 		client:  c.client,
 		storage: c.storage,
@@ -186,6 +188,7 @@ func (c *ControllerFactory) GetFinishController() IController {
 			},
 			wg:   &sync.WaitGroup{},
 			data: c.data,
+			core: connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 			log:  c.log,
 		}
 	case types.SessionType_ReshareSession:
@@ -199,6 +202,7 @@ func (c *ControllerFactory) GetFinishController() IController {
 			},
 			wg:   &sync.WaitGroup{},
 			data: c.data,
+			core: connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 			log:  c.log,
 		}
 	case types.SessionType_DefaultSession:
@@ -211,6 +215,7 @@ func (c *ControllerFactory) GetFinishController() IController {
 			},
 			wg:   &sync.WaitGroup{},
 			data: c.data,
+			core: connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 			log:  c.log,
 		}
 	}

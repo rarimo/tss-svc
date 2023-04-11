@@ -43,7 +43,12 @@ func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	go k.party.Receive(sender, request.IsBroadcast, request.Details.Value)
+	go func() {
+		if err := k.party.Receive(sender, request.IsBroadcast, request.Details.Value); err != nil {
+			// can be done without lock: no remove or change operation exist, only add
+			k.data.Offenders[sender.Account] = struct{}{}
+		}
+	}()
 
 	return nil
 }

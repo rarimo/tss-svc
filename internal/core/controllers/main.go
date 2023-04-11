@@ -46,5 +46,6 @@ type (
 		OperationSignature string
 		KeySignature       string
 		NewParties         []*rarimo.Party
+		Offenders          map[string]struct{}
 	}
 )

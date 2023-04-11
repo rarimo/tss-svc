@@ -50,9 +50,18 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 		return errors.Wrap(err, "error unmarshalling request")
 	}
 
-	if sign.Data == s.party.Data() {
-		go s.party.Receive(sender, request.IsBroadcast, sign.Details.Value)
+	if sign.Data != s.party.Data() {
+		s.data.Offenders[sender.Account] = struct{}{}
+		return nil
 	}
+
+	go func() {
+		if err := s.party.Receive(sender, request.IsBroadcast, sign.Details.Value); err != nil {
+			// can be done without lock: no remove or change operation exist, only add
+			s.data.Offenders[sender.Account] = struct{}{}
+		}
+	}()
+
 	return nil
 }
 

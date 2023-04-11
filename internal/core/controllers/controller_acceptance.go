@@ -44,13 +44,15 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	if a.validate(request.Details, request.SessionType) {
-		a.mu.Lock()
-		defer a.mu.Unlock()
-		a.log.Infof("Received acceptance request from %s for session type=%s", sender.Account, request.SessionType.String())
-		a.data.Acceptances[sender.Account] = struct{}{}
+	if !a.validate(request.Details, request.SessionType) {
+		a.data.Offenders[sender.Account] = struct{}{}
+		return nil
 	}
 
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.log.Infof("Received acceptance request from %s for session type=%s", sender.Account, request.SessionType.String())
+	a.data.Acceptances[sender.Account] = struct{}{}
 	return nil
 }
 
@@ -79,7 +81,15 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	a.data.Acceptances[a.data.Secret.AccountAddress()] = struct{}{}
 
 	a.log.Infof("Received acceptances list: %v", a.data.Acceptances)
-	a.finish()
+
+	if proposalAccepted := a.finish(); proposalAccepted {
+		// report for parties that has not voted for accepted proposal
+		for _, party := range a.data.Set.Parties {
+			if _, ok := a.data.Acceptances[party.Account]; !ok {
+				a.data.Offenders[party.Account] = struct{}{}
+			}
+		}
+	}
 }
 
 // IAcceptanceController defines custom logic for every acceptance controller.
@@ -88,7 +98,7 @@ type IAcceptanceController interface {
 	validate(details *cosmostypes.Any, st types.SessionType) bool
 	shareAcceptance(ctx context.Context)
 	updateSessionData()
-	finish()
+	finish() bool
 }
 
 // DefaultAcceptanceController represents custom logic for types.SessionType_DefaultSession
@@ -157,10 +167,14 @@ func (a *DefaultAcceptanceController) updateSessionData() {
 	}
 }
 
-func (a *DefaultAcceptanceController) finish() {
+func (a *DefaultAcceptanceController) finish() bool {
+	// T+1 required for signing
 	if len(a.data.Acceptances) <= a.data.Set.T {
 		a.data.Processing = false
+		return false
 	}
+
+	return true
 }
 
 // ReshareAcceptanceController represents custom logic for types.SessionType_ReshareSession
@@ -216,8 +230,11 @@ func (a *ReshareAcceptanceController) updateSessionData() {
 	// Nothing to do for reshare session
 }
 
-func (a *ReshareAcceptanceController) finish() {
+func (a *ReshareAcceptanceController) finish() bool {
 	if len(a.data.Acceptances) < a.data.Set.N {
 		a.data.Processing = false
+		return false
 	}
+
+	return true
 }

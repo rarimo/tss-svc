@@ -70,6 +70,11 @@ func (c *CoreConnector) SubmitConfirmation(indexes []string, root string, signat
 }
 
 func (c *CoreConnector) SubmitReport(sessionId uint64, typ rarimo.ViolationType, offender string, message string) error {
+	c.log.Info("Submitting violation report", logan.F{
+		"violation_type": typ,
+		"offender":       offender,
+	})
+
 	msg := &rarimo.MsgCreateViolationReport{
 		Creator:       c.secret.AccountAddress(),
 		SessionId:     fmt.Sprint(sessionId),

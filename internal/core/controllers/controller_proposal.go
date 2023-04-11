@@ -45,6 +45,7 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 	}
 
 	if !Equal(sender, &p.data.Proposer) {
+		p.data.Offenders[sender.Account] = struct{}{}
 		return ErrSenderIsNotProposer
 	}
 
@@ -53,7 +54,10 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 	}
 
 	p.log.Infof("Received proposal request from %s for session type=%s", sender.Account, request.SessionType.String())
-	p.accept(request.Details, request.SessionType)
+	if accepted := p.accept(request.Details, request.SessionType); !accepted {
+		p.data.Offenders[sender.Account] = struct{}{}
+	}
+
 	return nil
 }
 
@@ -99,7 +103,7 @@ func (p *ProposalController) run(ctx context.Context) {
 
 // IProposalController defines custom logic for every proposal controller.
 type IProposalController interface {
-	accept(details *cosmostypes.Any, st types.SessionType)
+	accept(details *cosmostypes.Any, st types.SessionType) bool
 	shareProposal(ctx context.Context)
 	updateSessionData()
 }
@@ -118,30 +122,30 @@ type DefaultProposalController struct {
 // Implements IProposalController interface
 var _ IProposalController = &DefaultProposalController{}
 
-func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.SessionType) {
+func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.SessionType) bool {
 	if st != types.SessionType_DefaultSession || !d.data.Set.IsActive {
-		return
+		return false
 	}
 
 	data := new(types.DefaultSessionProposalData)
 	if err := proto.Unmarshal(details.Value, data); err != nil {
 		d.log.WithError(err).Error("Error unmarshalling request")
-		return
+		return false
 	}
 
 	d.log.Infof("Proposal request details: indexes=%v root=%s", data.Indexes, data.Root)
 	if len(data.Indexes) == 0 {
-		return
+		return false
 	}
 
 	ops, err := GetOperations(d.client, data.Indexes...)
 	if err != nil {
-		return
+		return false
 	}
 
 	contents, err := GetContents(d.client, ops...)
 	if err != nil {
-		return
+		return false
 	}
 
 	if hexutil.Encode(merkle.NewTree(eth.Keccak256, contents...).Root()) == data.Root {
@@ -151,7 +155,10 @@ func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.Se
 		d.data.Processing = true
 		d.data.Root = data.Root
 		d.data.Indexes = data.Indexes
+		return true
 	}
+
+	return false
 }
 
 func (d *DefaultProposalController) shareProposal(ctx context.Context) {
@@ -261,15 +268,15 @@ type ReshareProposalController struct {
 // Implements IProposalController interface
 var _ IProposalController = &ReshareProposalController{}
 
-func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.SessionType) {
+func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.SessionType) bool {
 	if st != types.SessionType_ReshareSession || r.data.Set.IsActive {
-		return
+		return false
 	}
 
 	data := new(types.ReshareSessionProposalData)
 	if err := proto.Unmarshal(details.Value, data); err != nil {
 		r.log.WithError(err).Error("Error unmarshalling request")
-		return
+		return false
 	}
 
 	r.log.Infof("Proposal request details: Set = %v", data.Set)
@@ -278,7 +285,10 @@ func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.Se
 		defer r.mu.Unlock()
 		r.log.Infof("Proposal data is correct. Proposal accepted.")
 		r.data.Processing = true
+		return true
 	}
+
+	return false
 }
 
 func (r *ReshareProposalController) shareProposal(ctx context.Context) {
