@@ -8,6 +8,8 @@ import (
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // BroadcastConnector uses SubmitConnector to broadcast request to all parties, except of self.
@@ -31,34 +33,55 @@ func NewBroadcastConnector(sessionType types.SessionType, parties []*rarimo.Part
 }
 
 func (b *BroadcastConnector) SubmitAllWithReport(ctx context.Context, coreCon *CoreConnector, request *types.MsgSubmitRequest) {
-	retry := b.SubmitTo(ctx, request, b.parties...)
-	for _, party := range b.SubmitTo(ctx, request, retry...) {
-		go func(offender string) {
-			if err := coreCon.SubmitReport(request.Id, rarimo.ViolationType_Offline, offender, ""); err != nil {
-				b.log.WithError(err).Errorf("Error submitting violation report for party: %s", offender)
-			}
-		}(party.Account)
-	}
+	retry := b.SubmitToWithReport(ctx, coreCon, request, b.parties...)
+	b.SubmitToWithReport(ctx, coreCon, request, retry...)
 }
 
+// Deprecated: SubmitAll is deprecated. Use SubmitAllWithReport instead
 func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSubmitRequest) {
 	retry := b.SubmitTo(ctx, request, b.parties...)
 	b.SubmitTo(ctx, request, retry...)
 }
 
 func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *CoreConnector, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
-	failed := b.SubmitTo(ctx, request, parties...)
-	for _, party := range failed {
-		go func(offender string) {
-			if err := coreCon.SubmitReport(request.Id, rarimo.ViolationType_Offline, offender, ""); err != nil {
-				b.log.WithError(err).Errorf("Error submitting violation report for party: %s", offender)
-			}
-		}(party.Account)
+	request.SessionType = b.sessionType
+
+	failed := struct {
+		mu  sync.Mutex
+		arr []*rarimo.Party
+	}{
+		arr: make([]*rarimo.Party, 0, len(b.parties)),
 	}
 
-	return failed
+	for _, party := range parties {
+		if party.Account != b.sc.AccountAddress() {
+
+			go func(to *rarimo.Party) {
+				if _, err := b.Submit(ctx, to, request); err != nil {
+					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", to.Account, to.Address)
+
+					// check that party returned an error
+					if st, ok := status.FromError(err); ok && st.Code() == codes.InvalidArgument {
+						func() {
+							failed.mu.Lock()
+							defer failed.mu.Unlock()
+							failed.arr = append(failed.arr, to)
+						}()
+						return
+					}
+
+					if err := coreCon.SubmitReport(request.Id, rarimo.ViolationType_Offline, party.Account, ""); err != nil {
+						b.log.WithError(err).Errorf("Error submitting violation report for party: %s", party.Account)
+					}
+				}
+			}(party)
+		}
+	}
+
+	return failed.arr
 }
 
+// Deprecated: SubmitTo is deprecated. Use SubmitToWithReport instead
 func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
 	request.SessionType = b.sessionType
 
@@ -71,18 +94,16 @@ func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSub
 
 	for _, party := range parties {
 		if party.Account != b.sc.AccountAddress() {
-			to := *party
-			go func() {
+			go func(to *rarimo.Party) {
 				if _, err := b.Submit(ctx, to, request); err != nil {
 					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", to.Account, to.Address)
-
 					func() {
 						failed.mu.Lock()
 						defer failed.mu.Unlock()
-						failed.arr = append(failed.arr, &to)
+						failed.arr = append(failed.arr, to)
 					}()
 				}
-			}()
+			}(party)
 		}
 	}
 

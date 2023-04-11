@@ -37,7 +37,7 @@ func NewSubmitConnector(secret *secret.TssSecret) *SubmitConnector {
 	return c
 }
 
-func (s *SubmitConnector) Submit(ctx context.Context, party rarimo.Party, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
+func (s *SubmitConnector) Submit(ctx context.Context, party *rarimo.Party, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
 	if err := s.secret.Sign(request); err != nil {
 		return nil, err
 	}

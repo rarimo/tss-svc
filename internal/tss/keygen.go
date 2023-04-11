@@ -155,7 +155,7 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 				}
 
 				go func() {
-					if failed := k.con.SubmitTo(ctx, request, party); len(failed) != 0 {
+					if failed := k.con.SubmitToWithReport(ctx, k.core, request, party); len(failed) != 0 {
 						k.con.SubmitToWithReport(ctx, k.core, request, party)
 					}
 				}()
