@@ -174,13 +174,16 @@ func (a *DefaultAcceptanceController) finish() bool {
 		return false
 	}
 
+	defer func() {
+		a.log.Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
+	}()
+
 	if len(a.data.Acceptances) == a.data.Set.T+1 {
 		a.data.Signers = a.data.Acceptances
 		return true
 	}
 
 	a.data.Signers = GetSignersSet(a.data.Acceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
-	a.log.Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
 	return true
 }
 
@@ -243,6 +246,10 @@ func (a *ReshareAcceptanceController) finish() bool {
 		return false
 	}
 
+	defer func() {
+		a.log.Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
+	}()
+
 	signAcceptances := filterAcceptances(a.data.Acceptances, a.data.Set.VerifiedParties)
 
 	if len(signAcceptances) == a.data.Set.T+1 {
@@ -251,6 +258,5 @@ func (a *ReshareAcceptanceController) finish() bool {
 	}
 
 	a.data.Signers = GetSignersSet(signAcceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
-	a.log.Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
 	return true
 }
