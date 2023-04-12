@@ -37,8 +37,9 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 		return err
 	}
 
-	if _, ok := s.data.Acceptances[sender.Account]; !ok {
-		return ErrSenderHasNotAccepted
+	if _, ok := s.data.Signers[sender.Account]; !ok {
+		s.data.Offenders[sender.Account] = struct{}{}
+		return ErrSenderIsNotSigner
 	}
 
 	if request.Type != types.RequestType_Sign {

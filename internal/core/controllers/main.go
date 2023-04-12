@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	ErrSenderIsNotProposer  = goerr.New("party is not proposer")
-	ErrUnsupportedContent   = goerr.New("unsupported content")
-	ErrInvalidRequestType   = goerr.New("invalid request type")
-	ErrSenderHasNotAccepted = goerr.New("sender has not accepted proposal")
+	ErrSenderIsNotProposer = goerr.New("party is not proposer")
+	ErrUnsupportedContent  = goerr.New("unsupported content")
+	ErrInvalidRequestType  = goerr.New("invalid request type")
+	ErrSenderIsNotSigner   = goerr.New("sender is no a current signer or has not accepted the proposal")
 )
 
 type (
@@ -47,5 +47,6 @@ type (
 		KeySignature       string
 		NewParties         []*rarimo.Party
 		Offenders          map[string]struct{}
+		Signers            map[string]struct{}
 	}
 )
