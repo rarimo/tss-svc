@@ -35,12 +35,14 @@ func NewInputSet(client *grpc.ClientConn) *InputSet {
 		}
 	}
 
+	allParties := append(verifiedParties, unverifiedParties...)
+
 	return &InputSet{
 		IsActive:          !tssP.Params.IsUpdateRequired,
 		GlobalPubKey:      tssP.Params.KeyECDSA,
-		N:                 len(tssP.Params.Parties),
+		N:                 len(allParties),
 		T:                 int(tssP.Params.Threshold),
-		Parties:           tssP.Params.Parties,
+		Parties:           allParties,
 		VerifiedParties:   verifiedParties,
 		UnverifiedParties: unverifiedParties,
 		LastSignature:     tssP.Params.LastSignature,
