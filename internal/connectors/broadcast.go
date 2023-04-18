@@ -74,7 +74,7 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 					if err := coreCon.SubmitReport(
 						request.Id,
 						rarimo.ViolationType_Offline,
-						party.Account,
+						to.Account,
 						fmt.Sprintf("Party was offline when tried to submit %s request", request.Type),
 					); err != nil {
 						b.log.WithError(err).Errorf("Error submitting violation report for party: %s", party.Account)
