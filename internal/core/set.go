@@ -27,19 +27,22 @@ func NewInputSet(client *grpc.ClientConn) *InputSet {
 	verifiedParties := make([]*rarimo.Party, 0, len(tssP.Params.Parties))
 	unverifiedParties := make([]*rarimo.Party, 0, len(tssP.Params.Parties))
 	for _, p := range tssP.Params.Parties {
-		if p.Verified {
+		switch p.Status {
+		case rarimo.PartyStatus_Active:
 			verifiedParties = append(verifiedParties, p)
-			continue
+		case rarimo.PartyStatus_Inactive:
+			unverifiedParties = append(unverifiedParties, p)
 		}
-		unverifiedParties = append(unverifiedParties, p)
 	}
+
+	allParties := append(verifiedParties, unverifiedParties...)
 
 	return &InputSet{
 		IsActive:          !tssP.Params.IsUpdateRequired,
 		GlobalPubKey:      tssP.Params.KeyECDSA,
-		N:                 len(tssP.Params.Parties),
+		N:                 len(allParties),
 		T:                 int(tssP.Params.Threshold),
-		Parties:           tssP.Params.Parties,
+		Parties:           allParties,
 		VerifiedParties:   verifiedParties,
 		UnverifiedParties: unverifiedParties,
 		LastSignature:     tssP.Params.LastSignature,

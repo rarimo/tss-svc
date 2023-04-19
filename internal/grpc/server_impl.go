@@ -47,7 +47,11 @@ func (s *ServerImpl) Run() error {
 var _ types.ServiceServer = &ServerImpl{}
 
 func (s *ServerImpl) Submit(_ context.Context, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
-	return &types.MsgSubmitResponse{}, s.manager.Receive(request)
+	if err := s.manager.Receive(request); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, err.Error())
+	}
+
+	return &types.MsgSubmitResponse{}, nil
 }
 
 func (s *ServerImpl) AddOperation(_ context.Context, request *types.MsgAddOperationRequest) (*types.MsgAddOperationResponse, error) {

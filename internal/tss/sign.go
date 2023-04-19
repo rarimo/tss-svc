@@ -18,6 +18,7 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"google.golang.org/grpc"
 )
 
 type SignParty struct {
@@ -31,13 +32,14 @@ type SignParty struct {
 
 	party tss.Party
 	con   *connectors.BroadcastConnector
+	core  *connectors.CoreConnector
 
 	data   string
 	id     uint64
 	result *common.SignatureData
 }
 
-func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, log *logan.Entry) *SignParty {
+func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, cli *grpc.ClientConn, log *logan.Entry) *SignParty {
 	return &SignParty{
 		wg:       &sync.WaitGroup{},
 		log:      log,
@@ -45,6 +47,7 @@ func NewSignParty(data string, id uint64, sessionType types.SessionType, parties
 		partyIds: core.PartyIds(parties),
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
+		core:     connectors.NewCoreConnector(cli, secret, log),
 		data:     data,
 		id:       id,
 	}
@@ -85,15 +88,18 @@ func (p *SignParty) Data() string {
 	return p.data
 }
 
-func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) {
+func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
 	if p.party != nil {
 		p.log.Debugf("Received signing request from %s id: %d", sender.Account, p.id)
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
 		_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 		if err != nil {
 			p.log.WithError(err).Debug("Error updating party")
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
@@ -168,8 +174,8 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				}
 
 				go func() {
-					if failed := p.con.SubmitTo(ctx, request, party); len(failed) != 0 {
-						p.con.SubmitTo(ctx, request, party)
+					if failed := p.con.SubmitToWithReport(ctx, p.core, request, party); len(failed) != 0 {
+						p.con.SubmitToWithReport(ctx, p.core, request, party)
 					}
 				}()
 			}

@@ -69,6 +69,22 @@ func (c *CoreConnector) SubmitConfirmation(indexes []string, root string, signat
 	return c.Submit(msg)
 }
 
+func (c *CoreConnector) SubmitReport(sessionId uint64, typ rarimo.ViolationType, offender string, message string) error {
+	c.log.Info("Submitting violation report", logan.F{
+		"violation_type": typ,
+		"offender":       offender,
+	})
+
+	msg := &rarimo.MsgCreateViolationReport{
+		Creator:       c.secret.AccountAddress(),
+		SessionId:     fmt.Sprint(sessionId),
+		ViolationType: typ,
+		Offender:      offender,
+		Msg:           message,
+	}
+	return c.Submit(msg)
+}
+
 func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	builder := c.txConfig.NewTxBuilder()
 	err := builder.SetMsgs(msgs...)

@@ -43,7 +43,12 @@ func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	go k.party.Receive(sender, request.IsBroadcast, request.Details.Value)
+	go func() {
+		if err := k.party.Receive(sender, request.IsBroadcast, request.Details.Value); err != nil {
+			// can be done without lock: no remove or change operation exist, only add
+			k.data.Offenders[sender.Account] = struct{}{}
+		}
+	}()
 
 	return nil
 }
@@ -188,10 +193,10 @@ func (r *ReshareKeygenController) finish(result *keygen.LocalPartySaveData) {
 		for j, party := range r.data.Set.Parties {
 			if party.Account == partyId.Id {
 				r.data.NewParties[j] = &rarimo.Party{
-					PubKey:   hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y())),
-					Address:  party.Address,
-					Account:  party.Account,
-					Verified: true,
+					PubKey:  hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y())),
+					Address: party.Address,
+					Account: party.Account,
+					Status:  rarimo.PartyStatus_Active,
 				}
 				break
 			}

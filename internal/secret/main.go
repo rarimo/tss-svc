@@ -19,8 +19,6 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
@@ -115,31 +113,6 @@ func (t *TssSecret) GetKeygenParty(params *tss.Parameters, out chan<- tss.Messag
 
 func (t *TssSecret) GetSignParty(msg *big.Int, params *tss.Parameters, out chan<- tss.Message, end chan<- common.SignatureData) tss.Party {
 	return tsssign.NewLocalParty(msg, params, *t.data, out, end)
-}
-
-func (t *TssSecret) GetPartiesWithNewKeys(parties []*rarimo.Party) []*rarimo.Party {
-	result := make([]*rarimo.Party, 0, len(parties))
-
-	partyIDs := core.PartyIds(parties)
-	if t.data == nil {
-		panic(ErrNoTssData)
-	}
-
-	for i := range t.data.Ks {
-		partyId := partyIDs.FindByKey(t.data.Ks[i])
-		for j := range parties {
-			if parties[j].Account == partyId.Id {
-				result = append(result, &rarimo.Party{
-					PubKey:   hexutil.Encode(elliptic.Marshal(eth.S256(), t.data.BigXj[i].X(), t.data.BigXj[i].Y())),
-					Address:  parties[j].Address,
-					Account:  parties[j].Account,
-					Verified: true,
-				})
-				break
-			}
-		}
-	}
-	return result
 }
 
 // Storage is responsible for managing TSS secret data and Rarimo core account secret data

@@ -18,6 +18,7 @@ type FinishController struct {
 	IFinishController
 	wg *sync.WaitGroup
 
+	core *connectors.CoreConnector
 	data *LocalSessionData
 	log  *logan.Entry
 }
@@ -37,6 +38,17 @@ func (f *FinishController) Run(context.Context) {
 		f.updateSessionEntry()
 		f.wg.Done()
 	}()
+
+	for offender := range f.data.Offenders {
+		if err := f.core.SubmitReport(
+			f.data.SessionId,
+			rarimo.ViolationType_Spam,
+			offender,
+			"Party shared invalid data or have not accepted valid proposal",
+		); err != nil {
+			f.log.WithError(err).Errorf("Error submitting violation report for party: %s", offender)
+		}
+	}
 
 	f.finish()
 }
