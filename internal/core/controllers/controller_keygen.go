@@ -154,7 +154,7 @@ type ReshareKeygenController struct {
 var _ IKeygenController = &ReshareKeygenController{}
 
 func (r *ReshareKeygenController) Next() IController {
-	if r.data.Processing && !contains(r.data.Set.UnverifiedParties, r.data.Secret.AccountAddress()) {
+	if _, ok := r.data.Signers[r.data.Secret.AccountAddress()]; r.data.Processing && ok {
 		return r.factory.GetKeySignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewSecret.GlobalPubKey()))))
 	}
 

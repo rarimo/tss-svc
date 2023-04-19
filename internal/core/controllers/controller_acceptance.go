@@ -82,14 +82,14 @@ func (a *AcceptanceController) run(ctx context.Context) {
 
 	a.log.Infof("Received acceptances list: %v", a.data.Acceptances)
 
-	if proposalAccepted := a.finish(); proposalAccepted {
-		// report for parties that has not voted for accepted proposal
-		for _, party := range a.data.Set.Parties {
-			if _, ok := a.data.Acceptances[party.Account]; !ok {
-				a.data.Offenders[party.Account] = struct{}{}
-			}
+	// report for parties that has not voted for accepted proposal
+	for _, party := range a.data.Set.Parties {
+		if _, ok := a.data.Acceptances[party.Account]; !ok {
+			a.data.Offenders[party.Account] = struct{}{}
 		}
 	}
+
+	a.finish()
 }
 
 // IAcceptanceController defines custom logic for every acceptance controller.
@@ -98,7 +98,7 @@ type IAcceptanceController interface {
 	validate(details *cosmostypes.Any, st types.SessionType) bool
 	shareAcceptance(ctx context.Context)
 	updateSessionData()
-	finish() bool
+	finish()
 }
 
 // DefaultAcceptanceController represents custom logic for types.SessionType_DefaultSession
@@ -115,7 +115,7 @@ type DefaultAcceptanceController struct {
 var _ IAcceptanceController = &DefaultAcceptanceController{}
 
 func (a *DefaultAcceptanceController) Next() IController {
-	if a.data.Processing {
+	if _, ok := a.data.Signers[a.data.Secret.AccountAddress()]; a.data.Processing && ok {
 		return a.factory.GetRootSignController(a.data.Root)
 	}
 	return a.factory.GetFinishController()
@@ -167,11 +167,11 @@ func (a *DefaultAcceptanceController) updateSessionData() {
 	}
 }
 
-func (a *DefaultAcceptanceController) finish() bool {
+func (a *DefaultAcceptanceController) finish() {
 	// T+1 required for signing
 	if len(a.data.Acceptances) <= a.data.Set.T {
 		a.data.Processing = false
-		return false
+		return
 	}
 
 	defer func() {
@@ -180,11 +180,10 @@ func (a *DefaultAcceptanceController) finish() bool {
 
 	if len(a.data.Acceptances) == a.data.Set.T+1 {
 		a.data.Signers = a.data.Acceptances
-		return true
+		return
 	}
 
 	a.data.Signers = GetSignersSet(a.data.Acceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
-	return true
 }
 
 // ReshareAcceptanceController represents custom logic for types.SessionType_ReshareSession
@@ -240,10 +239,10 @@ func (a *ReshareAcceptanceController) updateSessionData() {
 	// Nothing to do for reshare session
 }
 
-func (a *ReshareAcceptanceController) finish() bool {
+func (a *ReshareAcceptanceController) finish() {
 	if len(a.data.Acceptances) < a.data.Set.N {
 		a.data.Processing = false
-		return false
+		return
 	}
 
 	defer func() {
@@ -254,9 +253,9 @@ func (a *ReshareAcceptanceController) finish() bool {
 
 	if len(signAcceptances) == a.data.Set.T+1 {
 		a.data.Signers = signAcceptances
-		return true
+		return
 	}
 
 	a.data.Signers = GetSignersSet(signAcceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
-	return true
+	return
 }

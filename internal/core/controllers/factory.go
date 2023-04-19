@@ -140,8 +140,7 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 }
 
 func (c *ControllerFactory) GetRootSignController(hash string) IController {
-	// Only verified parties that accepted request can sign
-	parties := getPartiesAcceptances(c.data.Signers, c.data.Set.VerifiedParties)
+	parties := getSignersList(c.data.Signers, c.data.Set.Parties)
 	return &SignatureController{
 		ISignatureController: &RootSignatureController{
 			data:    c.data,
@@ -158,8 +157,7 @@ func (c *ControllerFactory) GetRootSignController(hash string) IController {
 }
 
 func (c *ControllerFactory) GetKeySignController(hash string) IController {
-	// Only verified parties that accepted request can sign
-	parties := getPartiesAcceptances(c.data.Signers, c.data.Set.VerifiedParties)
+	parties := getSignersList(c.data.Signers, c.data.Set.Parties)
 	return &SignatureController{
 		ISignatureController: &KeySignatureController{
 			data:    c.data,
