@@ -137,6 +137,11 @@ var _ IFinishController = &DefaultFinishController{}
 func (d *DefaultFinishController) finish() {
 	if d.data.Processing {
 		d.log.Infof("Session %s #%d finished successfully", d.data.SessionType.String(), d.data.SessionId)
+		if _, ok := d.data.Signers[d.data.Secret.AccountAddress()]; !ok {
+			d.log.Info("Self party was not a part of signing round")
+			return
+		}
+
 		d.log.Info("Submitting confirmation message to finish default session.")
 		if err := d.core.SubmitConfirmation(d.data.Indexes, d.data.Root, d.data.OperationSignature); err != nil {
 			d.log.WithError(err).Error("Failed to submit confirmation. Maybe already submitted.")
@@ -196,7 +201,12 @@ func (r *ReshareFinishController) finish() {
 		}
 
 		if contains(r.data.Set.UnverifiedParties, r.data.Secret.AccountAddress()) {
-			// That party is new one, no additional operations required
+			r.log.Info("Self party was a new.")
+			return
+		}
+
+		if _, ok := r.data.Signers[r.data.Secret.AccountAddress()]; !ok {
+			r.log.Info("Self party was not a part of signing round.")
 			return
 		}
 

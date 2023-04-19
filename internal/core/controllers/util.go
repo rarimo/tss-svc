@@ -183,7 +183,7 @@ func acceptancesToArr(acc map[string]struct{}) []string {
 	return res
 }
 
-func getPartiesAcceptances(all map[string]struct{}, parties []*rarimo.Party) []*rarimo.Party {
+func getSignersList(all map[string]struct{}, parties []*rarimo.Party) []*rarimo.Party {
 	accepted := make([]*rarimo.Party, 0, len(parties))
 
 	for _, p := range parties {
