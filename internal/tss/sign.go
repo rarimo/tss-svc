@@ -97,6 +97,7 @@ func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []by
 			p.log.WithError(err).Debug("Error updating party")
 			return err
 		}
+		logWaitingFor(p.log, p.party.WaitingFor(), p.secret.AccountAddress())
 	}
 
 	return nil

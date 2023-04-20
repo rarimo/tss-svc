@@ -54,10 +54,14 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 		arr: make([]*rarimo.Party, 0, len(b.parties)),
 	}
 
+	wg := sync.WaitGroup{}
+
 	for _, party := range parties {
 		if party.Account != b.sc.AccountAddress() {
+			wg.Add(1)
 
-			go func(to *rarimo.Party) {
+			go func(to *rarimo.Party, wg *sync.WaitGroup) {
+				defer wg.Done()
 				if _, err := b.Submit(ctx, to, request); err != nil {
 					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", to.Account, to.Address)
 
@@ -80,7 +84,7 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 						b.log.WithError(err).Errorf("Error submitting violation report for party: %s", party.Account)
 					}
 				}
-			}(party)
+			}(party, &wg)
 		}
 	}
 
