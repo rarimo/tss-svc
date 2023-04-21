@@ -39,7 +39,7 @@ func GetSignersSet(acceptances map[string]struct{}, t int, sig string, sessionId
 		index := int(hash[i]) % len(accepted)
 		result[accepted[index]] = struct{}{}
 
-		// in case of it was last element we need to exclude it from set just by deleting last slice alement
+		// in case of it was last element we need to exclude it from set just by deleting last slice element
 		if index == len(accepted)-1 {
 			accepted = accepted[:index]
 			continue

@@ -120,8 +120,6 @@ github.com/bketelsen/crypt v0.0.3-0.20200106085610-5cbc8cc4026c/go.mod h1:MKsuJm
 github.com/bketelsen/crypt v0.0.4/go.mod h1:aI6NrJ0pMGgvZKL1iVgXLnfIFJtfV+bKCoqOes/6LfM=
 github.com/bnb-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43 h1:DZBdmxvmF5GsLB/Z5Xr8oPkUDpR4yQ6JxlzdgDo9RYQ=
 github.com/bnb-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43/go.mod h1:iYfMR8gkK1t8JIhUOhlL+tHTYKGtnsJUQe8vSK6s4zQ=
-github.com/bnb-chain/tss-lib v1.3.5 h1:HqhrsiZfR+YPTOuedi65JnwE1HxsHAxKdoy7I2QQAPs=
-github.com/bnb-chain/tss-lib v1.3.5/go.mod h1:o3zAAo7A88ZJnCE1qpjy1hTqPn+GPQlxRsj8soz14UU=
 github.com/btcsuite/btcd v0.0.0-20190115013929-ed77733ec07d/go.mod h1:d3C0AkH6BRcvO8T0UEPu53cnw4IbV63x1bEjildYhO0=
 github.com/btcsuite/btcd v0.0.0-20190629003639-c26ffa870fd8/go.mod h1:3J08xEfcugPacsc34/LKRU2yO7YmuT8yt28J8k2+rrI=
 github.com/btcsuite/btcd v0.20.1-beta/go.mod h1:wVuoA8VJLEcwgqHBwHmzLRazpKxTv13Px/pDuV7OomQ=
@@ -992,16 +990,10 @@ gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.5 h1:foaMTCaZPafTGsvWSZwHQQf2WebdhKAnwN
 gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.5/go.mod h1:WOqtDxN3eCCmnYLVla10xG7lEXkFjpTaqm2a2WasgCc=
 gitlab.com/rarimo/go-merkle v0.0.0-20221212103215-4a9612e1bed1 h1:/NTsZ61HpUSxJuzZp9nUbeVeMIIlmFGygFuVOBsUqlY=
 gitlab.com/rarimo/go-merkle v0.0.0-20221212103215-4a9612e1bed1/go.mod h1:O4/lUka2v/6HvcxNielMJ2HsTZaizQN6uBYimSIithE=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230407065051-db6d11c11698 h1:2l76rIFHCl07LW14tuqnIZZtB1Rw097PpXadpTuqyyA=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230407065051-db6d11c11698/go.mod h1:+ErLFqLXCqNYhlR0pVbLVzif43bJlGzzhTjoYFMWSv0=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230407133251-7d96ed1ebaa9 h1:+gQTzkmRGS+1cwu5V4i39QHvsnmKJy3Yl8O2/qHzJgM=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230407133251-7d96ed1ebaa9/go.mod h1:+ErLFqLXCqNYhlR0pVbLVzif43bJlGzzhTjoYFMWSv0=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230407133520-f08ea71feb39 h1:p6pim7ubuPXt1uAKJodi1P5gyTLpL5BP8DYW2137XUQ=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230407133520-f08ea71feb39/go.mod h1:+ErLFqLXCqNYhlR0pVbLVzif43bJlGzzhTjoYFMWSv0=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230407134325-b5ed9b8f736e h1:qRCR7pLtycRZCbSDazEIsM3w391Ya+i5TlZrmUznkiI=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230407134325-b5ed9b8f736e/go.mod h1:+ErLFqLXCqNYhlR0pVbLVzif43bJlGzzhTjoYFMWSv0=
 gitlab.com/rarimo/rarimo-core v0.0.0-20230409211254-85fbe82b4c7b h1:POLfclhtzl5sutKDoA3C4V1ay0aDa1KjUWQK5J/8d1I=
 gitlab.com/rarimo/rarimo-core v0.0.0-20230409211254-85fbe82b4c7b/go.mod h1:+ErLFqLXCqNYhlR0pVbLVzif43bJlGzzhTjoYFMWSv0=
+gitlab.com/rarimo/tss-lib v1.3.6 h1:D/baArZibYBVVXJCVb+l4UqVfGVtUNrUK6NGvoafEe0=
+gitlab.com/rarimo/tss-lib v1.3.6/go.mod h1:o3zAAo7A88ZJnCE1qpjy1hTqPn+GPQlxRsj8soz14UU=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
