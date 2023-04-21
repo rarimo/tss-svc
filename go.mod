@@ -167,7 +167,7 @@ require (
 
 replace (
 	github.com/agl/ed25519 => github.com/bnb-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
-	github.com/bnb-chain/tss-lib => gitlab.com/rarimo/tss-lib v1.3.6
+	github.com/bnb-chain/tss-lib => gitlab.com/rarimo/tss-lib v1.3.5
 	github.com/cosmos/cosmos-sdk v0.45.5 => gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.5
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 )
