@@ -26,8 +26,11 @@ shell:
     - go mod tidy
     - go mod vendor
   setup:
+    - export GOPRIVATE=gitlab.com/*
+    - export GONOSUMDB=gitlab.com/*
+    - export GONOPROXY=gitlab.com/*
     - export CGO_ENABLED=1
-    - export GO111MODULE=off
+    - export GO111MODULE=on
     - export GOOS=linux
     - go build  -o /usr/local/bin/tss-svc /go/src/gitlab.com/rarimo/tss/tss-svc
 
