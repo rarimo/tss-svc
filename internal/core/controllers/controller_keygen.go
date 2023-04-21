@@ -110,6 +110,10 @@ func (d *DefaultKeygenController) Next() IController {
 }
 
 func (d *DefaultKeygenController) updateSessionData() {
+	if !d.data.Processing {
+		return
+	}
+
 	session, err := d.pg.KeygenSessionDatumQ().KeygenSessionDatumByID(int64(d.data.SessionId), false)
 	if err != nil {
 		d.log.WithError(err).Error("Error selecting session")
@@ -162,6 +166,10 @@ func (r *ReshareKeygenController) Next() IController {
 }
 
 func (r *ReshareKeygenController) updateSessionData() {
+	if !r.data.Processing {
+		return
+	}
+
 	session, err := r.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(r.data.SessionId), false)
 	if err != nil {
 		r.log.WithError(err).Error("Error selecting session")
