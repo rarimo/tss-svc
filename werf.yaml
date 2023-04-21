@@ -9,9 +9,6 @@ git:
   - add: /
     to: /go/src/gitlab.com/rarimo/tss/tss-svc
     stageDependencies:
-      install:
-        - go.mod
-        - go.sum
       setup:
         - "**/*"
 shell:
@@ -32,6 +29,7 @@ shell:
     - export CGO_ENABLED=1
     - export GO111MODULE=on
     - export GOOS=linux
+    - cd /go/src/gitlab.com/rarimo/tss/tss-svc
     - go build  -o /usr/local/bin/tss-svc /go/src/gitlab.com/rarimo/tss/tss-svc
 
 ---
