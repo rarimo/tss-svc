@@ -14,7 +14,8 @@ func partiesByAccountMapping(parties []*rarimo.Party) map[string]*rarimo.Party {
 	return pmap
 }
 
-func logWaitingFor(log *logan.Entry, list []*tss.PartyID, self string) {
+func logPartyStatus(log *logan.Entry, party tss.Party, self string) {
+	list := party.WaitingFor()
 	monikers := make([]string, 0, len(list))
 	for _, p := range list {
 		if p.Moniker == self {
@@ -25,4 +26,5 @@ func logWaitingFor(log *logan.Entry, list []*tss.PartyID, self string) {
 		monikers = append(monikers, p.Moniker)
 	}
 	log.Infof("Waiting for messages from: %v", monikers)
+	log.Infof("Party status: %s", party.String())
 }

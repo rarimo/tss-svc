@@ -65,8 +65,7 @@ func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []
 			k.log.WithError(err).Debug("Error updating party")
 			return err
 		}
-		logWaitingFor(k.log, k.party.WaitingFor(), k.secret.AccountAddress())
-		k.log.Infof("Party info: %s", k.party.String())
+		logPartyStatus(k.log, k.party, k.secret.AccountAddress())
 	}
 
 	return nil
