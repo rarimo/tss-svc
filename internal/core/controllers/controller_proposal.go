@@ -22,10 +22,17 @@ import (
 
 const MaxPoolSize = 32
 
+// iProposalController defines custom logic for every proposal controller.
+type iProposalController interface {
+	accept(details *cosmostypes.Any, st types.SessionType) bool
+	shareProposal(ctx context.Context)
+	updateSessionData()
+}
+
 // ProposalController is responsible for proposing and collecting proposals from proposer.
-// Proposer will execute logic of defining the next session type and suggest data to process in session.
+// Proposer will execute logic of defining the next session type and suggest data to suggest in session.
 type ProposalController struct {
-	IProposalController
+	iProposalController
 	wg *sync.WaitGroup
 
 	data *LocalSessionData
@@ -38,6 +45,8 @@ type ProposalController struct {
 // Implements IController interface
 var _ IController = &ProposalController{}
 
+// Receive accepts proposal from other parties. It will check that proposal was submitted from the selected session proposer.
+// After it will execute the `iProposalController.accept` logic.
 func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 	sender, err := p.auth.Auth(request)
 	if err != nil {
@@ -61,16 +70,21 @@ func (p *ProposalController) Receive(request *types.MsgSubmitRequest) error {
 	return nil
 }
 
+// Run launches the sharing proposal logic in corresponding session in case of self party is a session proposer.
 func (p *ProposalController) Run(ctx context.Context) {
 	p.log.Infof("Starting: %s", p.Type().String())
 	p.wg.Add(1)
 	go p.run(ctx)
 }
 
+// WaitFor waits until controller finishes its logic. Context cancel should be called before.
 func (p *ProposalController) WaitFor() {
 	p.wg.Wait()
 }
 
+// Next will return acceptance controller if proposal sharing or receiving was successful,
+// otherwise, it will return finish controller.
+// WaitFor should be called before.
 func (p *ProposalController) Next() IController {
 	if p.data.Processing {
 		return p.factory.GetAcceptanceController()
@@ -101,15 +115,8 @@ func (p *ProposalController) run(ctx context.Context) {
 	<-ctx.Done()
 }
 
-// IProposalController defines custom logic for every proposal controller.
-type IProposalController interface {
-	accept(details *cosmostypes.Any, st types.SessionType) bool
-	shareProposal(ctx context.Context)
-	updateSessionData()
-}
-
-// DefaultProposalController represents custom logic for types.SessionType_DefaultSession
-type DefaultProposalController struct {
+// defaultProposalController represents custom logic for types.SessionType_DefaultSession
+type defaultProposalController struct {
 	mu        sync.Mutex
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
@@ -119,10 +126,12 @@ type DefaultProposalController struct {
 	log       *logan.Entry
 }
 
-// Implements IProposalController interface
-var _ IProposalController = &DefaultProposalController{}
+// Implements iProposalController interface
+var _ iProposalController = &defaultProposalController{}
 
-func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.SessionType) bool {
+// accept will check the received proposal to sign the set of operations by validating suggested indexes.
+// If the current parties is not active (set contains inactive parties or party was removed) the flow will be reverted.
+func (d *defaultProposalController) accept(details *cosmostypes.Any, st types.SessionType) bool {
 	if st != types.SessionType_DefaultSession || !d.data.Set.IsActive {
 		return false
 	}
@@ -161,7 +170,9 @@ func (d *DefaultProposalController) accept(details *cosmostypes.Any, st types.Se
 	return false
 }
 
-func (d *DefaultProposalController) shareProposal(ctx context.Context) {
+// shareProposal selects the operation indexes from the pool, constructs the proposal and share it between parties.
+// If the current parties is not active (set contains inactive parties or party was removed) the flow will be reverted.
+func (d *defaultProposalController) shareProposal(ctx context.Context) {
 	// Unable to perform signing if set is inactive, need to perform reshare first
 	if !d.data.Set.IsActive {
 		return
@@ -201,7 +212,8 @@ func (d *DefaultProposalController) shareProposal(ctx context.Context) {
 	d.data.Processing = true
 }
 
-func (d *DefaultProposalController) updateSessionData() {
+// updateSessionData updates the database entry according to the controller result.
+func (d *defaultProposalController) updateSessionData() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -232,7 +244,7 @@ func (d *DefaultProposalController) updateSessionData() {
 	}
 }
 
-func (d *DefaultProposalController) getNewPool() ([]string, string, error) {
+func (d *defaultProposalController) getNewPool() ([]string, string, error) {
 	ids, err := pool.GetPool().GetNext(MaxPoolSize)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "error preparing pool")
@@ -255,8 +267,8 @@ func (d *DefaultProposalController) getNewPool() ([]string, string, error) {
 	return ids, hexutil.Encode(merkle.NewTree(eth.Keccak256, contents...).Root()), nil
 }
 
-// ReshareProposalController represents custom logic for types.SessionType_ReshareSession
-type ReshareProposalController struct {
+// reshareProposalController represents custom logic for types.SessionType_ReshareSession
+type reshareProposalController struct {
 	mu        sync.Mutex
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
@@ -265,10 +277,11 @@ type ReshareProposalController struct {
 	pg        *pg.Storage
 }
 
-// Implements IProposalController interface
-var _ IProposalController = &ReshareProposalController{}
+// Implements iProposalController interface
+var _ iProposalController = &reshareProposalController{}
 
-func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.SessionType) bool {
+// accept will check received proposal to reshare keys corresponding to the party local data.
+func (r *reshareProposalController) accept(details *cosmostypes.Any, st types.SessionType) bool {
 	if st != types.SessionType_ReshareSession || r.data.Set.IsActive {
 		return false
 	}
@@ -291,7 +304,8 @@ func (r *ReshareProposalController) accept(details *cosmostypes.Any, st types.Se
 	return false
 }
 
-func (r *ReshareProposalController) shareProposal(ctx context.Context) {
+// shareProposal constructs the reshare proposal based on local party data and shares it between the parties.
+func (r *reshareProposalController) shareProposal(ctx context.Context) {
 	// Unable to perform signing if set is active or public key does not exist.
 	if r.data.Set.IsActive || r.data.Set.GlobalPubKey == "" {
 		return
@@ -321,7 +335,8 @@ func (r *ReshareProposalController) shareProposal(ctx context.Context) {
 	r.data.Processing = true
 }
 
-func (r *ReshareProposalController) updateSessionData() {
+// updateSessionData updates the database entry according to the controller result.
+func (r *reshareProposalController) updateSessionData() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

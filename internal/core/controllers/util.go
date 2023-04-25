@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/binary"
+	"math/big"
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -18,25 +19,24 @@ import (
 	"google.golang.org/grpc"
 )
 
+// GetProposer generates deterministic proposer based on linear congruential generator with seed from getHash(signature, sessionId)
 func GetProposer(parties []*rarimo.Party, sig string, sessionId uint64) rarimo.Party {
-	hash := getHash(sig, sessionId)
-	return *parties[int(hash[len(hash)-1])%len(parties)]
+	rnd := newRnd(new(big.Int).SetBytes(getHash(sig, sessionId)))
+	index := getIndex(rnd.next(), len(parties))
+	return *parties[index]
 }
 
+// GetSignersSet generates deterministic signers set based on received acceptances
+// and linear congruential generator with seed from getHash(signature, sessionId)
 func GetSignersSet(acceptances map[string]struct{}, t int, sig string, sessionId uint64) map[string]struct{} {
 	accepted := acceptancesToArr(acceptances)
-	hash := getHash(sig, sessionId)
-
-	// increase hash seed in case of t bigger then hash size
-	for len(hash) < t+1 {
-		hash = append(hash, hash...)
-	}
+	rnd := newRnd(new(big.Int).SetBytes(getHash(sig, sessionId)))
 
 	sort.Strings(accepted)
 	result := make(map[string]struct{})
 
 	for i := 0; i <= t; i++ {
-		index := int(hash[i]) % len(accepted)
+		index := getIndex(rnd.next(), len(accepted))
 		result[accepted[index]] = struct{}{}
 
 		// in case of it was last element we need to exclude it from set just by deleting last slice element
@@ -97,7 +97,7 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 				contents = append(contents, content)
 			}
 		case rarimo.OpType_CHANGE_PARTIES:
-			// Currently not supported here
+			return nil, ErrUnsupportedContent
 		default:
 			return nil, ErrUnsupportedContent
 		}

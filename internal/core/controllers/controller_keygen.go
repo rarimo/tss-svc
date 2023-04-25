@@ -17,10 +17,17 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
+// iKeygenController defines custom logic for every acceptance controller.
+type iKeygenController interface {
+	Next() IController
+	updateSessionData()
+	finish(result *keygen.LocalPartySaveData)
+}
+
 // KeygenController is responsible for initial key generation. It can only be launched with empty secret storage and
 // after finishing will update storage with generated secret.
 type KeygenController struct {
-	IKeygenController
+	iKeygenController
 	wg *sync.WaitGroup
 
 	data *LocalSessionData
@@ -33,6 +40,7 @@ type KeygenController struct {
 // Implements IController interface
 var _ IController = &KeygenController{}
 
+// Receive accepts the keygen requests from other parties and delivers them to the `tss.KeygenParty`
 func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 	sender, err := k.auth.Auth(request)
 	if err != nil {
@@ -53,6 +61,8 @@ func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 	return nil
 }
 
+// Run launches the `tss.KeygenParty` logic. After context canceling it will check the tss party result
+// and execute `iKeygenController.finish` logic.
 func (k *KeygenController) Run(ctx context.Context) {
 	k.log.Infof("Starting: %s", k.Type().String())
 	k.party.Run(ctx)
@@ -60,6 +70,7 @@ func (k *KeygenController) Run(ctx context.Context) {
 	go k.run(ctx)
 }
 
+// WaitFor waits until controller finishes its logic. Context cancel should be called before.
 func (k *KeygenController) WaitFor() {
 	k.wg.Wait()
 }
@@ -87,29 +98,25 @@ func (k *KeygenController) run(ctx context.Context) {
 	k.finish(result)
 }
 
-// IKeygenController defines custom logic for every acceptance controller.
-type IKeygenController interface {
-	Next() IController
-	updateSessionData()
-	finish(result *keygen.LocalPartySaveData)
-}
-
-// DefaultKeygenController represents custom logic for types.SessionType_KeygenSession
-type DefaultKeygenController struct {
+// defaultKeygenController represents custom logic for types.SessionType_KeygenSession
+type defaultKeygenController struct {
 	data    *LocalSessionData
 	pg      *pg.Storage
 	log     *logan.Entry
 	factory *ControllerFactory
 }
 
-// Implements IKeygenController interface
-var _ IKeygenController = &DefaultKeygenController{}
+// Implements iKeygenController interface
+var _ iKeygenController = &defaultKeygenController{}
 
-func (d *DefaultKeygenController) Next() IController {
+// Next returns the finish controller instance.
+// WaitFor should be called before.
+func (d *defaultKeygenController) Next() IController {
 	return d.factory.GetFinishController()
 }
 
-func (d *DefaultKeygenController) updateSessionData() {
+// updateSessionData updates the database entry according to the controller result.
+func (d *defaultKeygenController) updateSessionData() {
 	if !d.data.Processing {
 		return
 	}
@@ -136,28 +143,27 @@ func (d *DefaultKeygenController) updateSessionData() {
 	}
 }
 
-func (d *DefaultKeygenController) finish(result *keygen.LocalPartySaveData) {
-	if result == nil {
-		d.data.Processing = false
-		return
-	}
-
+// finish sets up new secret in data (without storing it in secret store).
+func (d *defaultKeygenController) finish(result *keygen.LocalPartySaveData) {
 	d.data.NewSecret = d.data.Secret.NewWithData(result)
 	d.data.Processing = true
 }
 
-// ReshareKeygenController represents custom logic for types.SessionType_ReshareSession
-type ReshareKeygenController struct {
+// reshareKeygenController represents custom logic for types.SessionType_ReshareSession
+type reshareKeygenController struct {
 	data    *LocalSessionData
 	pg      *pg.Storage
 	log     *logan.Entry
 	factory *ControllerFactory
 }
 
-// Implements IKeygenController interface
-var _ IKeygenController = &ReshareKeygenController{}
+// Implements iKeygenController interface
+var _ iKeygenController = &reshareKeygenController{}
 
-func (r *ReshareKeygenController) Next() IController {
+// Next returns the key signature controller if self party is selected signer for current session.
+// Otherwise, it will return finish controller instance.
+// WaitFor should be called before.
+func (r *reshareKeygenController) Next() IController {
 	if _, ok := r.data.Signers[r.data.Secret.AccountAddress()]; r.data.Processing && ok {
 		return r.factory.GetKeySignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewSecret.GlobalPubKey()))))
 	}
@@ -165,7 +171,8 @@ func (r *ReshareKeygenController) Next() IController {
 	return r.factory.GetFinishController()
 }
 
-func (r *ReshareKeygenController) updateSessionData() {
+// updateSessionData updates the database entry according to the controller result.
+func (r *reshareKeygenController) updateSessionData() {
 	if !r.data.Processing {
 		return
 	}
@@ -191,7 +198,8 @@ func (r *ReshareKeygenController) updateSessionData() {
 	}
 }
 
-func (r *ReshareKeygenController) finish(result *keygen.LocalPartySaveData) {
+// finish sets up new secret in data (without storing it in secret store) and calculates new parties ECDSA public keys.
+func (r *reshareKeygenController) finish(result *keygen.LocalPartySaveData) {
 	r.data.NewSecret = r.data.Secret.NewWithData(result)
 	r.data.NewParties = make([]*rarimo.Party, len(r.data.Set.Parties))
 

@@ -13,9 +13,15 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
+// iFinishController defines custom logic for every finish controller.
+type iFinishController interface {
+	finish()
+	updateSessionEntry()
+}
+
 // FinishController is responsible for finishing sessions. For example: submit transactions, update session entry, etc.
 type FinishController struct {
-	IFinishController
+	iFinishController
 	wg *sync.WaitGroup
 
 	core *connectors.CoreConnector
@@ -30,6 +36,8 @@ func (f *FinishController) Receive(*types.MsgSubmitRequest) error {
 	return nil
 }
 
+// Run initiates the report submitting for all parties that was included into Offenders set. After it executes the
+// `iFinishController.finish` logic.
 func (f *FinishController) Run(context.Context) {
 	f.log.Infof("Starting: %s", f.Type().String())
 	f.wg.Add(1)
@@ -53,6 +61,7 @@ func (f *FinishController) Run(context.Context) {
 	f.finish()
 }
 
+// WaitFor waits until controller finishes its logic. Context cancel should be called before.
 func (f *FinishController) WaitFor() {
 	f.wg.Wait()
 }
@@ -65,12 +74,8 @@ func (f *FinishController) Type() types.ControllerType {
 	return types.ControllerType_CONTROLLER_FINISH
 }
 
-type IFinishController interface {
-	finish()
-	updateSessionEntry()
-}
-
-type KeygenFinishController struct {
+// keygenFinishController represents custom logic for types.SessionType_KeygenSession
+type keygenFinishController struct {
 	data    *LocalSessionData
 	storage secret.Storage
 	core    *connectors.CoreConnector
@@ -78,9 +83,10 @@ type KeygenFinishController struct {
 	log     *logan.Entry
 }
 
-var _ IFinishController = &KeygenFinishController{}
+var _ iFinishController = &keygenFinishController{}
 
-func (k *KeygenFinishController) finish() {
+// finish in case of successful session updates the stores TSS secret and submits the `rarimo.MsgSetupInitial` message.
+func (k *keygenFinishController) finish() {
 	if k.data.Processing {
 		k.log.Infof("Session %s #%d finished successfully", k.data.SessionType.String(), k.data.SessionId)
 		if err := k.storage.SetTssSecret(k.data.NewSecret); err != nil {
@@ -103,7 +109,8 @@ func (k *KeygenFinishController) finish() {
 	k.log.Infof("Session %s #%d finished unsuccessfully", k.data.SessionType.String(), k.data.SessionId)
 }
 
-func (k *KeygenFinishController) updateSessionEntry() {
+// updateSessionData updates the database entry according to the controller result.
+func (k *keygenFinishController) updateSessionEntry() {
 	session, err := k.pg.KeygenSessionDatumQ().KeygenSessionDatumByID(int64(k.data.SessionId), false)
 	if err != nil {
 		k.log.WithError(err).Error("Error selecting session")
@@ -125,16 +132,20 @@ func (k *KeygenFinishController) updateSessionEntry() {
 	}
 }
 
-type DefaultFinishController struct {
+// keygenFinishController represents custom logic for types.SessionType_DefaultSession
+type defaultFinishController struct {
 	data *LocalSessionData
 	core *connectors.CoreConnector
 	pg   *pg.Storage
 	log  *logan.Entry
 }
 
-var _ IFinishController = &DefaultFinishController{}
+var _ iFinishController = &defaultFinishController{}
 
-func (d *DefaultFinishController) finish() {
+// finish in case of successful session checks that self party was a signer.
+// If true, it will share the generated signature via submitting confirmation message to the core.
+// In case of unsuccessful session the selected indexes will be returned to the pool.
+func (d *defaultFinishController) finish() {
 	if d.data.Processing {
 		d.log.Infof("Session %s #%d finished successfully", d.data.SessionType.String(), d.data.SessionId)
 		if _, ok := d.data.Signers[d.data.Secret.AccountAddress()]; !ok {
@@ -154,14 +165,15 @@ func (d *DefaultFinishController) finish() {
 	d.returnToPool()
 }
 
-func (d *DefaultFinishController) returnToPool() {
+func (d *defaultFinishController) returnToPool() {
 	// try to return indexes back to the pool
 	for _, index := range d.data.Indexes {
 		pool.GetPool().Add(index)
 	}
 }
 
-func (d *DefaultFinishController) updateSessionEntry() {
+// updateSessionData updates the database entry according to the controller result.
+func (d *defaultFinishController) updateSessionEntry() {
 	session, err := d.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(d.data.SessionId), false)
 	if err != nil {
 		d.log.WithError(err).Error("Error selecting session")
@@ -183,7 +195,8 @@ func (d *DefaultFinishController) updateSessionEntry() {
 	}
 }
 
-type ReshareFinishController struct {
+// keygenFinishController represents custom logic for types.SessionType_ReshareSession
+type reshareFinishController struct {
 	data    *LocalSessionData
 	storage secret.Storage
 	core    *connectors.CoreConnector
@@ -191,9 +204,11 @@ type ReshareFinishController struct {
 	log     *logan.Entry
 }
 
-var _ IFinishController = &ReshareFinishController{}
+var _ iFinishController = &reshareFinishController{}
 
-func (r *ReshareFinishController) finish() {
+// finish in case of successful session updates the TSS secret and submits two messages to the core:
+// `rarimo.MsgCreateChangePartiesOp` and `rarimo.MsgCreateConfirmation` - change parties operation and it's confirmation.
+func (r *reshareFinishController) finish() {
 	if r.data.Processing {
 		r.log.Infof("Session %s #%d finished successfully", r.data.SessionType.String(), r.data.SessionId)
 		if err := r.storage.SetTssSecret(r.data.NewSecret); err != nil {
@@ -234,7 +249,8 @@ func (r *ReshareFinishController) finish() {
 	r.log.Infof("Session %s #%d finished unsuccessfully", r.data.SessionType.String(), r.data.SessionId)
 }
 
-func (r *ReshareFinishController) updateSessionEntry() {
+// updateSessionData updates the database entry according to the controller result.
+func (r *reshareFinishController) updateSessionEntry() {
 	session, err := r.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(r.data.SessionId), false)
 	if err != nil {
 		r.log.WithError(err).Error("Error selecting session")

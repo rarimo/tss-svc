@@ -23,6 +23,10 @@ type ControllerFactory struct {
 	log     *logan.Entry
 }
 
+// NewControllerFactory creates the new factory instance. The factory instance is associated with the certain session.
+// That constructor should be executed only once during service launch.
+// The input set that contains all necessary session information will be generated.
+// Proposer also will be selected.
 func NewControllerFactory(cfg config.Config, id uint64, sessionType types.SessionType) *ControllerFactory {
 	set := core.NewInputSet(cfg.Cosmos())
 	return &ControllerFactory{
@@ -42,6 +46,9 @@ func NewControllerFactory(cfg config.Config, id uint64, sessionType types.Sessio
 	}
 }
 
+// NextFactory creates the new factory instance for the next session.
+// The input set that contains all necessary session information will be generated.
+// Proposer also will be selected.
 func (c *ControllerFactory) NextFactory(sessionType types.SessionType) *ControllerFactory {
 	set := core.NewInputSet(c.client)
 
@@ -62,11 +69,14 @@ func (c *ControllerFactory) NextFactory(sessionType types.SessionType) *Controll
 	}
 }
 
+// GetProposalController returns the proposal controller for the defined in the factory data session type.
+// For types.SessionType_DefaultSession the proposal controller will be based on current parties set (all active and inactive parties).
+// For types.SessionType_ReshareSession the proposal controller will be based on current parties set (all active and inactive parties).
 func (c *ControllerFactory) GetProposalController() IController {
 	switch c.data.SessionType {
 	case types.SessionType_DefaultSession:
 		return &ProposalController{
-			IProposalController: &DefaultProposalController{
+			iProposalController: &defaultProposalController{
 				data:      c.data,
 				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 				core:      connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
@@ -83,7 +93,7 @@ func (c *ControllerFactory) GetProposalController() IController {
 
 	case types.SessionType_ReshareSession:
 		return &ProposalController{
-			IProposalController: &ReshareProposalController{
+			iProposalController: &reshareProposalController{
 				data:      c.data,
 				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 				core:      connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
@@ -102,11 +112,14 @@ func (c *ControllerFactory) GetProposalController() IController {
 	panic("Invalid session type")
 }
 
+// GetAcceptanceController returns the acceptance controller for the defined in the factory data session type.
+// For types.SessionType_DefaultSession the acceptance controller will be based on current parties set (all active and inactive parties).
+// For types.SessionType_ReshareSession the acceptance controller will be based on current parties set (all active and inactive parties).
 func (c *ControllerFactory) GetAcceptanceController() IController {
 	switch c.data.SessionType {
 	case types.SessionType_DefaultSession:
 		return &AcceptanceController{
-			IAcceptanceController: &DefaultAcceptanceController{
+			iAcceptanceController: &defaultAcceptanceController{
 				data:      c.data,
 				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 				core:      connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
@@ -121,7 +134,7 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 		}
 	case types.SessionType_ReshareSession:
 		return &AcceptanceController{
-			IAcceptanceController: &ReshareAcceptanceController{
+			iAcceptanceController: &reshareAcceptanceController{
 				data:      c.data,
 				broadcast: connectors.NewBroadcastConnector(c.data.SessionType, c.data.Set.Parties, c.data.Secret, c.log),
 				core:      connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
@@ -139,10 +152,11 @@ func (c *ControllerFactory) GetAcceptanceController() IController {
 	panic("Invalid session type")
 }
 
+// GetRootSignController returns the root signature controller based on the selected signers set.
 func (c *ControllerFactory) GetRootSignController(hash string) IController {
 	parties := getSignersList(c.data.Signers, c.data.Set.Parties)
 	return &SignatureController{
-		ISignatureController: &RootSignatureController{
+		iSignatureController: &rootSignatureController{
 			data:    c.data,
 			factory: c,
 			pg:      c.pg,
@@ -156,10 +170,11 @@ func (c *ControllerFactory) GetRootSignController(hash string) IController {
 	}
 }
 
+// GetKeySignController returns the key signature controller based on the selected signers set.
 func (c *ControllerFactory) GetKeySignController(hash string) IController {
 	parties := getSignersList(c.data.Signers, c.data.Set.Parties)
 	return &SignatureController{
-		ISignatureController: &KeySignatureController{
+		iSignatureController: &keySignatureController{
 			data:    c.data,
 			factory: c,
 			pg:      c.pg,
@@ -173,11 +188,12 @@ func (c *ControllerFactory) GetKeySignController(hash string) IController {
 	}
 }
 
+// GetFinishController returns the finish controller for the defined in the factory data session type.
 func (c *ControllerFactory) GetFinishController() IController {
 	switch c.data.SessionType {
 	case types.SessionType_KeygenSession:
 		return &FinishController{
-			IFinishController: &KeygenFinishController{
+			iFinishController: &keygenFinishController{
 				data:    c.data,
 				storage: c.storage,
 				core:    connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
@@ -191,7 +207,7 @@ func (c *ControllerFactory) GetFinishController() IController {
 		}
 	case types.SessionType_ReshareSession:
 		return &FinishController{
-			IFinishController: &ReshareFinishController{
+			iFinishController: &reshareFinishController{
 				data:    c.data,
 				storage: c.storage,
 				core:    connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
@@ -205,7 +221,7 @@ func (c *ControllerFactory) GetFinishController() IController {
 		}
 	case types.SessionType_DefaultSession:
 		return &FinishController{
-			IFinishController: &DefaultFinishController{
+			iFinishController: &defaultFinishController{
 				data: c.data,
 				core: connectors.NewCoreConnector(c.client, c.storage.GetTssSecret(), c.log),
 				log:  c.log,
@@ -222,11 +238,14 @@ func (c *ControllerFactory) GetFinishController() IController {
 	panic("Invalid session type")
 }
 
+// GetKeygenController returns the keygen controller for the defined in the factory data session type.
+// For types.SessionType_KeygenSession the keygen controller will be based on current parties set (all parties should be inactive).
+// For types.SessionType_ReshareSession the keygen controller will be based on current parties set (all active and inactive parties).
 func (c *ControllerFactory) GetKeygenController() IController {
 	switch c.data.SessionType {
 	case types.SessionType_ReshareSession:
 		return &KeygenController{
-			IKeygenController: &ReshareKeygenController{
+			iKeygenController: &reshareKeygenController{
 				data:    c.data,
 				pg:      c.pg,
 				log:     c.log,
@@ -240,7 +259,7 @@ func (c *ControllerFactory) GetKeygenController() IController {
 		}
 	case types.SessionType_KeygenSession:
 		return &KeygenController{
-			IKeygenController: &DefaultKeygenController{
+			iKeygenController: &defaultKeygenController{
 				data:    c.data,
 				pg:      c.pg,
 				log:     c.log,

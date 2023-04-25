@@ -13,9 +13,18 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
+// iAcceptanceController defines custom logic for every acceptance controller.
+type iAcceptanceController interface {
+	Next() IController
+	validate(details *cosmostypes.Any, st types.SessionType) bool
+	shareAcceptance(ctx context.Context)
+	updateSessionData()
+	finish()
+}
+
 // AcceptanceController is responsible for sharing and collecting acceptances for different types of session.
 type AcceptanceController struct {
-	IAcceptanceController
+	iAcceptanceController
 	mu sync.Mutex
 	wg *sync.WaitGroup
 
@@ -28,12 +37,18 @@ type AcceptanceController struct {
 // Implements IController interface
 var _ IController = &AcceptanceController{}
 
+// Run initiates sharing of the acceptances with other parties.
+// Should be launched only in case of valid proposal (session processing should be `true`)
 func (a *AcceptanceController) Run(ctx context.Context) {
 	a.log.Infof("Starting: %s", a.Type().String())
 	a.wg.Add(1)
 	go a.run(ctx)
 }
 
+// Receive accepts acceptances from other parties and executes `iAcceptanceController.validate` function.
+// If function returns positive result sender address will be added to the accepted list.
+// Self acceptance will be added to the list after controller base logic execution.
+// After context finishing it calls the `iAcceptanceController.finish` method to calculate the acceptance results.
 func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 	sender, err := a.auth.Auth(request)
 	if err != nil {
@@ -56,6 +71,8 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 	return nil
 }
 
+// WaitFor waits until controller finishes its logic. Context cancel should be called before.
+// WaitFor should be called before.
 func (a *AcceptanceController) WaitFor() {
 	a.wg.Wait()
 }
@@ -92,17 +109,8 @@ func (a *AcceptanceController) run(ctx context.Context) {
 	a.finish()
 }
 
-// IAcceptanceController defines custom logic for every acceptance controller.
-type IAcceptanceController interface {
-	Next() IController
-	validate(details *cosmostypes.Any, st types.SessionType) bool
-	shareAcceptance(ctx context.Context)
-	updateSessionData()
-	finish()
-}
-
-// DefaultAcceptanceController represents custom logic for types.SessionType_DefaultSession
-type DefaultAcceptanceController struct {
+// defaultAcceptanceController represents custom logic for types.SessionType_DefaultSession
+type defaultAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
 	core      *connectors.CoreConnector
@@ -111,17 +119,20 @@ type DefaultAcceptanceController struct {
 	factory   *ControllerFactory
 }
 
-// Implements IAcceptanceController interface
-var _ IAcceptanceController = &DefaultAcceptanceController{}
+// Implements iAcceptanceController interface
+var _ iAcceptanceController = &defaultAcceptanceController{}
 
-func (a *DefaultAcceptanceController) Next() IController {
+// Next method returns the next controller instance to be launched.
+// If self party is the session signer the next controller should be a root signature controller.
+// Otherwise, it will be a finish controller.
+func (a *defaultAcceptanceController) Next() IController {
 	if _, ok := a.data.Signers[a.data.Secret.AccountAddress()]; a.data.Processing && ok {
 		return a.factory.GetRootSignController(a.data.Root)
 	}
 	return a.factory.GetFinishController()
 }
 
-func (a *DefaultAcceptanceController) validate(any *cosmostypes.Any, st types.SessionType) bool {
+func (a *defaultAcceptanceController) validate(any *cosmostypes.Any, st types.SessionType) bool {
 	if st != types.SessionType_DefaultSession {
 		return false
 	}
@@ -134,7 +145,7 @@ func (a *DefaultAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 	return details.Root == a.data.Root
 }
 
-func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
+func (a *defaultAcceptanceController) shareAcceptance(ctx context.Context) {
 	details, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionAcceptanceData{Root: a.data.Root})
 	if err != nil {
 		a.log.WithError(err).Error("Error parsing details")
@@ -149,7 +160,8 @@ func (a *DefaultAcceptanceController) shareAcceptance(ctx context.Context) {
 	})
 }
 
-func (a *DefaultAcceptanceController) updateSessionData() {
+// updateSessionData updates the database entry according to the controller result.
+func (a *defaultAcceptanceController) updateSessionData() {
 	session, err := a.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(a.data.SessionId), false)
 	if err != nil {
 		a.log.WithError(err).Error("Error selecting session")
@@ -167,7 +179,8 @@ func (a *DefaultAcceptanceController) updateSessionData() {
 	}
 }
 
-func (a *DefaultAcceptanceController) finish() {
+// finish verifies that results satisfies the requirements (t + 1 acceptances) and calculates the signature producers set.
+func (a *defaultAcceptanceController) finish() {
 	// T+1 required for signing
 	if len(a.data.Acceptances) <= a.data.Set.T {
 		a.data.Processing = false
@@ -186,8 +199,8 @@ func (a *DefaultAcceptanceController) finish() {
 	a.data.Signers = GetSignersSet(a.data.Acceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
 }
 
-// ReshareAcceptanceController represents custom logic for types.SessionType_ReshareSession
-type ReshareAcceptanceController struct {
+// reshareAcceptanceController represents custom logic for types.SessionType_ReshareSession
+type reshareAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
 	core      *connectors.CoreConnector
@@ -196,10 +209,12 @@ type ReshareAcceptanceController struct {
 	factory   *ControllerFactory
 }
 
-// Implements IAcceptanceController interface
-var _ IAcceptanceController = &ReshareAcceptanceController{}
+// Implements iAcceptanceController interface
+var _ iAcceptanceController = &reshareAcceptanceController{}
 
-func (a *ReshareAcceptanceController) Next() IController {
+// Next method returns the next controller instance to be launched. If controller finished successfully
+// the next controller will be a keygen controller. Otherwise, it will be a finish controller.
+func (a *reshareAcceptanceController) Next() IController {
 	if a.data.Processing {
 		return a.factory.GetKeygenController()
 	}
@@ -207,7 +222,7 @@ func (a *ReshareAcceptanceController) Next() IController {
 	return a.factory.GetFinishController()
 }
 
-func (a *ReshareAcceptanceController) validate(any *cosmostypes.Any, st types.SessionType) bool {
+func (a *reshareAcceptanceController) validate(any *cosmostypes.Any, st types.SessionType) bool {
 	if st != types.SessionType_ReshareSession {
 		return false
 	}
@@ -220,7 +235,7 @@ func (a *ReshareAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 	return checkSet(details.New, a.data.Set)
 }
 
-func (a *ReshareAcceptanceController) shareAcceptance(ctx context.Context) {
+func (a *reshareAcceptanceController) shareAcceptance(ctx context.Context) {
 	details, err := cosmostypes.NewAnyWithValue(&types.ReshareSessionAcceptanceData{New: getSet(a.data.Set)})
 	if err != nil {
 		a.log.WithError(err).Error("Error parsing details")
@@ -235,11 +250,13 @@ func (a *ReshareAcceptanceController) shareAcceptance(ctx context.Context) {
 	})
 }
 
-func (a *ReshareAcceptanceController) updateSessionData() {
+func (a *reshareAcceptanceController) updateSessionData() {
 	// Nothing to do for reshare session
 }
 
-func (a *ReshareAcceptanceController) finish() {
+// finish verifies that results satisfies the requirements (all accepted) and calculates the
+// signature producers set (based on old parties).
+func (a *reshareAcceptanceController) finish() {
 	if len(a.data.Acceptances) < a.data.Set.N {
 		a.data.Processing = false
 		return

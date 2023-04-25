@@ -17,9 +17,16 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
+// iSignatureController defines custom logic for every signature controller.
+type iSignatureController interface {
+	Next() IController
+	finish(signature string)
+	updateSessionData()
+}
+
 // SignatureController is responsible for signing data by signature producers.
 type SignatureController struct {
-	ISignatureController
+	iSignatureController
 	wg   *sync.WaitGroup
 	data *LocalSessionData
 
@@ -31,6 +38,8 @@ type SignatureController struct {
 // Implements IController interface
 var _ IController = &SignatureController{}
 
+// Receive accepts the signature requests  from other parties and delivers it to the `tss.SignParty.
+// If sender is not present in current signers set request will not be accepted.
 func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 	sender, err := s.auth.Auth(request)
 	if err != nil {
@@ -66,6 +75,8 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 	return nil
 }
 
+// Run launches the `tss.SignParty` logic. After context canceling it will check the tss party result
+// and execute `iSignatureController.finish` logic.
 func (s *SignatureController) Run(ctx context.Context) {
 	s.log.Infof("Starting: %s", s.Type().String())
 	s.party.Run(ctx)
@@ -73,6 +84,7 @@ func (s *SignatureController) Run(ctx context.Context) {
 	go s.run(ctx)
 }
 
+// WaitFor waits until controller finishes its logic. Context cancel should be called before.
 func (s *SignatureController) WaitFor() {
 	s.wg.Wait()
 }
@@ -102,32 +114,29 @@ func (s *SignatureController) run(ctx context.Context) {
 	s.finish(signature)
 }
 
-// ISignatureController defines custom logic for every signature controller.
-type ISignatureController interface {
-	Next() IController
-	finish(signature string)
-	updateSessionData()
-}
-
-// KeySignatureController represents custom logic for types.SessionType_ReshareSession for signing the new key with old signature.
-type KeySignatureController struct {
+// keySignatureController represents custom logic for types.SessionType_ReshareSession for signing the new key with old signature.
+type keySignatureController struct {
 	data    *LocalSessionData
 	factory *ControllerFactory
 	pg      *pg.Storage
 	log     *logan.Entry
 }
 
-// Implements ISignatureController interface
-var _ ISignatureController = &KeySignatureController{}
+// Implements iSignatureController interface
+var _ iSignatureController = &keySignatureController{}
 
-func (s *KeySignatureController) Next() IController {
+// Next will return the root signature controller if current signing was successful.
+// Otherwise, it will return finish controller.
+// WaitFor should be called before.
+func (s *keySignatureController) Next() IController {
 	if s.data.Processing {
 		return s.factory.GetRootSignController(s.data.Root)
 	}
 	return s.factory.GetFinishController()
 }
 
-func (s *KeySignatureController) finish(signature string) {
+// finish will store the result signature and generates the ChangeParties operation to be signed in the next controller.
+func (s *keySignatureController) finish(signature string) {
 	s.data.KeySignature = signature
 	op := &rarimo.ChangeParties{
 		Parties:      s.data.NewParties,
@@ -139,7 +148,8 @@ func (s *KeySignatureController) finish(signature string) {
 	s.data.Indexes = []string{s.data.Root}
 }
 
-func (s *KeySignatureController) updateSessionData() {
+// updateSessionData updates the database entry according to the controller result.
+func (s *keySignatureController) updateSessionData() {
 	session, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(s.data.SessionId), false)
 	if err != nil {
 		s.log.WithError(err).Error("Error selecting session")
@@ -161,27 +171,31 @@ func (s *KeySignatureController) updateSessionData() {
 	}
 }
 
-// RootSignatureController represents custom logic for both types.SessionType_ReshareSession
+// rootSignatureController represents custom logic for both types.SessionType_ReshareSession
 // and types.SessionType_DefaultSession for signing the root of indexes set.
-type RootSignatureController struct {
+type rootSignatureController struct {
 	data    *LocalSessionData
 	factory *ControllerFactory
 	pg      *pg.Storage
 	log     *logan.Entry
 }
 
-// Implements ISignatureController interface
-var _ ISignatureController = &RootSignatureController{}
+// Implements iSignatureController interface
+var _ iSignatureController = &rootSignatureController{}
 
-func (s *RootSignatureController) Next() IController {
+// Next returns the finish controller instance.
+// WaitFor should be called before.
+func (s *rootSignatureController) Next() IController {
 	return s.factory.GetFinishController()
 }
 
-func (s *RootSignatureController) finish(signature string) {
+// finish saves the generated signature
+func (s *rootSignatureController) finish(signature string) {
 	s.data.OperationSignature = signature
 }
 
-func (s *RootSignatureController) updateSessionData() {
+// updateSessionData updates the database entry according to the controller result.
+func (s *rootSignatureController) updateSessionData() {
 	switch s.data.SessionType {
 	case types.SessionType_DefaultSession:
 		data, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(s.data.SessionId), false)
