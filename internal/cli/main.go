@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
-	"runtime"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -30,28 +29,31 @@ import (
 )
 
 func Run(args []string) bool {
-	go profiling()
-
-	log := logan.New()
-
 	defer func() {
 		if rvr := recover(); rvr != nil {
-			log.WithRecover(rvr).Error("app panicked")
+			logan.New().WithRecover(rvr).Error("app panicked")
 		}
 	}()
 
 	cfg := config.New(kv.MustFromEnv())
-
-	log = cfg.Log()
+	log := cfg.Log()
 
 	app := kingpin.New("tss-svc", "")
-
 	runCmd := app.Command("run", "run command")
+
+	// Running full service
 	serviceCmd := runCmd.Command("service", "run service")
+
+	// Running service in keygen mode
 	keygenCmd := runCmd.Command("keygen", "run keygen")
+
+	// Running pramas generation
 	paramgenCmd := runCmd.Command("paramgen", "run paramgen")
+
+	// Running ECDSA key-pair generation
 	prvgenCmd := runCmd.Command("prvgen", "run prvgen")
 
+	// Running migrations
 	migrateCmd := app.Command("migrate", "migrate command")
 	migrateUpCmd := migrateCmd.Command("up", "migrate db up")
 	migrateDownCmd := migrateCmd.Command("down", "migrate db down")
@@ -61,8 +63,6 @@ func Run(args []string) bool {
 		log.WithError(err).Error("failed to parse arguments")
 		return false
 	}
-
-	log.Infof("GOMAXPROCS = %d", runtime.GOMAXPROCS(0))
 
 	switch cmd {
 	case serviceCmd.FullCommand():
@@ -76,7 +76,14 @@ func Run(args []string) bool {
 
 		timer.GetTimer().SubscribeToBlocks("session-manager", manager.NewBlock)
 
-		err = grpc.NewServer(manager, cfg).Run()
+		server := grpc.NewServer(manager, cfg)
+		go func() {
+			if err := server.RunGateway(); err != nil {
+				panic(err)
+			}
+		}()
+
+		err = server.RunGRPC()
 	case keygenCmd.FullCommand():
 		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
 		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
@@ -87,7 +94,14 @@ func Run(args []string) bool {
 
 		timer.GetTimer().SubscribeToBlocks("session-manager", manager.NewBlock)
 
-		err = grpc.NewServer(manager, cfg).Run()
+		server := grpc.NewServer(manager, cfg)
+		go func() {
+			if err := server.RunGateway(); err != nil {
+				panic(err)
+			}
+		}()
+
+		err = server.RunGRPC()
 	case paramgenCmd.FullCommand():
 		params, err := tsskg.GeneratePreParams(10 * time.Minute)
 		if err != nil {

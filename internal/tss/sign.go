@@ -8,7 +8,6 @@ import (
 	"github.com/bnb-chain/tss-lib/common"
 	"github.com/bnb-chain/tss-lib/tss"
 	s256k1 "github.com/btcsuite/btcd/btcec"
-	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -19,6 +18,7 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type SignParty struct {
@@ -136,13 +136,13 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 		case <-ctx.Done():
 			return
 		case msg := <-out:
-			details, err := cosmostypes.NewAnyWithValue(msg.WireMsg().Message)
+			details, err := anypb.New(msg.WireMsg().Message)
 			if err != nil {
 				p.log.WithError(err).Error("Failed to parse details")
 				continue
 			}
 
-			sign, err := cosmostypes.NewAnyWithValue(&types.SignRequest{
+			sign, err := anypb.New(&types.SignRequest{
 				Data:    p.data,
 				Details: details,
 			})

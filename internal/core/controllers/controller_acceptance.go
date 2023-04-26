@@ -4,19 +4,18 @@ import (
 	"context"
 	"sync"
 
-	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // iAcceptanceController defines custom logic for every acceptance controller.
 type iAcceptanceController interface {
 	Next() IController
-	validate(details *cosmostypes.Any, st types.SessionType) bool
+	validate(details *anypb.Any, st types.SessionType) bool
 	shareAcceptance(ctx context.Context)
 	updateSessionData()
 	finish()
@@ -132,13 +131,13 @@ func (a *defaultAcceptanceController) Next() IController {
 	return a.factory.GetFinishController()
 }
 
-func (a *defaultAcceptanceController) validate(any *cosmostypes.Any, st types.SessionType) bool {
+func (a *defaultAcceptanceController) validate(any *anypb.Any, st types.SessionType) bool {
 	if st != types.SessionType_DefaultSession {
 		return false
 	}
 
 	details := new(types.DefaultSessionAcceptanceData)
-	if err := proto.Unmarshal(any.Value, details); err != nil {
+	if err := any.UnmarshalTo(details); err != nil {
 		a.log.WithError(err).Error("Error unmarshalling request")
 	}
 
@@ -146,7 +145,7 @@ func (a *defaultAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 }
 
 func (a *defaultAcceptanceController) shareAcceptance(ctx context.Context) {
-	details, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionAcceptanceData{Root: a.data.Root})
+	details, err := anypb.New(&types.DefaultSessionAcceptanceData{Root: a.data.Root})
 	if err != nil {
 		a.log.WithError(err).Error("Error parsing details")
 		return
@@ -222,13 +221,13 @@ func (a *reshareAcceptanceController) Next() IController {
 	return a.factory.GetFinishController()
 }
 
-func (a *reshareAcceptanceController) validate(any *cosmostypes.Any, st types.SessionType) bool {
+func (a *reshareAcceptanceController) validate(any *anypb.Any, st types.SessionType) bool {
 	if st != types.SessionType_ReshareSession {
 		return false
 	}
 
 	details := new(types.ReshareSessionAcceptanceData)
-	if err := proto.Unmarshal(any.Value, details); err != nil {
+	if err := any.UnmarshalTo(details); err != nil {
 		a.log.WithError(err).Error("Error unmarshalling request")
 	}
 
@@ -236,7 +235,7 @@ func (a *reshareAcceptanceController) validate(any *cosmostypes.Any, st types.Se
 }
 
 func (a *reshareAcceptanceController) shareAcceptance(ctx context.Context) {
-	details, err := cosmostypes.NewAnyWithValue(&types.ReshareSessionAcceptanceData{New: getSet(a.data.Set)})
+	details, err := anypb.New(&types.ReshareSessionAcceptanceData{New: getSet(a.data.Set)})
 	if err != nil {
 		a.log.WithError(err).Error("Error parsing details")
 		return

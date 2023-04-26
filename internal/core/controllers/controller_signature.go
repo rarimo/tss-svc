@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/rarimo/rarimo-core/x/rarimocore/crypto/pkg"
@@ -56,7 +55,7 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 	}
 
 	sign := new(types.SignRequest)
-	if err := proto.Unmarshal(request.Details.Value, sign); err != nil {
+	if err := request.Details.UnmarshalTo(sign); err != nil {
 		return errors.Wrap(err, "error unmarshalling request")
 	}
 

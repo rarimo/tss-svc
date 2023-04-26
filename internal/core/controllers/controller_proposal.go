@@ -5,10 +5,8 @@ import (
 	"database/sql"
 	"sync"
 
-	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
-	"github.com/gogo/protobuf/proto"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	merkle "gitlab.com/rarimo/go-merkle"
@@ -18,13 +16,14 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const MaxPoolSize = 32
 
 // iProposalController defines custom logic for every proposal controller.
 type iProposalController interface {
-	accept(details *cosmostypes.Any, st types.SessionType) bool
+	accept(details *anypb.Any, st types.SessionType) bool
 	shareProposal(ctx context.Context)
 	updateSessionData()
 }
@@ -131,13 +130,14 @@ var _ iProposalController = &defaultProposalController{}
 
 // accept will check the received proposal to sign the set of operations by validating suggested indexes.
 // If the current parties is not active (set contains inactive parties or party was removed) the flow will be reverted.
-func (d *defaultProposalController) accept(details *cosmostypes.Any, st types.SessionType) bool {
+func (d *defaultProposalController) accept(details *anypb.Any, st types.SessionType) bool {
 	if st != types.SessionType_DefaultSession || !d.data.Set.IsActive {
 		return false
 	}
 
 	data := new(types.DefaultSessionProposalData)
-	if err := proto.Unmarshal(details.Value, data); err != nil {
+
+	if err := details.UnmarshalTo(data); err != nil {
 		d.log.WithError(err).Error("Error unmarshalling request")
 		return false
 	}
@@ -192,7 +192,7 @@ func (d *defaultProposalController) shareProposal(ctx context.Context) {
 
 	d.log.Infof("Performed pool to share: %v", ids)
 
-	details, err := cosmostypes.NewAnyWithValue(&types.DefaultSessionProposalData{Indexes: ids, Root: root})
+	details, err := anypb.New(&types.DefaultSessionProposalData{Indexes: ids, Root: root})
 	if err != nil {
 		d.log.WithError(err).Error("Error parsing data")
 		return
@@ -281,13 +281,13 @@ type reshareProposalController struct {
 var _ iProposalController = &reshareProposalController{}
 
 // accept will check received proposal to reshare keys corresponding to the party local data.
-func (r *reshareProposalController) accept(details *cosmostypes.Any, st types.SessionType) bool {
+func (r *reshareProposalController) accept(details *anypb.Any, st types.SessionType) bool {
 	if st != types.SessionType_ReshareSession || r.data.Set.IsActive {
 		return false
 	}
 
 	data := new(types.ReshareSessionProposalData)
-	if err := proto.Unmarshal(details.Value, data); err != nil {
+	if err := details.UnmarshalTo(data); err != nil {
 		r.log.WithError(err).Error("Error unmarshalling request")
 		return false
 	}
@@ -317,7 +317,7 @@ func (r *reshareProposalController) shareProposal(ctx context.Context) {
 
 	r.log.Infof("Performed set for updating to: %v", set)
 
-	details, err := cosmostypes.NewAnyWithValue(data)
+	details, err := anypb.New(data)
 	if err != nil {
 		r.log.WithError(err).Error("Error parsing data")
 		return
