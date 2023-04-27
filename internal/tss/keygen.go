@@ -18,7 +18,6 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -39,7 +38,7 @@ type KeygenParty struct {
 	result *keygen.LocalPartySaveData
 }
 
-func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, cli *grpc.ClientConn, log *logan.Entry) *KeygenParty {
+func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, coreCon *connectors.CoreConnector, log *logan.Entry) *KeygenParty {
 	return &KeygenParty{
 		id:       id,
 		wg:       &sync.WaitGroup{},
@@ -48,7 +47,7 @@ func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.
 		parties:  partiesByAccountMapping(parties),
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
-		core:     connectors.NewCoreConnector(cli, secret, log),
+		core:     coreCon,
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"github.com/tendermint/tendermint/types"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 const (
@@ -23,11 +22,11 @@ type BlockSubscriber struct {
 }
 
 // NewBlockSubscriber creates the subscriber instance for listening new blocks
-func NewBlockSubscriber(cfg config.Config) *BlockSubscriber {
+func NewBlockSubscriber(timer *Timer, tendermint *http.HTTP, log *logan.Entry) *BlockSubscriber {
 	return &BlockSubscriber{
-		timer:  NewTimer(cfg),
-		log:    cfg.Log(),
-		client: cfg.Tendermint(),
+		timer:  timer,
+		log:    log,
+		client: tendermint,
 	}
 }
 

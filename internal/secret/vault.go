@@ -24,10 +24,6 @@ const (
 	trialKey   = "trial"
 )
 
-// VaultStorage implements singleton pattern
-var vaultStorage *VaultStorage
-var once sync.Once
-
 type VaultStorage struct {
 	once     sync.Once
 	log      *logan.Entry
@@ -38,15 +34,11 @@ type VaultStorage struct {
 }
 
 func NewVaultStorage(cfg config.Config) *VaultStorage {
-	once.Do(func() {
-		vaultStorage = &VaultStorage{
-			client: cfg.Vault(),
-			log:    cfg.Log(),
-			path:   os.Getenv(config.VaultSecretPath),
-		}
-	})
-
-	return vaultStorage
+	return &VaultStorage{
+		client: cfg.Vault(),
+		log:    cfg.Log(),
+		path:   os.Getenv(config.VaultSecretPath),
+	}
 }
 
 // Implements Storage interface

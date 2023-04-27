@@ -6,7 +6,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"google.golang.org/grpc"
 )
 
@@ -23,11 +22,11 @@ type OperationCatchupper struct {
 }
 
 // NewOperationCatchupper creates the catchup instance for adding all unsigned operations to the pool
-func NewOperationCatchupper(cfg config.Config) *OperationCatchupper {
+func NewOperationCatchupper(pool *Pool, core *grpc.ClientConn, log *logan.Entry) *OperationCatchupper {
 	return &OperationCatchupper{
-		pool:   NewPool(cfg),
-		rarimo: cfg.Cosmos(),
-		log:    cfg.Log(),
+		pool:   pool,
+		rarimo: core,
+		log:    log,
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -15,10 +14,10 @@ import (
 // iAcceptanceController defines custom logic for every acceptance controller.
 type iAcceptanceController interface {
 	Next() IController
-	validate(details *anypb.Any, st types.SessionType) bool
-	shareAcceptance(ctx context.Context)
-	updateSessionData()
-	finish()
+	validate(ctx core.Context, details *anypb.Any, st types.SessionType) bool
+	shareAcceptance(ctx core.Context)
+	updateSessionData(ctx core.Context)
+	finish(ctx core.Context)
 }
 
 // AcceptanceController is responsible for sharing and collecting acceptances for different types of session.
@@ -38,7 +37,8 @@ var _ IController = &AcceptanceController{}
 
 // Run initiates sharing of the acceptances with other parties.
 // Should be launched only in case of valid proposal (session processing should be `true`)
-func (a *AcceptanceController) Run(ctx context.Context) {
+func (a *AcceptanceController) Run(c context.Context) {
+	ctx := core.WrapCtx(c)
 	a.log.Infof("Starting: %s", a.Type().String())
 	a.wg.Add(1)
 	go a.run(ctx)
@@ -48,7 +48,8 @@ func (a *AcceptanceController) Run(ctx context.Context) {
 // If function returns positive result sender address will be added to the accepted list.
 // Self acceptance will be added to the list after controller base logic execution.
 // After context finishing it calls the `iAcceptanceController.finish` method to calculate the acceptance results.
-func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
+func (a *AcceptanceController) Receive(c context.Context, request *types.MsgSubmitRequest) error {
+	ctx := core.WrapCtx(c)
 	sender, err := a.auth.Auth(request)
 	if err != nil {
 		return err
@@ -58,7 +59,7 @@ func (a *AcceptanceController) Receive(request *types.MsgSubmitRequest) error {
 		return ErrInvalidRequestType
 	}
 
-	if !a.validate(request.Details, request.SessionType) {
+	if !a.validate(ctx, request.Details, request.SessionType) {
 		a.data.Offenders[sender.Account] = struct{}{}
 		return nil
 	}
@@ -80,21 +81,21 @@ func (a *AcceptanceController) Type() types.ControllerType {
 	return types.ControllerType_CONTROLLER_ACCEPTANCE
 }
 
-func (a *AcceptanceController) run(ctx context.Context) {
+func (a *AcceptanceController) run(ctx core.Context) {
 	defer func() {
 		a.log.Infof("Finishing: %s", a.Type().String())
-		a.updateSessionData()
+		a.updateSessionData(ctx)
 		a.wg.Done()
 	}()
 
 	a.shareAcceptance(ctx)
-	<-ctx.Done()
+	<-ctx.Context().Done()
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	// adding self
-	a.data.Acceptances[a.data.Secret.AccountAddress()] = struct{}{}
+	a.data.Acceptances[ctx.SecretStorage().GetTssSecret().AccountAddress()] = struct{}{}
 
 	a.log.Infof("Received acceptances list: %v", a.data.Acceptances)
 
@@ -105,16 +106,13 @@ func (a *AcceptanceController) run(ctx context.Context) {
 		}
 	}
 
-	a.finish()
+	a.finish(ctx)
 }
 
 // defaultAcceptanceController represents custom logic for types.SessionType_DefaultSession
 type defaultAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
-	core      *connectors.CoreConnector
-	log       *logan.Entry
-	pg        *pg.Storage
 	factory   *ControllerFactory
 }
 
@@ -125,33 +123,33 @@ var _ iAcceptanceController = &defaultAcceptanceController{}
 // If self party is the session signer the next controller should be a root signature controller.
 // Otherwise, it will be a finish controller.
 func (a *defaultAcceptanceController) Next() IController {
-	if _, ok := a.data.Signers[a.data.Secret.AccountAddress()]; a.data.Processing && ok {
+	if a.data.Processing && a.data.IsSigner {
 		return a.factory.GetRootSignController(a.data.Root)
 	}
 	return a.factory.GetFinishController()
 }
 
-func (a *defaultAcceptanceController) validate(any *anypb.Any, st types.SessionType) bool {
+func (a *defaultAcceptanceController) validate(ctx core.Context, any *anypb.Any, st types.SessionType) bool {
 	if st != types.SessionType_DefaultSession {
 		return false
 	}
 
 	details := new(types.DefaultSessionAcceptanceData)
 	if err := any.UnmarshalTo(details); err != nil {
-		a.log.WithError(err).Error("Error unmarshalling request")
+		ctx.Log().WithError(err).Error("Error unmarshalling request")
 	}
 
 	return details.Root == a.data.Root
 }
 
-func (a *defaultAcceptanceController) shareAcceptance(ctx context.Context) {
+func (a *defaultAcceptanceController) shareAcceptance(ctx core.Context) {
 	details, err := anypb.New(&types.DefaultSessionAcceptanceData{Root: a.data.Root})
 	if err != nil {
-		a.log.WithError(err).Error("Error parsing details")
+		ctx.Log().WithError(err).Error("Error parsing details")
 		return
 	}
 
-	go a.broadcast.SubmitAllWithReport(ctx, a.core, &types.MsgSubmitRequest{
+	go a.broadcast.SubmitAllWithReport(ctx.Context(), ctx.Core(), &types.MsgSubmitRequest{
 		Id:          a.data.SessionId,
 		Type:        types.RequestType_Acceptance,
 		IsBroadcast: true,
@@ -160,26 +158,26 @@ func (a *defaultAcceptanceController) shareAcceptance(ctx context.Context) {
 }
 
 // updateSessionData updates the database entry according to the controller result.
-func (a *defaultAcceptanceController) updateSessionData() {
-	session, err := a.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(a.data.SessionId), false)
+func (a *defaultAcceptanceController) updateSessionData(ctx core.Context) {
+	session, err := ctx.PG().DefaultSessionDatumQ().DefaultSessionDatumByID(int64(a.data.SessionId), false)
 	if err != nil {
-		a.log.WithError(err).Error("Error selecting session")
+		ctx.Log().WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		a.log.Error("Session entry is not initialized")
+		ctx.Log().Error("Session entry is not initialized")
 		return
 	}
 
 	session.Accepted = acceptancesToArr(a.data.Acceptances)
-	if err = a.pg.DefaultSessionDatumQ().Update(session); err != nil {
-		a.log.WithError(err).Error("Error updating session entry")
+	if err = ctx.PG().DefaultSessionDatumQ().Update(session); err != nil {
+		ctx.Log().WithError(err).Error("Error updating session entry")
 	}
 }
 
 // finish verifies that results satisfies the requirements (t + 1 acceptances) and calculates the signature producers set.
-func (a *defaultAcceptanceController) finish() {
+func (a *defaultAcceptanceController) finish(ctx core.Context) {
 	// T+1 required for signing
 	if len(a.data.Acceptances) <= a.data.Set.T {
 		a.data.Processing = false
@@ -187,7 +185,7 @@ func (a *defaultAcceptanceController) finish() {
 	}
 
 	defer func() {
-		a.log.Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
+		ctx.Log().Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
 	}()
 
 	if len(a.data.Acceptances) == a.data.Set.T+1 {
@@ -196,15 +194,13 @@ func (a *defaultAcceptanceController) finish() {
 	}
 
 	a.data.Signers = GetSignersSet(a.data.Acceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
+	_, a.data.IsSigner = a.data.Signers[ctx.SecretStorage().GetTssSecret().AccountAddress()]
 }
 
 // reshareAcceptanceController represents custom logic for types.SessionType_ReshareSession
 type reshareAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
-	core      *connectors.CoreConnector
-	log       *logan.Entry
-	pg        *pg.Storage
 	factory   *ControllerFactory
 }
 
@@ -221,27 +217,27 @@ func (a *reshareAcceptanceController) Next() IController {
 	return a.factory.GetFinishController()
 }
 
-func (a *reshareAcceptanceController) validate(any *anypb.Any, st types.SessionType) bool {
+func (a *reshareAcceptanceController) validate(ctx core.Context, any *anypb.Any, st types.SessionType) bool {
 	if st != types.SessionType_ReshareSession {
 		return false
 	}
 
 	details := new(types.ReshareSessionAcceptanceData)
 	if err := any.UnmarshalTo(details); err != nil {
-		a.log.WithError(err).Error("Error unmarshalling request")
+		ctx.Log().WithError(err).Error("Error unmarshalling request")
 	}
 
 	return checkSet(details.New, a.data.Set)
 }
 
-func (a *reshareAcceptanceController) shareAcceptance(ctx context.Context) {
+func (a *reshareAcceptanceController) shareAcceptance(ctx core.Context) {
 	details, err := anypb.New(&types.ReshareSessionAcceptanceData{New: getSet(a.data.Set)})
 	if err != nil {
-		a.log.WithError(err).Error("Error parsing details")
+		ctx.Log().WithError(err).Error("Error parsing details")
 		return
 	}
 
-	go a.broadcast.SubmitAllWithReport(ctx, a.core, &types.MsgSubmitRequest{
+	go a.broadcast.SubmitAllWithReport(ctx.Context(), ctx.Core(), &types.MsgSubmitRequest{
 		Id:          a.data.SessionId,
 		Type:        types.RequestType_Acceptance,
 		IsBroadcast: true,
@@ -249,20 +245,20 @@ func (a *reshareAcceptanceController) shareAcceptance(ctx context.Context) {
 	})
 }
 
-func (a *reshareAcceptanceController) updateSessionData() {
+func (a *reshareAcceptanceController) updateSessionData(ctx core.Context) {
 	// Nothing to do for reshare session
 }
 
 // finish verifies that results satisfies the requirements (all accepted) and calculates the
 // signature producers set (based on old parties).
-func (a *reshareAcceptanceController) finish() {
+func (a *reshareAcceptanceController) finish(ctx core.Context) {
 	if len(a.data.Acceptances) < a.data.Set.N {
 		a.data.Processing = false
 		return
 	}
 
 	defer func() {
-		a.log.Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
+		ctx.Log().Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
 	}()
 
 	signAcceptances := filterAcceptances(a.data.Acceptances, a.data.Set.VerifiedParties)
@@ -273,5 +269,5 @@ func (a *reshareAcceptanceController) finish() {
 	}
 
 	a.data.Signers = GetSignersSet(signAcceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
-	return
+	_, a.data.IsSigner = a.data.Signers[ctx.SecretStorage().GetTssSecret().AccountAddress()]
 }

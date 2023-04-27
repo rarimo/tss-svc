@@ -5,11 +5,9 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core/controllers"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
@@ -22,7 +20,6 @@ type Session struct {
 
 	factory   *controllers.ControllerFactory
 	current   controllers.IController
-	data      *pg.Storage
 	isStarted bool
 	cancel    context.CancelFunc
 }
@@ -30,18 +27,17 @@ type Session struct {
 // Implements core.ISession interface
 var _ core.ISession = &Session{}
 
-func NewSession(cfg config.Config, id, startBlock uint64) core.ISession {
-	factory := controllers.NewControllerFactory(cfg, id, types.SessionType_KeygenSession)
+func NewSession(ctx core.Context, id, startBlock uint64) core.ISession {
+	factory := controllers.NewControllerFactory(ctx, id, types.SessionType_KeygenSession)
 
 	sess := &Session{
-		log:     cfg.Log().WithField("id", id).WithField("type", types.SessionType_KeygenSession.String()),
+		log:     ctx.Log().WithField("id", id).WithField("type", types.SessionType_KeygenSession.String()),
 		id:      id,
 		bounds:  core.NewBoundsManager(startBlock, types.SessionType_KeygenSession),
 		factory: factory,
-		data:    cfg.Storage(),
 		current: factory.GetKeygenController(),
 	}
-	sess.initSessionData()
+	sess.initSessionData(ctx)
 	return sess
 }
 
@@ -49,12 +45,12 @@ func (s *Session) ID() uint64 {
 	return s.id
 }
 
-func (s *Session) Receive(request *types.MsgSubmitRequest) error {
+func (s *Session) Receive(ctx context.Context, request *types.MsgSubmitRequest) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.current != nil {
-		return s.current.Receive(request)
+		return s.current.Receive(core.GetSessionCtx(ctx, types.SessionType_KeygenSession), request)
 	}
 
 	return nil
@@ -99,7 +95,7 @@ func (s *Session) End() uint64 {
 func (s *Session) runController() {
 	if s.current != nil {
 		var ctx context.Context
-		ctx, s.cancel = context.WithCancel(context.TODO())
+		ctx, s.cancel = context.WithCancel(core.GetSessionCtx(context.TODO(), types.SessionType_KeygenSession))
 		s.current.Run(ctx)
 		s.isStarted = true
 		s.bounds.NextController(s.current.Type())
@@ -113,8 +109,8 @@ func (s *Session) stopController() {
 	}
 }
 
-func (s *Session) initSessionData() {
-	err := s.data.KeygenSessionDatumQ().Insert(&data.KeygenSessionDatum{
+func (s *Session) initSessionData(ctx core.Context) {
+	err := ctx.PG().KeygenSessionDatumQ().Insert(&data.KeygenSessionDatum{
 		ID:         int64(s.id),
 		Status:     int(types.SessionStatus_SessionProcessing),
 		BeginBlock: int64(s.bounds.SessionStart),

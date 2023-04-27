@@ -17,7 +17,6 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -39,7 +38,7 @@ type SignParty struct {
 	result *common.SignatureData
 }
 
-func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, cli *grpc.ClientConn, log *logan.Entry) *SignParty {
+func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, coreCon *connectors.CoreConnector, log *logan.Entry) *SignParty {
 	return &SignParty{
 		wg:       &sync.WaitGroup{},
 		log:      log,
@@ -47,7 +46,7 @@ func NewSignParty(data string, id uint64, sessionType types.SessionType, parties
 		partyIds: core.PartyIds(parties),
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
-		core:     connectors.NewCoreConnector(cli, secret, log),
+		core:     coreCon,
 		data:     data,
 		id:       id,
 	}

@@ -12,7 +12,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
@@ -20,8 +19,8 @@ import (
 // iKeygenController defines custom logic for every acceptance controller.
 type iKeygenController interface {
 	Next() IController
-	updateSessionData()
-	finish(result *keygen.LocalPartySaveData)
+	updateSessionData(ctx core.Context)
+	finish(ctx core.Context, result *keygen.LocalPartySaveData)
 }
 
 // KeygenController is responsible for initial key generation. It can only be launched with empty secret storage and
@@ -41,7 +40,7 @@ type KeygenController struct {
 var _ IController = &KeygenController{}
 
 // Receive accepts the keygen requests from other parties and delivers them to the `tss.KeygenParty`
-func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
+func (k *KeygenController) Receive(c context.Context, request *types.MsgSubmitRequest) error {
 	sender, err := k.auth.Auth(request)
 	if err != nil {
 		return err
@@ -63,9 +62,10 @@ func (k *KeygenController) Receive(request *types.MsgSubmitRequest) error {
 
 // Run launches the `tss.KeygenParty` logic. After context canceling it will check the tss party result
 // and execute `iKeygenController.finish` logic.
-func (k *KeygenController) Run(ctx context.Context) {
+func (k *KeygenController) Run(c context.Context) {
+	ctx := core.WrapCtx(c)
 	k.log.Infof("Starting: %s", k.Type().String())
-	k.party.Run(ctx)
+	k.party.Run(c)
 	k.wg.Add(1)
 	go k.run(ctx)
 }
@@ -79,14 +79,14 @@ func (k *KeygenController) Type() types.ControllerType {
 	return types.ControllerType_CONTROLLER_KEYGEN
 }
 
-func (k *KeygenController) run(ctx context.Context) {
+func (k *KeygenController) run(ctx core.Context) {
 	defer func() {
 		k.log.Infof("Finishing: %s", k.Type().String())
-		k.updateSessionData()
+		k.updateSessionData(ctx)
 		k.wg.Done()
 	}()
 
-	<-ctx.Done()
+	<-ctx.Context().Done()
 	k.party.WaitFor()
 
 	result := k.party.Result()
@@ -95,14 +95,12 @@ func (k *KeygenController) run(ctx context.Context) {
 		return
 	}
 
-	k.finish(result)
+	k.finish(ctx, result)
 }
 
 // defaultKeygenController represents custom logic for types.SessionType_KeygenSession
 type defaultKeygenController struct {
 	data    *LocalSessionData
-	pg      *pg.Storage
-	log     *logan.Entry
 	factory *ControllerFactory
 }
 
@@ -116,19 +114,19 @@ func (d *defaultKeygenController) Next() IController {
 }
 
 // updateSessionData updates the database entry according to the controller result.
-func (d *defaultKeygenController) updateSessionData() {
+func (d *defaultKeygenController) updateSessionData(ctx core.Context) {
 	if !d.data.Processing {
 		return
 	}
 
-	session, err := d.pg.KeygenSessionDatumQ().KeygenSessionDatumByID(int64(d.data.SessionId), false)
+	session, err := ctx.PG().KeygenSessionDatumQ().KeygenSessionDatumByID(int64(d.data.SessionId), false)
 	if err != nil {
-		d.log.WithError(err).Error("Error selecting session")
+		ctx.Log().WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		d.log.Error("Session entry is not initialized")
+		ctx.Log().Error("Session entry is not initialized")
 		return
 	}
 
@@ -138,22 +136,20 @@ func (d *defaultKeygenController) updateSessionData() {
 		Valid:  d.data.Processing,
 	}
 
-	if err = d.pg.KeygenSessionDatumQ().Update(session); err != nil {
-		d.log.WithError(err).Error("Error updating session entry")
+	if err = ctx.PG().KeygenSessionDatumQ().Update(session); err != nil {
+		ctx.Log().WithError(err).Error("Error updating session entry")
 	}
 }
 
 // finish sets up new secret in data (without storing it in secret store).
-func (d *defaultKeygenController) finish(result *keygen.LocalPartySaveData) {
-	d.data.NewSecret = d.data.Secret.NewWithData(result)
+func (d *defaultKeygenController) finish(ctx core.Context, result *keygen.LocalPartySaveData) {
+	d.data.NewSecret = ctx.SecretStorage().GetTssSecret().NewWithData(result)
 	d.data.Processing = true
 }
 
 // reshareKeygenController represents custom logic for types.SessionType_ReshareSession
 type reshareKeygenController struct {
 	data    *LocalSessionData
-	pg      *pg.Storage
-	log     *logan.Entry
 	factory *ControllerFactory
 }
 
@@ -164,7 +160,7 @@ var _ iKeygenController = &reshareKeygenController{}
 // Otherwise, it will return finish controller instance.
 // WaitFor should be called before.
 func (r *reshareKeygenController) Next() IController {
-	if _, ok := r.data.Signers[r.data.Secret.AccountAddress()]; r.data.Processing && ok {
+	if r.data.Processing && r.data.IsSigner {
 		return r.factory.GetKeySignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewSecret.GlobalPubKey()))))
 	}
 
@@ -172,19 +168,19 @@ func (r *reshareKeygenController) Next() IController {
 }
 
 // updateSessionData updates the database entry according to the controller result.
-func (r *reshareKeygenController) updateSessionData() {
+func (r *reshareKeygenController) updateSessionData(ctx core.Context) {
 	if !r.data.Processing {
 		return
 	}
 
-	session, err := r.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(r.data.SessionId), false)
+	session, err := ctx.PG().ReshareSessionDatumQ().ReshareSessionDatumByID(int64(r.data.SessionId), false)
 	if err != nil {
-		r.log.WithError(err).Error("Error selecting session")
+		ctx.Log().WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		r.log.Error("Session entry is not initialized")
+		ctx.Log().Error("Session entry is not initialized")
 		return
 	}
 
@@ -193,14 +189,14 @@ func (r *reshareKeygenController) updateSessionData() {
 		Valid:  r.data.Processing,
 	}
 
-	if err = r.pg.ReshareSessionDatumQ().Update(session); err != nil {
-		r.log.WithError(err).Error("Error updating session data entry")
+	if err = ctx.PG().ReshareSessionDatumQ().Update(session); err != nil {
+		ctx.Log().WithError(err).Error("Error updating session data entry")
 	}
 }
 
 // finish sets up new secret in data (without storing it in secret store) and calculates new parties ECDSA public keys.
-func (r *reshareKeygenController) finish(result *keygen.LocalPartySaveData) {
-	r.data.NewSecret = r.data.Secret.NewWithData(result)
+func (r *reshareKeygenController) finish(ctx core.Context, result *keygen.LocalPartySaveData) {
+	r.data.NewSecret = ctx.SecretStorage().GetTssSecret().NewWithData(result)
 	r.data.NewParties = make([]*rarimo.Party, len(r.data.Set.Parties))
 
 	partyIDs := core.PartyIds(r.data.Set.Parties)

@@ -9,7 +9,6 @@ import (
 	"github.com/ignite/cli/ignite/pkg/openapiconsole"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/docs"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
@@ -31,14 +30,14 @@ type ServerImpl struct {
 	pool     *pool.Pool
 }
 
-func NewServer(manager *core.SessionManager, cfg config.Config) *ServerImpl {
+func NewServer(ctx core.Context, manager *core.SessionManager) *ServerImpl {
 	return &ServerImpl{
 		manager:  manager,
-		log:      cfg.Log(),
-		listener: cfg.Listener(),
-		pg:       cfg.Storage(),
-		storage:  secret.NewVaultStorage(cfg),
-		pool:     pool.NewPool(cfg),
+		log:      ctx.Log(),
+		listener: ctx.Listener(),
+		pg:       ctx.PG(),
+		storage:  ctx.SecretStorage(),
+		pool:     ctx.Pool(),
 	}
 }
 
@@ -65,8 +64,8 @@ func (s *ServerImpl) RunGateway() error {
 
 var _ types.ServiceServer = &ServerImpl{}
 
-func (s *ServerImpl) Submit(_ context.Context, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
-	if err := s.manager.Receive(request); err != nil {
+func (s *ServerImpl) Submit(ctx context.Context, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
+	if err := s.manager.Receive(ctx, request); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, err.Error())
 	}
 

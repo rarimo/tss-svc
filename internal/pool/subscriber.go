@@ -7,7 +7,6 @@ import (
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 const (
@@ -26,21 +25,21 @@ type OperationSubscriber struct {
 }
 
 // NewFeeManagementOperationSubscriber creates the subscriber instance for listening new fee token management operations
-func NewFeeManagementOperationSubscriber(cfg config.Config) *OperationSubscriber {
+func NewFeeManagementOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
 	return &OperationSubscriber{
-		pool:   NewPool(cfg),
-		log:    cfg.Log(),
-		client: cfg.Tendermint(),
+		pool:   pool,
+		log:    log,
+		client: tendermint,
 		query:  OpQueryFeeManagement,
 	}
 }
 
 // NewTransferOperationSubscriber creates the subscriber instance for listening new transfer operations
-func NewTransferOperationSubscriber(cfg config.Config) *OperationSubscriber {
+func NewTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
 	return &OperationSubscriber{
-		pool:   NewPool(cfg),
-		log:    cfg.Log(),
-		client: cfg.Tendermint(),
+		pool:   pool,
+		log:    log,
+		client: tendermint,
 		query:  OpQueryTransfer,
 	}
 }

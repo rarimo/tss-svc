@@ -2,7 +2,6 @@ package empty
 
 import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/timer"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
@@ -14,14 +13,14 @@ import (
 // current = 10 => id = (10 - 10) / 24 + 1 = 1
 // current = 33 => id = (33 - 10) / 24 + 1 = 1
 // current = 34 => id = (34 - 10) / 24 + 1 = 1 + 1 = 1
-func GetSessionId(startId, startBlock uint64, sessionType types.SessionType) uint64 {
+func GetSessionId(current, startId, startBlock uint64, sessionType types.SessionType) uint64 {
 	switch sessionType {
 	case types.SessionType_DefaultSession:
-		return (timer.GetTimer().CurrentBlock()-startBlock)/(core.DefaultSessionDuration+1) + startId
+		return (current-startBlock)/(core.DefaultSessionDuration+1) + startId
 	case types.SessionType_KeygenSession:
 		return 1
 	case types.SessionType_ReshareSession:
-		return (timer.GetTimer().CurrentBlock()-startBlock)/(core.ReshareSessionDuration+1) + startId
+		return (current-startBlock)/(core.ReshareSessionDuration+1) + startId
 	}
 
 	// Should not appear

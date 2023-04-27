@@ -2,15 +2,10 @@ package timer
 
 import (
 	"context"
-	"sync"
 
+	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
-
-// Timer implements the singleton pattern
-var timer *Timer
-var once sync.Once
 
 type BlockNotifier func(height uint64) error
 
@@ -22,28 +17,17 @@ type Timer struct {
 	log          *logan.Entry
 }
 
-// NewTimer returns new Timer but only once because Timer implements the singleton pattern for simple usage as
-// the same instance in all injections.
-func NewTimer(cfg config.Config) *Timer {
-	once.Do(func() {
-		info, err := cfg.Tendermint().Status(context.TODO())
-		if err != nil {
-			panic(err)
-		}
+func NewTimer(tendermint *http.HTTP, log *logan.Entry) *Timer {
+	info, err := tendermint.Status(context.TODO())
+	if err != nil {
+		panic(err)
+	}
 
-		timer = &Timer{
-			currentBlock: uint64(info.SyncInfo.LatestBlockHeight),
-			toNotify:     make(map[string]BlockNotifier),
-			log:          cfg.Log(),
-		}
-	})
-
-	return timer
-}
-
-// GetTimer returns existing instance of timer. Be aware to initialize it before using that function.
-func GetTimer() *Timer {
-	return timer
+	return &Timer{
+		currentBlock: uint64(info.SyncInfo.LatestBlockHeight),
+		toNotify:     make(map[string]BlockNotifier),
+		log:          log,
+	}
 }
 
 // Only for internal usage in block subscriber

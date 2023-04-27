@@ -11,7 +11,6 @@ import (
 	"gitlab.com/rarimo/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
@@ -20,7 +19,7 @@ import (
 type iSignatureController interface {
 	Next() IController
 	finish(signature string)
-	updateSessionData()
+	updateSessionData(ctx core.Context)
 }
 
 // SignatureController is responsible for signing data by signature producers.
@@ -39,7 +38,7 @@ var _ IController = &SignatureController{}
 
 // Receive accepts the signature requests  from other parties and delivers it to the `tss.SignParty.
 // If sender is not present in current signers set request will not be accepted.
-func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
+func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmitRequest) error {
 	sender, err := s.auth.Auth(request)
 	if err != nil {
 		return err
@@ -76,9 +75,10 @@ func (s *SignatureController) Receive(request *types.MsgSubmitRequest) error {
 
 // Run launches the `tss.SignParty` logic. After context canceling it will check the tss party result
 // and execute `iSignatureController.finish` logic.
-func (s *SignatureController) Run(ctx context.Context) {
+func (s *SignatureController) Run(c context.Context) {
+	ctx := core.WrapCtx(c)
 	s.log.Infof("Starting: %s", s.Type().String())
-	s.party.Run(ctx)
+	s.party.Run(c)
 	s.wg.Add(1)
 	go s.run(ctx)
 }
@@ -92,14 +92,14 @@ func (s *SignatureController) Type() types.ControllerType {
 	return types.ControllerType_CONTROLLER_SIGN
 }
 
-func (s *SignatureController) run(ctx context.Context) {
+func (s *SignatureController) run(ctx core.Context) {
 	defer func() {
 		s.log.Infof("Finishing: %s", s.Type().String())
-		s.updateSessionData()
+		s.updateSessionData(ctx)
 		s.wg.Done()
 	}()
 
-	<-ctx.Done()
+	<-ctx.Context().Done()
 
 	s.party.WaitFor()
 
@@ -117,8 +117,6 @@ func (s *SignatureController) run(ctx context.Context) {
 type keySignatureController struct {
 	data    *LocalSessionData
 	factory *ControllerFactory
-	pg      *pg.Storage
-	log     *logan.Entry
 }
 
 // Implements iSignatureController interface
@@ -148,15 +146,15 @@ func (s *keySignatureController) finish(signature string) {
 }
 
 // updateSessionData updates the database entry according to the controller result.
-func (s *keySignatureController) updateSessionData() {
-	session, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(s.data.SessionId), false)
+func (s *keySignatureController) updateSessionData(ctx core.Context) {
+	session, err := ctx.PG().ReshareSessionDatumQ().ReshareSessionDatumByID(int64(s.data.SessionId), false)
 	if err != nil {
-		s.log.WithError(err).Error("Error selecting session")
+		ctx.Log().WithError(err).Error("Error selecting session")
 		return
 	}
 
 	if session == nil {
-		s.log.Error("Session entry is not initialized")
+		ctx.Log().Error("Session entry is not initialized")
 		return
 	}
 
@@ -165,8 +163,8 @@ func (s *keySignatureController) updateSessionData() {
 		Valid:  s.data.OperationSignature != "",
 	}
 
-	if err = s.pg.ReshareSessionDatumQ().Update(session); err != nil {
-		s.log.WithError(err).Error("Error updating session entry")
+	if err = ctx.PG().ReshareSessionDatumQ().Update(session); err != nil {
+		ctx.Log().WithError(err).Error("Error updating session entry")
 	}
 }
 
@@ -175,8 +173,6 @@ func (s *keySignatureController) updateSessionData() {
 type rootSignatureController struct {
 	data    *LocalSessionData
 	factory *ControllerFactory
-	pg      *pg.Storage
-	log     *logan.Entry
 }
 
 // Implements iSignatureController interface
@@ -194,17 +190,17 @@ func (s *rootSignatureController) finish(signature string) {
 }
 
 // updateSessionData updates the database entry according to the controller result.
-func (s *rootSignatureController) updateSessionData() {
+func (s *rootSignatureController) updateSessionData(ctx core.Context) {
 	switch s.data.SessionType {
 	case types.SessionType_DefaultSession:
-		data, err := s.pg.DefaultSessionDatumQ().DefaultSessionDatumByID(int64(s.data.SessionId), false)
+		data, err := ctx.PG().DefaultSessionDatumQ().DefaultSessionDatumByID(int64(s.data.SessionId), false)
 		if err != nil {
-			s.log.WithError(err).Error("Error selecting session data")
+			ctx.Log().WithError(err).Error("Error selecting session data")
 			return
 		}
 
 		if data == nil {
-			s.log.Error("Session data is not initialized")
+			ctx.Log().Error("Session data is not initialized")
 			return
 		}
 
@@ -213,16 +209,16 @@ func (s *rootSignatureController) updateSessionData() {
 			Valid:  s.data.OperationSignature != "",
 		}
 
-		err = s.pg.DefaultSessionDatumQ().Update(data)
+		err = ctx.PG().DefaultSessionDatumQ().Update(data)
 	case types.SessionType_ReshareSession:
-		data, err := s.pg.ReshareSessionDatumQ().ReshareSessionDatumByID(int64(s.data.SessionId), false)
+		data, err := ctx.PG().ReshareSessionDatumQ().ReshareSessionDatumByID(int64(s.data.SessionId), false)
 		if err != nil {
-			s.log.WithError(err).Error("Error selecting session data")
+			ctx.Log().WithError(err).Error("Error selecting session data")
 			return
 		}
 
 		if data == nil {
-			s.log.Error("Session data is not initialized")
+			ctx.Log().Error("Session data is not initialized")
 			return
 		}
 
@@ -235,6 +231,6 @@ func (s *rootSignatureController) updateSessionData() {
 			Valid:  true,
 		}
 
-		err = s.pg.ReshareSessionDatumQ().Update(data)
+		err = ctx.PG().ReshareSessionDatumQ().Update(data)
 	}
 }

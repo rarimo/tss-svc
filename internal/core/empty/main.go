@@ -1,10 +1,11 @@
 package empty
 
 import (
+	"context"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/timer"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
@@ -14,26 +15,26 @@ type Session struct {
 	log   *logan.Entry
 }
 
-func NewEmptySession(cfg config.Config, sessionType types.SessionType, creator func(cfg config.Config, id, startBlock uint64) core.ISession) *Session {
-	currentId := cfg.Session().StartSessionId - 1
-	endBlock := cfg.Session().StartBlock - 1
+func NewEmptySession(ctx core.Context, info *config.SessionInfo, sessionType types.SessionType, creator func(ctx core.Context, id, startBlock uint64) core.ISession) *Session {
+	currentId := info.StartSessionId - 1
+	endBlock := info.StartBlock - 1
 
 	defer func() {
-		cfg.Log().Infof("[Empty Session] Running empty session for type=%s", sessionType.String())
-		cfg.Log().Infof("[Empty Session] ID = %d End = %d", currentId, endBlock)
+		ctx.Log().Infof("[Empty Session] Running empty session for type=%s", sessionType.String())
+		ctx.Log().Infof("[Empty Session] ID = %d End = %d", currentId, endBlock)
 	}()
 
-	if timer.GetTimer().CurrentBlock() >= cfg.Session().StartBlock {
-		currentId = GetSessionId(cfg.Session().StartSessionId, cfg.Session().StartBlock, sessionType)
-		endBlock = GetSessionEnd(currentId, cfg.Session().StartBlock, sessionType)
+	if current := ctx.Timer().CurrentBlock(); current >= info.StartBlock {
+		currentId = GetSessionId(current, info.StartSessionId, info.StartBlock, sessionType)
+		endBlock = GetSessionEnd(currentId, info.StartBlock, sessionType)
 	}
 
 	return &Session{
 		nextF: func() core.ISession {
-			return creator(cfg, currentId+1, endBlock+1)
+			return creator(ctx, currentId+1, endBlock+1)
 		},
 		end: endBlock,
-		log: cfg.Log(),
+		log: ctx.Log(),
 	}
 }
 
@@ -48,7 +49,7 @@ func (s *Session) End() uint64 {
 	return s.end
 }
 
-func (s *Session) Receive(*types.MsgSubmitRequest) error {
+func (s *Session) Receive(context.Context, *types.MsgSubmitRequest) error {
 	return nil
 }
 

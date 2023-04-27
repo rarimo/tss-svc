@@ -64,20 +64,23 @@ func Run(args []string) bool {
 		return false
 	}
 
+	core.Initialize(cfg)
+	ctx := core.DefaultGlobalContext()
+
 	switch cmd {
 	case serviceCmd.FullCommand():
-		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
-		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
-		go pool.NewFeeManagementOperationSubscriber(cfg).Run()
-		go pool.NewOperationCatchupper(cfg).Run()
+		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run()
 
 		manager := core.NewSessionManager()
-		manager.AddSession(types.SessionType_ReshareSession, empty.NewEmptySession(cfg, types.SessionType_ReshareSession, reshare.NewSession))
-		manager.AddSession(types.SessionType_DefaultSession, empty.NewEmptySession(cfg, types.SessionType_DefaultSession, sign.NewSession))
+		manager.AddSession(types.SessionType_ReshareSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_ReshareSession, reshare.NewSession))
+		manager.AddSession(types.SessionType_DefaultSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_DefaultSession, sign.NewSession))
 
-		timer.GetTimer().SubscribeToBlocks("session-manager", manager.NewBlock)
+		ctx.Timer().SubscribeToBlocks("session-manager", manager.NewBlock)
 
-		server := grpc.NewServer(manager, cfg)
+		server := grpc.NewServer(ctx, manager)
 		go func() {
 			if err := server.RunGateway(); err != nil {
 				panic(err)
@@ -86,17 +89,17 @@ func Run(args []string) bool {
 
 		err = server.RunGRPC()
 	case keygenCmd.FullCommand():
-		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
-		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
-		go pool.NewFeeManagementOperationSubscriber(cfg).Run()
-		go pool.NewOperationCatchupper(cfg).Run()
+		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run()
 
 		manager := core.NewSessionManager()
-		manager.AddSession(types.SessionType_KeygenSession, empty.NewEmptySession(cfg, types.SessionType_KeygenSession, keygen.NewSession))
+		manager.AddSession(types.SessionType_KeygenSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_KeygenSession, keygen.NewSession))
 
-		timer.GetTimer().SubscribeToBlocks("session-manager", manager.NewBlock)
+		ctx.Timer().SubscribeToBlocks("session-manager", manager.NewBlock)
 
-		server := grpc.NewServer(manager, cfg)
+		server := grpc.NewServer(ctx, manager)
 		go func() {
 			if err := server.RunGateway(); err != nil {
 				panic(err)
