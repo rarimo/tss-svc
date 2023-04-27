@@ -35,7 +35,7 @@ func NewSession(ctx core.Context, id, startBlock uint64) core.ISession {
 		id:      id,
 		bounds:  core.NewBoundsManager(startBlock, types.SessionType_ReshareSession),
 		factory: factory,
-		current: factory.GetKeygenController(),
+		current: factory.GetProposalController(),
 	}
 	sess.initSessionData(ctx)
 	return sess

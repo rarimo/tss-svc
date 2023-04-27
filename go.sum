@@ -994,10 +994,8 @@ gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.5 h1:foaMTCaZPafTGsvWSZwHQQf2WebdhKAnwN
 gitlab.com/rarimo/cosmos-sdk v0.45.5-dev.5/go.mod h1:WOqtDxN3eCCmnYLVla10xG7lEXkFjpTaqm2a2WasgCc=
 gitlab.com/rarimo/go-merkle v0.0.0-20221212103215-4a9612e1bed1 h1:/NTsZ61HpUSxJuzZp9nUbeVeMIIlmFGygFuVOBsUqlY=
 gitlab.com/rarimo/go-merkle v0.0.0-20221212103215-4a9612e1bed1/go.mod h1:O4/lUka2v/6HvcxNielMJ2HsTZaizQN6uBYimSIithE=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230409211254-85fbe82b4c7b h1:POLfclhtzl5sutKDoA3C4V1ay0aDa1KjUWQK5J/8d1I=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230409211254-85fbe82b4c7b/go.mod h1:+ErLFqLXCqNYhlR0pVbLVzif43bJlGzzhTjoYFMWSv0=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230424173301-b40f509cab6c h1:PRo7MmU5T18D3uQhtlMUNwKvnqEWK1TyfnhFnG/TOlg=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230424173301-b40f509cab6c/go.mod h1:I5r+9qc5KHuBtOtiMOUTLQu24We92WaPo4ni+PF8/Yo=
+gitlab.com/rarimo/rarimo-core v0.0.0-20230427164507-6b8be55d71ef h1:EDJ6PWZ+skuwPvngYqcnoVgxjOQzEutrag7efHfTA7E=
+gitlab.com/rarimo/rarimo-core v0.0.0-20230427164507-6b8be55d71ef/go.mod h1:I5r+9qc5KHuBtOtiMOUTLQu24We92WaPo4ni+PF8/Yo=
 gitlab.com/rarimo/tss-lib v1.3.6 h1:D/baArZibYBVVXJCVb+l4UqVfGVtUNrUK6NGvoafEe0=
 gitlab.com/rarimo/tss-lib v1.3.6/go.mod h1:o3zAAo7A88ZJnCE1qpjy1hTqPn+GPQlxRsj8soz14UU=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
