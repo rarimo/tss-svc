@@ -68,6 +68,7 @@ func Run(args []string) bool {
 	case serviceCmd.FullCommand():
 		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
 		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
+		go pool.NewFeeManagementOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
 
 		manager := core.NewSessionManager()
@@ -87,6 +88,7 @@ func Run(args []string) bool {
 	case keygenCmd.FullCommand():
 		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
 		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
+		go pool.NewFeeManagementOperationSubscriber(cfg).Run()
 		go pool.NewOperationCatchupper(cfg).Run()
 
 		manager := core.NewSessionManager()

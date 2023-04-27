@@ -98,6 +98,15 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 			}
 		case rarimo.OpType_CHANGE_PARTIES:
 			return nil, ErrUnsupportedContent
+		case rarimo.OpType_FEE_TOKEN_MANAGEMENT:
+			content, err := GetFeeManagementContent(client, op)
+			if err != nil {
+				return nil, err
+			}
+
+			if content != nil {
+				contents = append(contents, content)
+			}
 		default:
 			return nil, ErrUnsupportedContent
 		}
@@ -138,6 +147,21 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 	}
 
 	content, err := pkg.GetTransferContent(collectionResp.Collection, collectionDataResp.Data, itemResp.Item, networkResp.Params, transfer)
+	return content, errors.Wrap(err, "error creating content")
+}
+
+func GetFeeManagementContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.Content, error) {
+	manage, err := pkg.GetFeeTokenManagement(*op)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing operation details")
+	}
+
+	networkResp, err := token.NewQueryClient(client).NetworkParams(context.TODO(), &token.QueryNetworkParamsRequest{Name: manage.Chain})
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting network param entry")
+	}
+
+	content, err := pkg.GetFeeTokenManagementContent(op.Index, networkResp.Params, manage)
 	return content, errors.Wrap(err, "error creating content")
 }
 

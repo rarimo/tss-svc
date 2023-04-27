@@ -10,6 +10,11 @@ import (
 	"google.golang.org/grpc"
 )
 
+var acceptableOperationTypes = map[rarimo.OpType]struct{}{
+	rarimo.OpType_TRANSFER:             {},
+	rarimo.OpType_FEE_TOKEN_MANAGEMENT: {},
+}
+
 // OperationCatchupper catches up old unsigned operations from core.
 type OperationCatchupper struct {
 	pool   *Pool
@@ -36,8 +41,12 @@ func (o *OperationCatchupper) Run() {
 		}
 
 		for _, op := range operations.Operation {
+			if _, ok := acceptableOperationTypes[op.OperationType]; !ok {
+				o.log.Debugf("[Pool] Operation %s has unsupported type for catchup", op.Index)
+			}
+
 			if op.Status != rarimo.OpStatus_APPROVED {
-				o.log.Debug("[Pool] Operation is not APPROVED")
+				o.log.Debugf("[Pool] Operation %s is not APPROVED", op.Index)
 				continue
 			}
 
