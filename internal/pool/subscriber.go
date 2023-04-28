@@ -12,7 +12,7 @@ import (
 const (
 	OpServiceName        = "op-subscriber"
 	OpQueryTransfer      = "tm.event='Tx' AND operation_approved.operation_type='TRANSFER'"
-	OpQueryFeeManagement = "tm.event='Tx' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
+	OpQueryFeeManagement = "tm.event='Tx' AND new_operation.operation_type='FEE_TOKEN_MANAGEMENT'"
 	OpPoolSize           = 1000
 )
 
