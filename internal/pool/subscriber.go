@@ -12,7 +12,7 @@ import (
 const (
 	OpServiceName        = "op-subscriber"
 	OpQueryTransfer      = "tm.event='Tx' AND operation_approved.operation_type='TRANSFER'"
-	OpQueryFeeManagement = "tm.event='Tx' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
+	OpQueryFeeManagement = "tm.event='NewBlock' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
 	OpPoolSize           = 1000
 )
 
@@ -47,8 +47,8 @@ func NewTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *loga
 func (o *OperationSubscriber) Run() {
 	go func() {
 		for {
+			o.log.Infof("[Pool] Subscribing to the pool. Query: %s", o.query)
 			o.runner()
-			o.log.Info("[Pool] Resubscribing to the pool...")
 		}
 	}()
 }
@@ -68,8 +68,6 @@ func (o *OperationSubscriber) runner() {
 			}
 			break
 		}
-
-		o.log.Debugf("[Pool] Receive events: %v", c.Events)
 
 		for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeOperationApproved, rarimo.AttributeKeyOperationId)] {
 			o.log.Infof("[Pool] New operation found index=%s", index)
