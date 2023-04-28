@@ -106,9 +106,6 @@ func Initialize(cfg config.Config) {
 	SetInRegistry(GlobalContextKey, TendermintKey, cfg.Tendermint())
 
 	SetInRegistry(GlobalContextKey, LogKey, cfg.Log())
-	SetInRegistry(DefaultSessionContextKey, LogKey, cfg.Log())
-	SetInRegistry(ReshareSessionContextKey, LogKey, cfg.Log())
-	SetInRegistry(KeygenSessionContextKey, LogKey, cfg.Log())
 
 	SetInRegistry(GlobalContextKey, ListenerKey, cfg.Listener())
 }

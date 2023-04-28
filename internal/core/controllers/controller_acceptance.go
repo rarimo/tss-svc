@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
@@ -29,7 +28,6 @@ type AcceptanceController struct {
 	data *LocalSessionData
 
 	auth *core.RequestAuthorizer
-	log  *logan.Entry
 }
 
 // Implements IController interface
@@ -39,7 +37,7 @@ var _ IController = &AcceptanceController{}
 // Should be launched only in case of valid proposal (session processing should be `true`)
 func (a *AcceptanceController) Run(c context.Context) {
 	ctx := core.WrapCtx(c)
-	a.log.Infof("Starting: %s", a.Type().String())
+	ctx.Log().Infof("Starting: %s", a.Type().String())
 	a.wg.Add(1)
 	go a.run(ctx)
 }
@@ -66,7 +64,7 @@ func (a *AcceptanceController) Receive(c context.Context, request *types.MsgSubm
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.log.Infof("Received acceptance request from %s for session type=%s", sender.Account, request.SessionType.String())
+	ctx.Log().Infof("Received acceptance request from %s for session type=%s", sender.Account, request.SessionType.String())
 	a.data.Acceptances[sender.Account] = struct{}{}
 	return nil
 }
@@ -83,7 +81,7 @@ func (a *AcceptanceController) Type() types.ControllerType {
 
 func (a *AcceptanceController) run(ctx core.Context) {
 	defer func() {
-		a.log.Infof("Finishing: %s", a.Type().String())
+		ctx.Log().Infof("Finishing: %s", a.Type().String())
 		a.updateSessionData(ctx)
 		a.wg.Done()
 	}()
@@ -97,7 +95,7 @@ func (a *AcceptanceController) run(ctx core.Context) {
 	// adding self
 	a.data.Acceptances[ctx.SecretStorage().GetTssSecret().AccountAddress()] = struct{}{}
 
-	a.log.Infof("Received acceptances list: %v", a.data.Acceptances)
+	ctx.Log().Infof("Received acceptances list: %v", a.data.Acceptances)
 
 	// report for parties that has not voted for accepted proposal
 	for _, party := range a.data.Set.Parties {
@@ -113,7 +111,6 @@ func (a *AcceptanceController) run(ctx core.Context) {
 type defaultAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
-	factory   *ControllerFactory
 }
 
 // Implements iAcceptanceController interface
@@ -124,9 +121,9 @@ var _ iAcceptanceController = &defaultAcceptanceController{}
 // Otherwise, it will be a finish controller.
 func (a *defaultAcceptanceController) Next() IController {
 	if a.data.Processing && a.data.IsSigner {
-		return a.factory.GetRootSignController(a.data.Root)
+		return a.data.GetRootSignController()
 	}
-	return a.factory.GetFinishController()
+	return a.data.GetFinishController()
 }
 
 func (a *defaultAcceptanceController) validate(ctx core.Context, any *anypb.Any, st types.SessionType) bool {
@@ -201,7 +198,6 @@ func (a *defaultAcceptanceController) finish(ctx core.Context) {
 type reshareAcceptanceController struct {
 	data      *LocalSessionData
 	broadcast *connectors.BroadcastConnector
-	factory   *ControllerFactory
 }
 
 // Implements iAcceptanceController interface
@@ -211,10 +207,10 @@ var _ iAcceptanceController = &reshareAcceptanceController{}
 // the next controller will be a keygen controller. Otherwise, it will be a finish controller.
 func (a *reshareAcceptanceController) Next() IController {
 	if a.data.Processing {
-		return a.factory.GetKeygenController()
+		return a.data.GetKeygenController()
 	}
 
-	return a.factory.GetFinishController()
+	return a.data.GetFinishController()
 }
 
 func (a *reshareAcceptanceController) validate(ctx core.Context, any *anypb.Any, st types.SessionType) bool {

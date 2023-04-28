@@ -4,9 +4,6 @@ import (
 	"context"
 	goerr "errors"
 
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
@@ -29,24 +26,5 @@ type (
 		// Next returns next controller depending on current state or nil if session ended.
 		Next() IController
 		Type() types.ControllerType
-	}
-
-	// LocalSessionData represents all necessary data from current session to be shared between controllers.
-	LocalSessionData struct {
-		SessionId          uint64
-		Processing         bool
-		SessionType        types.SessionType
-		Proposer           rarimo.Party
-		Set                *core.InputSet
-		NewSecret          *secret.TssSecret
-		Indexes            []string
-		Root               string
-		Acceptances        map[string]struct{}
-		OperationSignature string
-		KeySignature       string
-		NewParties         []*rarimo.Party
-		Offenders          map[string]struct{}
-		Signers            map[string]struct{}
-		IsSigner           bool
 	}
 )

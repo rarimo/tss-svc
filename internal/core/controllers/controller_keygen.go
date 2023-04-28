@@ -9,7 +9,6 @@ import (
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
-	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
@@ -32,7 +31,6 @@ type KeygenController struct {
 	data *LocalSessionData
 
 	auth  *core.RequestAuthorizer
-	log   *logan.Entry
 	party *tss.KeygenParty
 }
 
@@ -64,7 +62,7 @@ func (k *KeygenController) Receive(c context.Context, request *types.MsgSubmitRe
 // and execute `iKeygenController.finish` logic.
 func (k *KeygenController) Run(c context.Context) {
 	ctx := core.WrapCtx(c)
-	k.log.Infof("Starting: %s", k.Type().String())
+	ctx.Log().Infof("Starting: %s", k.Type().String())
 	k.party.Run(c)
 	k.wg.Add(1)
 	go k.run(ctx)
@@ -81,7 +79,7 @@ func (k *KeygenController) Type() types.ControllerType {
 
 func (k *KeygenController) run(ctx core.Context) {
 	defer func() {
-		k.log.Infof("Finishing: %s", k.Type().String())
+		ctx.Log().Infof("Finishing: %s", k.Type().String())
 		k.updateSessionData(ctx)
 		k.wg.Done()
 	}()
@@ -100,8 +98,7 @@ func (k *KeygenController) run(ctx core.Context) {
 
 // defaultKeygenController represents custom logic for types.SessionType_KeygenSession
 type defaultKeygenController struct {
-	data    *LocalSessionData
-	factory *ControllerFactory
+	data *LocalSessionData
 }
 
 // Implements iKeygenController interface
@@ -110,7 +107,7 @@ var _ iKeygenController = &defaultKeygenController{}
 // Next returns the finish controller instance.
 // WaitFor should be called before.
 func (d *defaultKeygenController) Next() IController {
-	return d.factory.GetFinishController()
+	return d.data.GetFinishController()
 }
 
 // updateSessionData updates the database entry according to the controller result.
@@ -149,8 +146,7 @@ func (d *defaultKeygenController) finish(ctx core.Context, result *keygen.LocalP
 
 // reshareKeygenController represents custom logic for types.SessionType_ReshareSession
 type reshareKeygenController struct {
-	data    *LocalSessionData
-	factory *ControllerFactory
+	data *LocalSessionData
 }
 
 // Implements iKeygenController interface
@@ -161,10 +157,10 @@ var _ iKeygenController = &reshareKeygenController{}
 // WaitFor should be called before.
 func (r *reshareKeygenController) Next() IController {
 	if r.data.Processing && r.data.IsSigner {
-		return r.factory.GetKeySignController(hexutil.Encode(eth.Keccak256(hexutil.MustDecode(r.data.NewSecret.GlobalPubKey()))))
+		return r.data.GetKeySignController()
 	}
 
-	return r.factory.GetFinishController()
+	return r.data.GetFinishController()
 }
 
 // updateSessionData updates the database entry according to the controller result.

@@ -18,7 +18,7 @@ type Session struct {
 	id     uint64
 	bounds *core.BoundsManager
 
-	factory   *controllers.ControllerFactory
+	data      *controllers.LocalSessionData
 	current   controllers.IController
 	isStarted bool
 	cancel    context.CancelFunc
@@ -28,14 +28,14 @@ type Session struct {
 var _ core.ISession = &Session{}
 
 func NewSession(ctx core.Context, id, startBlock uint64) core.ISession {
-	factory := controllers.NewControllerFactory(ctx, id, types.SessionType_DefaultSession)
+	data := controllers.NewSessionData(ctx, id, types.SessionType_DefaultSession)
 
 	sess := &Session{
 		log:     ctx.Log().WithField("id", id).WithField("type", types.SessionType_DefaultSession.String()),
 		id:      id,
 		bounds:  core.NewBoundsManager(startBlock, types.SessionType_DefaultSession),
-		factory: factory,
-		current: factory.GetProposalController(),
+		data:    data,
+		current: data.GetProposalController(),
 	}
 	sess.initSessionData(ctx)
 	return sess
@@ -85,13 +85,13 @@ func (s *Session) NewBlock(height uint64) {
 }
 
 func (s *Session) NextSession() core.ISession {
-	factory := s.factory.NextFactory(types.SessionType_DefaultSession)
+	data := s.data.Next()
 	next := &Session{
 		log:     s.log.WithField("id", s.id+1).WithField("type", types.SessionType_DefaultSession.String()),
 		id:      s.id + 1,
 		bounds:  core.NewBoundsManager(s.End()+1, types.SessionType_DefaultSession),
-		factory: factory,
-		current: factory.GetProposalController(),
+		data:    data,
+		current: data.GetProposalController(),
 	}
 	next.initSessionData(core.DefaultSessionContext(types.SessionType_DefaultSession))
 	return next

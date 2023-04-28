@@ -18,7 +18,7 @@ type Session struct {
 	id     uint64
 	bounds *core.BoundsManager
 
-	factory   *controllers.ControllerFactory
+	data      *controllers.LocalSessionData
 	current   controllers.IController
 	isStarted bool
 	cancel    context.CancelFunc
@@ -28,14 +28,14 @@ type Session struct {
 var _ core.ISession = &Session{}
 
 func NewSession(ctx core.Context, id, startBlock uint64) core.ISession {
-	factory := controllers.NewControllerFactory(ctx, id, types.SessionType_KeygenSession)
+	data := controllers.NewSessionData(ctx, id, types.SessionType_KeygenSession)
 
 	sess := &Session{
 		log:     ctx.Log().WithField("id", id).WithField("type", types.SessionType_KeygenSession.String()),
 		id:      id,
 		bounds:  core.NewBoundsManager(startBlock, types.SessionType_KeygenSession),
-		factory: factory,
-		current: factory.GetKeygenController(),
+		data:    data,
+		current: data.GetKeygenController(),
 	}
 	sess.initSessionData(ctx)
 	return sess

@@ -113,8 +113,7 @@ func (s *SignatureController) run(ctx core.Context) {
 
 // keySignatureController represents custom logic for types.SessionType_ReshareSession for signing the new key with old signature.
 type keySignatureController struct {
-	data    *LocalSessionData
-	factory *ControllerFactory
+	data *LocalSessionData
 }
 
 // Implements iSignatureController interface
@@ -125,9 +124,9 @@ var _ iSignatureController = &keySignatureController{}
 // WaitFor should be called before.
 func (s *keySignatureController) Next() IController {
 	if s.data.Processing {
-		return s.factory.GetRootSignController(s.data.Root)
+		return s.data.GetRootSignController()
 	}
-	return s.factory.GetFinishController()
+	return s.data.GetFinishController()
 }
 
 // finish will store the result signature and generates the ChangeParties operation to be signed in the next controller.
@@ -169,8 +168,7 @@ func (s *keySignatureController) updateSessionData(ctx core.Context) {
 // rootSignatureController represents custom logic for both types.SessionType_ReshareSession
 // and types.SessionType_DefaultSession for signing the root of indexes set.
 type rootSignatureController struct {
-	data    *LocalSessionData
-	factory *ControllerFactory
+	data *LocalSessionData
 }
 
 // Implements iSignatureController interface
@@ -179,7 +177,7 @@ var _ iSignatureController = &rootSignatureController{}
 // Next returns the finish controller instance.
 // WaitFor should be called before.
 func (s *rootSignatureController) Next() IController {
-	return s.factory.GetFinishController()
+	return s.data.GetFinishController()
 }
 
 // finish saves the generated signature

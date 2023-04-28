@@ -32,8 +32,7 @@ type ProposalController struct {
 
 	data *LocalSessionData
 
-	auth    *core.RequestAuthorizer
-	factory *ControllerFactory
+	auth *core.RequestAuthorizer
 }
 
 // Implements IController interface
@@ -84,10 +83,10 @@ func (p *ProposalController) WaitFor() {
 // WaitFor should be called before.
 func (p *ProposalController) Next() IController {
 	if p.data.Processing {
-		return p.factory.GetAcceptanceController()
+		return p.data.GetAcceptanceController()
 	}
 
-	return p.factory.GetFinishController()
+	return p.data.GetFinishController()
 }
 
 func (p *ProposalController) Type() types.ControllerType {
