@@ -26,10 +26,8 @@ type iKeygenController interface {
 // after finishing will update storage with generated secret.
 type KeygenController struct {
 	iKeygenController
-	wg *sync.WaitGroup
-
-	data *LocalSessionData
-
+	wg    *sync.WaitGroup
+	data  *LocalSessionData
 	auth  *core.RequestAuthorizer
 	party *tss.KeygenParty
 }

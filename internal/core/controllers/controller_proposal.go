@@ -28,10 +28,8 @@ type iProposalController interface {
 // Proposer will execute logic of defining the next session type and suggest data to suggest in session.
 type ProposalController struct {
 	iProposalController
-	wg *sync.WaitGroup
-
+	wg   *sync.WaitGroup
 	data *LocalSessionData
-
 	auth *core.RequestAuthorizer
 }
 

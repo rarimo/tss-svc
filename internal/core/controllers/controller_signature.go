@@ -24,9 +24,8 @@ type iSignatureController interface {
 // SignatureController is responsible for signing data by signature producers.
 type SignatureController struct {
 	iSignatureController
-	wg   *sync.WaitGroup
-	data *LocalSessionData
-
+	wg    *sync.WaitGroup
+	data  *LocalSessionData
 	auth  *core.RequestAuthorizer
 	party *tss.SignParty
 }

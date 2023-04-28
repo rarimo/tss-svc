@@ -22,11 +22,9 @@ type iAcceptanceController interface {
 // AcceptanceController is responsible for sharing and collecting acceptances for different types of session.
 type AcceptanceController struct {
 	iAcceptanceController
-	mu sync.Mutex
-	wg *sync.WaitGroup
-
+	mu   sync.Mutex
+	wg   *sync.WaitGroup
 	data *LocalSessionData
-
 	auth *core.RequestAuthorizer
 }
 
