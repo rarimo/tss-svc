@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/rarimo/rarimo-core/x/rarimocore/crypto/pkg"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
@@ -29,7 +28,6 @@ type SignatureController struct {
 	data *LocalSessionData
 
 	auth  *core.RequestAuthorizer
-	log   *logan.Entry
 	party *tss.SignParty
 }
 
@@ -77,7 +75,7 @@ func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmi
 // and execute `iSignatureController.finish` logic.
 func (s *SignatureController) Run(c context.Context) {
 	ctx := core.WrapCtx(c)
-	s.log.Infof("Starting: %s", s.Type().String())
+	ctx.Log().Infof("Starting: %s", s.Type().String())
 	s.party.Run(c)
 	s.wg.Add(1)
 	go s.run(ctx)
@@ -94,7 +92,7 @@ func (s *SignatureController) Type() types.ControllerType {
 
 func (s *SignatureController) run(ctx core.Context) {
 	defer func() {
-		s.log.Infof("Finishing: %s", s.Type().String())
+		ctx.Log().Infof("Finishing: %s", s.Type().String())
 		s.updateSessionData(ctx)
 		s.wg.Done()
 	}()

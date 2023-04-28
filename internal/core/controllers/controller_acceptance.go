@@ -186,6 +186,7 @@ func (a *defaultAcceptanceController) finish(ctx core.Context) {
 
 	defer func() {
 		ctx.Log().Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
+		_, a.data.IsSigner = a.data.Signers[ctx.SecretStorage().GetTssSecret().AccountAddress()]
 	}()
 
 	if len(a.data.Acceptances) == a.data.Set.T+1 {
@@ -194,7 +195,6 @@ func (a *defaultAcceptanceController) finish(ctx core.Context) {
 	}
 
 	a.data.Signers = GetSignersSet(a.data.Acceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
-	_, a.data.IsSigner = a.data.Signers[ctx.SecretStorage().GetTssSecret().AccountAddress()]
 }
 
 // reshareAcceptanceController represents custom logic for types.SessionType_ReshareSession
@@ -265,9 +265,9 @@ func (a *reshareAcceptanceController) finish(ctx core.Context) {
 
 	if len(signAcceptances) == a.data.Set.T+1 {
 		a.data.Signers = signAcceptances
+		_, a.data.IsSigner = a.data.Signers[ctx.SecretStorage().GetTssSecret().AccountAddress()]
 		return
 	}
 
 	a.data.Signers = GetSignersSet(signAcceptances, a.data.Set.T, a.data.Set.LastSignature, a.data.SessionId)
-	_, a.data.IsSigner = a.data.Signers[ctx.SecretStorage().GetTssSecret().AccountAddress()]
 }

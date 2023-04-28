@@ -63,6 +63,7 @@ func (s *SessionManager) NewBlock(height uint64) error {
 
 	for sessionType, session := range s.sessions {
 		if session != nil {
+			session.NewBlock(height)
 			if session.End() <= height {
 				s.sessions[sessionType] = session.NextSession()
 			}
