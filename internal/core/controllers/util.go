@@ -107,6 +107,15 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 			if content != nil {
 				contents = append(contents, content)
 			}
+		case rarimo.OpType_CONTRACT_UPGRADE:
+			content, err := GetContractUpgradeContent(client, op)
+			if err != nil {
+				return nil, err
+			}
+
+			if content != nil {
+				contents = append(contents, content)
+			}
 		default:
 			return nil, ErrUnsupportedContent
 		}
@@ -162,6 +171,21 @@ func GetFeeManagementContent(client *grpc.ClientConn, op *rarimo.Operation) (mer
 	}
 
 	content, err := pkg.GetFeeTokenManagementContent(op.Index, networkResp.Params, manage)
+	return content, errors.Wrap(err, "error creating content")
+}
+
+func GetContractUpgradeContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.Content, error) {
+	upgrade, err := pkg.GetContractUpgrade(*op)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing operation details")
+	}
+
+	networkResp, err := token.NewQueryClient(client).NetworkParams(context.TODO(), &token.QueryNetworkParamsRequest{Name: upgrade.Chain})
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting network param entry")
+	}
+
+	content, err := pkg.GetContractUpgradeContent(networkResp.Params, upgrade)
 	return content, errors.Wrap(err, "error creating content")
 }
 

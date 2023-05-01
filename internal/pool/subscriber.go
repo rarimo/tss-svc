@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	OpServiceName        = "op-subscriber"
-	OpQueryTransfer      = "tm.event='Tx' AND operation_approved.operation_type='TRANSFER'"
-	OpQueryFeeManagement = "tm.event='NewBlock' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
-	OpPoolSize           = 1000
+	OpServiceName          = "op-subscriber"
+	OpQueryTransfer        = "tm.event='Tx' AND operation_approved.operation_type='TRANSFER'"
+	OpQueryFeeManagement   = "tm.event='NewBlock' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
+	OpQueryContractUpgrade = "tm.event='NewBlock' AND operation_approved.operation_type='CONTRACT_UPGRADE'"
+	OpPoolSize             = 1000
 )
 
 // OperationSubscriber subscribes to the NewOperation events on the tendermint core.
@@ -22,6 +23,16 @@ type OperationSubscriber struct {
 	client *http.HTTP
 	query  string
 	log    *logan.Entry
+}
+
+// NewContractUpgradeOperationSubscriber creates the subscriber instance for listening new contract upgrades operations
+func NewContractUpgradeOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryContractUpgrade,
+	}
 }
 
 // NewFeeManagementOperationSubscriber creates the subscriber instance for listening new fee token management operations

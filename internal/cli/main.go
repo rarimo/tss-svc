@@ -72,6 +72,7 @@ func Run(args []string) bool {
 		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
 		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
 		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewContractUpgradeOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
 		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run()
 
 		manager := core.NewSessionManager()
@@ -90,9 +91,6 @@ func Run(args []string) bool {
 		err = server.RunGRPC()
 	case keygenCmd.FullCommand():
 		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run()
 
 		manager := core.NewSessionManager()
 		manager.AddSession(types.SessionType_KeygenSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_KeygenSession, keygen.NewSession))
