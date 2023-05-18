@@ -35,9 +35,6 @@ func Run(args []string) bool {
 		}
 	}()
 
-	cfg := config.New(kv.MustFromEnv())
-	log := cfg.Log()
-
 	app := kingpin.New("tss-svc", "")
 	runCmd := app.Command("run", "run command")
 
@@ -60,15 +57,19 @@ func Run(args []string) bool {
 
 	cmd, err := app.Parse(args[1:])
 	if err != nil {
-		log.WithError(err).Error("failed to parse arguments")
+		logan.New().WithError(err).Error("failed to parse arguments")
 		return false
 	}
 
-	core.Initialize(cfg)
-	ctx := core.DefaultGlobalContext()
-
 	switch cmd {
 	case serviceCmd.FullCommand():
+		go profiling()
+
+		cfg := config.New(kv.MustFromEnv())
+		core.Initialize(cfg)
+
+		ctx := core.DefaultGlobalContext()
+
 		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
 		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
 		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
@@ -90,6 +91,11 @@ func Run(args []string) bool {
 
 		err = server.RunGRPC()
 	case keygenCmd.FullCommand():
+		cfg := config.New(kv.MustFromEnv())
+		core.Initialize(cfg)
+
+		ctx := core.DefaultGlobalContext()
+
 		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
 
 		manager := core.NewSessionManager()
@@ -122,16 +128,18 @@ func Run(args []string) bool {
 		fmt.Println("Pub: " + hexutil.Encode(elliptic.Marshal(secp256k1.S256(), keypair.X, keypair.Y)))
 		fmt.Println("Prv: " + hexutil.Encode(keypair.D.Bytes()))
 	case migrateUpCmd.FullCommand():
+		cfg := config.New(kv.MustFromEnv())
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():
+		cfg := config.New(kv.MustFromEnv())
 		err = MigrateDown(cfg)
 	default:
-		log.Errorf("unknown command %s", cmd)
+		logan.New().Errorf("unknown command %s", cmd)
 		return false
 	}
 
 	if err != nil {
-		log.WithError(err).Error("failed to exec cmd")
+		logan.New().WithError(err).Error("failed to exec cmd")
 		return false
 	}
 	return true
@@ -146,7 +154,7 @@ func profiling() {
 	r.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	r.Handle("/metrics", promhttp.Handler())
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", r); err != nil {
 		panic(err)
 	}
 }
