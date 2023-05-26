@@ -170,7 +170,7 @@ func GetFeeManagementContent(client *grpc.ClientConn, op *rarimo.Operation) (mer
 		return nil, errors.Wrap(err, "error getting network param entry")
 	}
 
-	content, err := pkg.GetFeeTokenManagementContent(op.Index, networkResp.Params, manage)
+	content, err := pkg.GetFeeTokenManagementContent(networkResp.Params, manage)
 	return content, errors.Wrap(err, "error creating content")
 }
 
