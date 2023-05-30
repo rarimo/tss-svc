@@ -7,7 +7,7 @@ import (
 
 	"github.com/bnb-chain/tss-lib/common"
 	"github.com/bnb-chain/tss-lib/tss"
-	s256k1 "github.com/btcsuite/btcd/btcec"
+	s256k1 "github.com/btcsuite/btcd/btcec/v2"
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
