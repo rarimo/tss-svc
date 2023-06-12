@@ -169,6 +169,7 @@ require (
 replace (
 	github.com/agl/ed25519 => github.com/bnb-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
 	github.com/bnb-chain/tss-lib => gitlab.com/rarimo/tss-lib v1.3.6
+	github.com/btcsuite/btcd => github.com/btcsuite/btcd v0.22.0-beta
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
 	github.com/cosmos/cosmos-sdk => gitlab.com/rarimo/cosmos-sdk v0.46.7-rc.3
 	github.com/cosmos/iavl => github.com/cosmos/iavl v0.19.4

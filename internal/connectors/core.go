@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	chainId       = "rarimo"
+	chainId       = "rarimo_42-1"
 	coinName      = "stake"
 	successTxCode = 0
 	minGasPrice   = 1
