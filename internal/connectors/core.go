@@ -16,17 +16,18 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	ethermint "gitlab.com/rarimo/rarimo-core/ethermint/types"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"google.golang.org/grpc"
 )
 
 const (
-	chainId       = "rarimo"
+	chainId       = "rarimo_42-1"
 	coinName      = "stake"
 	successTxCode = 0
 	minGasPrice   = 1
-	gasLimit      = 100_000_000
+	gasLimit      = 1_000_000
 )
 
 // CoreConnector submits signed confirmations to the rarimo core
@@ -100,7 +101,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 		panic(err)
 	}
 
-	account := authtypes.BaseAccount{}
+	account := ethermint.EthAccount{}
 	err = account.Unmarshal(accountResp.Account.Value)
 	if err != nil {
 		panic(err)
@@ -124,7 +125,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 		Sequence:      account.Sequence,
 	}
 
-	sigV2, err := c.secret.SignTransaction(c.txConfig, signerData, builder, &account)
+	sigV2, err := c.secret.SignTransaction(c.txConfig, signerData, builder, account.BaseAccount)
 	if err != nil {
 		return err
 	}
