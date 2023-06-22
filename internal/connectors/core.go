@@ -27,7 +27,7 @@ const (
 	coinName      = "stake"
 	successTxCode = 0
 	minGasPrice   = 1
-	gasLimit      = 100_000_000
+	gasLimit      = 1_000_000
 )
 
 // CoreConnector submits signed confirmations to the rarimo core
