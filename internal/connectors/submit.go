@@ -2,6 +2,7 @@ package connectors
 
 import (
 	"context"
+	"crypto/tls"
 	"sync"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type con struct {
@@ -49,7 +51,7 @@ func (s *SubmitConnector) Submit(ctx context.Context, party *rarimo.Party, reque
 		clientsBuffer.mu.Lock()
 		defer clientsBuffer.mu.Unlock()
 
-		client, err = s.getClient(party.Address)
+		client, err = s.getTLSClient(party.Address)
 	}()
 
 	if err != nil {
@@ -66,6 +68,31 @@ func (s *SubmitConnector) getClient(addr string) (*con, error) {
 	}
 
 	client, err := grpc.Dial(addr, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	con := &con{
+		client:   client,
+		lastUsed: time.Now().UTC(),
+	}
+
+	clientsBuffer.clients[addr] = con
+
+	return con, nil
+}
+
+func (s *SubmitConnector) getTLSClient(addr string) (*con, error) {
+	if client, ok := clientsBuffer.clients[addr]; ok && client != nil {
+		client.lastUsed = time.Now().UTC()
+		return client, nil
+	}
+
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	client, err := grpc.Dial(addr, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 	if err != nil {
 		return nil, err
 	}
