@@ -32,9 +32,10 @@ type TssSecret struct {
 	accountPrv cryptotypes.PrivKey
 	data       *tsskeygen.LocalPartySaveData
 	params     *tsskeygen.LocalPreParams
+	tls        bool
 }
 
-func NewTssSecret(prv *ecdsa.PrivateKey, account cryptotypes.PrivKey, data *tsskeygen.LocalPartySaveData, params *tsskeygen.LocalPreParams) *TssSecret {
+func NewTssSecret(prv *ecdsa.PrivateKey, account cryptotypes.PrivKey, data *tsskeygen.LocalPartySaveData, params *tsskeygen.LocalPreParams, tls bool) *TssSecret {
 	if data != nil && data.Xi != nil {
 		var err error
 		prv, err = eth.ToECDSA(data.Xi.Bytes())
@@ -52,6 +53,7 @@ func NewTssSecret(prv *ecdsa.PrivateKey, account cryptotypes.PrivKey, data *tssk
 		accountPrv: account,
 		data:       data,
 		params:     params,
+		tls:        tls,
 	}
 }
 
@@ -113,6 +115,10 @@ func (t *TssSecret) GetKeygenParty(params *tss.Parameters, out chan<- tss.Messag
 
 func (t *TssSecret) GetSignParty(msg *big.Int, params *tss.Parameters, out chan<- tss.Message, end chan<- common.SignatureData) tss.Party {
 	return tsssign.NewLocalParty(msg, params, *t.data, out, end)
+}
+
+func (t *TssSecret) TLS() bool {
+	return t.tls
 }
 
 // Storage is responsible for managing TSS secret data and Rarimo core account secret data

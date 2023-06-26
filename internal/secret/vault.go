@@ -22,6 +22,7 @@ const (
 	preKey     = "pre"
 	accountKey = "account"
 	trialKey   = "trial"
+	enableTLS  = "tls"
 )
 
 type VaultStorage struct {
@@ -105,5 +106,11 @@ func (v *VaultStorage) loadSecret() (*TssSecret, error) {
 		prv, _ = crypto.ToECDSA(prvBytes)
 	}
 
-	return NewTssSecret(prv, account, data, pre), nil
+	tls := false
+
+	if enableI, ok := v.kvSecret.Data[enableTLS]; ok {
+		tls = enableI.(bool)
+	}
+
+	return NewTssSecret(prv, account, data, pre, tls), nil
 }
