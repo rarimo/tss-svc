@@ -20,6 +20,7 @@ type Config interface {
 	Storage() *pg.Storage
 	Session() *SessionInfo
 	Vault() *vault.KVv2
+	Swagger() *SwaggerInfo
 }
 
 type config struct {
@@ -33,6 +34,7 @@ type config struct {
 	session    comfig.Once
 	private    comfig.Once
 	vault      comfig.Once
+	swagger    comfig.Once
 
 	getter kv.Getter
 }

@@ -48,6 +48,7 @@ const (
 	TimerKey
 	TendermintKey
 	ListenerKey
+	SwaggerKey
 )
 
 var (
@@ -108,6 +109,11 @@ func Initialize(cfg config.Config) {
 	SetInRegistry(GlobalContextKey, LogKey, cfg.Log())
 
 	SetInRegistry(GlobalContextKey, ListenerKey, cfg.Listener())
+
+	SetInRegistry(GlobalContextKey, SwaggerKey, cfg.Swagger())
+	SetInRegistry(DefaultSessionContextKey, SwaggerKey, cfg.Swagger())
+	SetInRegistry(ReshareSessionContextKey, SwaggerKey, cfg.Swagger())
+	SetInRegistry(KeygenSessionContextKey, SwaggerKey, cfg.Swagger())
 }
 
 func WrapCtx(ctx context.Context) Context {
@@ -174,6 +180,10 @@ func (c *Context) Tendermint() *http.HTTP {
 
 func (c *Context) Listener() net.Listener {
 	return c.ctx.Value(ListenerKey).(net.Listener)
+}
+
+func (c *Context) Swagger() *config.SwaggerInfo {
+	return c.ctx.Value(SwaggerKey).(*config.SwaggerInfo)
 }
 
 func addCtxTypeKey(ctx context.Context, key ContextKey) context.Context {

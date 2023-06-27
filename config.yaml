@@ -17,3 +17,7 @@ cosmos:
 session:
   start_block: 500
   start_session_id: 1
+
+swagger:
+  addr: :1313
+  enabled: true

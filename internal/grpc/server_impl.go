@@ -9,6 +9,7 @@ import (
 	"github.com/ignite/cli/ignite/pkg/openapiconsole"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/rarimo/tss/tss-svc/docs"
+	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
@@ -28,6 +29,7 @@ type ServerImpl struct {
 	pg       *pg.Storage
 	storage  secret.Storage
 	pool     *pool.Pool
+	swagger  *config.SwaggerInfo
 }
 
 func NewServer(ctx core.Context, manager *core.SessionManager) *ServerImpl {
@@ -38,6 +40,7 @@ func NewServer(ctx core.Context, manager *core.SessionManager) *ServerImpl {
 		pg:       ctx.PG(),
 		storage:  ctx.SecretStorage(),
 		pool:     ctx.Pool(),
+		swagger:  ctx.Swagger(),
 	}
 }
 
@@ -48,6 +51,10 @@ func (s *ServerImpl) RunGRPC() error {
 }
 
 func (s *ServerImpl) RunGateway() error {
+	if !s.swagger.Enabled {
+		return nil
+	}
+
 	grpcGatewayRouter := runtime.NewServeMux()
 	httpRouter := http.NewServeMux()
 
@@ -59,7 +66,7 @@ func (s *ServerImpl) RunGateway() error {
 	httpRouter.Handle("/static/service.swagger.json", http.FileServer(http.FS(docs.Docs)))
 	httpRouter.HandleFunc("/api", openapiconsole.Handler("TSS service", "/static/service.swagger.json"))
 	httpRouter.Handle("/", grpcGatewayRouter)
-	return http.ListenAndServe(":1313", httpRouter)
+	return http.ListenAndServe(s.swagger.Addr, httpRouter)
 }
 
 var _ types.ServiceServer = &ServerImpl{}
