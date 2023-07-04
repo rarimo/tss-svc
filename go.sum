@@ -1370,12 +1370,12 @@ gitlab.com/distributed_lab/logan v3.8.1+incompatible h1:bYiP3P0AA0cpAL/fyOYWGq1a
 gitlab.com/distributed_lab/logan v3.8.1+incompatible/go.mod h1:25oL/FPFXmyYzWeA6vahMvnFJV8P7mOx0jZhRP7nhlc=
 gitlab.com/distributed_lab/running v0.0.0-20200706131153-4af0e83eb96c h1:cpIjV8C//7sLVvMcBaFGopI8sMcCw8Za7T0HIf52esU=
 gitlab.com/distributed_lab/running v0.0.0-20200706131153-4af0e83eb96c/go.mod h1:4TnADX84dQjQMRHKIMPCVL0L97rD/Jxv0xDbrN6aKzk=
-gitlab.com/rarimo/cosmos-sdk v0.46.7-rc.3 h1:0bWyEtac53n47NYztSc3wiPbj4Xc1rQfaARvBiHZJfc=
-gitlab.com/rarimo/cosmos-sdk v0.46.7-rc.3/go.mod h1:fqKqz39U5IlEFb4nbQ72951myztsDzFKKDtffYJ63nk=
+gitlab.com/rarimo/cosmos-sdk v0.46.7-rc.9 h1:difGaEIWgfYsR/UxOeLkTB0b/dOTPkxFr0A9qo63s9o=
+gitlab.com/rarimo/cosmos-sdk v0.46.7-rc.9/go.mod h1:fqKqz39U5IlEFb4nbQ72951myztsDzFKKDtffYJ63nk=
 gitlab.com/rarimo/go-merkle v0.0.0-20221212103215-4a9612e1bed1 h1:/NTsZ61HpUSxJuzZp9nUbeVeMIIlmFGygFuVOBsUqlY=
 gitlab.com/rarimo/go-merkle v0.0.0-20221212103215-4a9612e1bed1/go.mod h1:O4/lUka2v/6HvcxNielMJ2HsTZaizQN6uBYimSIithE=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230626145607-36ac2394bbbd h1:kcxS88pLgF14HuwYfQMfIaXJvBThjg++L4H4uf7lsp0=
-gitlab.com/rarimo/rarimo-core v0.0.0-20230626145607-36ac2394bbbd/go.mod h1:jtjUjEZu/v0oSXC6GjpCQhdtfQDnA3ye69/jQqEIr50=
+gitlab.com/rarimo/rarimo-core v0.0.0-20230704152545-f5a3f2d239a9 h1:Ag4PqS5mDa7vnzQGm3wlLz8mSbHRnsIpuZagRtIJtGo=
+gitlab.com/rarimo/rarimo-core v0.0.0-20230704152545-f5a3f2d239a9/go.mod h1:gu7K/hnfTAHPVzy/kj0r4M6oCuZ70SS96jbnsNekbkc=
 gitlab.com/rarimo/tss-lib v1.3.6 h1:D/baArZibYBVVXJCVb+l4UqVfGVtUNrUK6NGvoafEe0=
 gitlab.com/rarimo/tss-lib v1.3.6/go.mod h1:o3zAAo7A88ZJnCE1qpjy1hTqPn+GPQlxRsj8soz14UU=
 go.etcd.io/bbolt v1.3.6 h1:/ecaJf0sk1l4l6V4awd65v2C3ILy7MSj+s/x1ADCIMU=
