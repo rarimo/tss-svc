@@ -10,8 +10,10 @@ import (
 )
 
 var acceptableOperationTypes = map[rarimo.OpType]struct{}{
-	rarimo.OpType_TRANSFER:             {},
-	rarimo.OpType_FEE_TOKEN_MANAGEMENT: {},
+	rarimo.OpType_TRANSFER:                  {},
+	rarimo.OpType_FEE_TOKEN_MANAGEMENT:      {},
+	rarimo.OpType_CONTRACT_UPGRADE:          {},
+	rarimo.OpType_IDENTITY_DEFAULT_TRANSFER: {},
 }
 
 // OperationCatchupper catches up old unsigned operations from core.
