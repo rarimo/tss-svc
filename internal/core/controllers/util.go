@@ -164,7 +164,12 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 		return nil, errors.Wrap(err, "error getting network param entry")
 	}
 
-	content, err := pkg.GetTransferContent(collectionResp.Collection, collectionDataResp.Data, itemResp.Item, networkResp.Params, transfer)
+	bridgeparams := networkResp.Params.GetBridgeParams()
+	if err != nil {
+		return nil, errors.New("bridge params not found")
+	}
+
+	content, err := pkg.GetTransferContent(collectionResp.Collection, collectionDataResp.Data, itemResp.Item, bridgeparams, transfer)
 	return content, errors.Wrap(err, "error creating content")
 }
 
@@ -179,7 +184,12 @@ func GetFeeManagementContent(client *grpc.ClientConn, op *rarimo.Operation) (mer
 		return nil, errors.Wrap(err, "error getting network param entry")
 	}
 
-	content, err := pkg.GetFeeTokenManagementContent(networkResp.Params, manage)
+	feeparams := networkResp.Params.GetFeeParams()
+	if err != nil {
+		return nil, errors.New("bridge params not found")
+	}
+
+	content, err := pkg.GetFeeTokenManagementContent(feeparams, manage)
 	return content, errors.Wrap(err, "error creating content")
 }
 
