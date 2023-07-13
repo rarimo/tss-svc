@@ -7,13 +7,15 @@ import (
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 const (
-	OpServiceName   = "op-subscriber"
-	OpQueryTransfer = "tm.event='Tx' AND operation_approved.operation_type='TRANSFER'"
-	OpPoolSize      = 1000
+	OpServiceName                  = "op-subscriber"
+	OpQueryTransfer                = "tm.event='Tx' AND operation_approved.operation_type='TRANSFER'"
+	OpQueryFeeManagement           = "tm.event='NewBlock' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
+	OpQueryContractUpgrade         = "tm.event='NewBlock' AND operation_approved.operation_type='CONTRACT_UPGRADE'"
+	OpQueryIdentityDefaultTransfer = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_DEFAULT_TRANSFER'"
+	OpPoolSize                     = 1000
 )
 
 // OperationSubscriber subscribes to the NewOperation events on the tendermint core.
@@ -24,12 +26,42 @@ type OperationSubscriber struct {
 	log    *logan.Entry
 }
 
-// NewTransferOperationSubscriber creates the subscriber instance for listening new transfer operations
-func NewTransferOperationSubscriber(cfg config.Config) *OperationSubscriber {
+// NewIdentityTransferOperationSubscriber creates the subscriber instance for listening new identity transfer operations
+func NewIdentityTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
 	return &OperationSubscriber{
-		pool:   NewPool(cfg),
-		log:    cfg.Log(),
-		client: cfg.Tendermint(),
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryIdentityDefaultTransfer,
+	}
+}
+
+// NewContractUpgradeOperationSubscriber creates the subscriber instance for listening new contract upgrades operations
+func NewContractUpgradeOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryContractUpgrade,
+	}
+}
+
+// NewFeeManagementOperationSubscriber creates the subscriber instance for listening new fee token management operations
+func NewFeeManagementOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryFeeManagement,
+	}
+}
+
+// NewTransferOperationSubscriber creates the subscriber instance for listening new transfer operations
+func NewTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
 		query:  OpQueryTransfer,
 	}
 }
@@ -37,8 +69,8 @@ func NewTransferOperationSubscriber(cfg config.Config) *OperationSubscriber {
 func (o *OperationSubscriber) Run() {
 	go func() {
 		for {
+			o.log.Infof("[Pool] Subscribing to the pool. Query: %s", o.query)
 			o.runner()
-			o.log.Info("[Pool] Resubscribing to the pool...")
 		}
 	}()
 }
@@ -64,7 +96,6 @@ func (o *OperationSubscriber) runner() {
 			if err := o.pool.Add(index); err != nil {
 				o.log.WithError(err).Error("error adding operation to the pool")
 			}
-
 		}
 	}
 }

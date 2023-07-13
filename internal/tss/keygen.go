@@ -9,7 +9,6 @@ import (
 	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	"github.com/bnb-chain/tss-lib/tss"
 	s256k1 "github.com/btcsuite/btcd/btcec"
-	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -19,7 +18,7 @@ import (
 	"gitlab.com/rarimo/tss/tss-svc/internal/core"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
-	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type KeygenParty struct {
@@ -39,7 +38,7 @@ type KeygenParty struct {
 	result *keygen.LocalPartySaveData
 }
 
-func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, cli *grpc.ClientConn, log *logan.Entry) *KeygenParty {
+func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, coreCon *connectors.CoreConnector, log *logan.Entry) *KeygenParty {
 	return &KeygenParty{
 		id:       id,
 		wg:       &sync.WaitGroup{},
@@ -48,7 +47,7 @@ func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.
 		parties:  partiesByAccountMapping(parties),
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
-		core:     connectors.NewCoreConnector(cli, secret, log),
+		core:     coreCon,
 	}
 }
 
@@ -132,7 +131,7 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 		case <-ctx.Done():
 			return
 		case msg := <-out:
-			details, err := cosmostypes.NewAnyWithValue(msg.WireMsg().Message)
+			details, err := anypb.New(msg.WireMsg().Message)
 			if err != nil {
 				k.log.WithError(err).Error("Failed to parse details")
 				continue

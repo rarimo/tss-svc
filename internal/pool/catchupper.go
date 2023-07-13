@@ -6,9 +6,15 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"google.golang.org/grpc"
 )
+
+var acceptableOperationTypes = map[rarimo.OpType]struct{}{
+	rarimo.OpType_TRANSFER:                  {},
+	rarimo.OpType_FEE_TOKEN_MANAGEMENT:      {},
+	rarimo.OpType_CONTRACT_UPGRADE:          {},
+	rarimo.OpType_IDENTITY_DEFAULT_TRANSFER: {},
+}
 
 // OperationCatchupper catches up old unsigned operations from core.
 type OperationCatchupper struct {
@@ -18,11 +24,11 @@ type OperationCatchupper struct {
 }
 
 // NewOperationCatchupper creates the catchup instance for adding all unsigned operations to the pool
-func NewOperationCatchupper(cfg config.Config) *OperationCatchupper {
+func NewOperationCatchupper(pool *Pool, core *grpc.ClientConn, log *logan.Entry) *OperationCatchupper {
 	return &OperationCatchupper{
-		pool:   NewPool(cfg),
-		rarimo: cfg.Cosmos(),
-		log:    cfg.Log(),
+		pool:   pool,
+		rarimo: core,
+		log:    log,
 	}
 }
 
@@ -36,8 +42,12 @@ func (o *OperationCatchupper) Run() {
 		}
 
 		for _, op := range operations.Operation {
+			if _, ok := acceptableOperationTypes[op.OperationType]; !ok {
+				o.log.Debugf("[Pool] Operation %s has unsupported type for catchup", op.Index)
+			}
+
 			if op.Status != rarimo.OpStatus_APPROVED {
-				o.log.Debug("[Pool] Operation is not APPROVED")
+				o.log.Debugf("[Pool] Operation %s is not APPROVED", op.Index)
 				continue
 			}
 

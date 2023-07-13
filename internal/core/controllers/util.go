@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/binary"
+	"math/big"
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -18,25 +19,24 @@ import (
 	"google.golang.org/grpc"
 )
 
+// GetProposer generates deterministic proposer based on linear congruential generator with seed from getHash(signature, sessionId)
 func GetProposer(parties []*rarimo.Party, sig string, sessionId uint64) rarimo.Party {
-	hash := getHash(sig, sessionId)
-	return *parties[int(hash[len(hash)-1])%len(parties)]
+	rnd := newRnd(new(big.Int).SetBytes(getHash(sig, sessionId)))
+	index := getIndex(rnd.next(), len(parties))
+	return *parties[index]
 }
 
+// GetSignersSet generates deterministic signers set based on received acceptances
+// and linear congruential generator with seed from getHash(signature, sessionId)
 func GetSignersSet(acceptances map[string]struct{}, t int, sig string, sessionId uint64) map[string]struct{} {
 	accepted := acceptancesToArr(acceptances)
-	hash := getHash(sig, sessionId)
-
-	// increase hash seed in case of t bigger then hash size
-	for len(hash) < t+1 {
-		hash = append(hash, hash...)
-	}
+	rnd := newRnd(new(big.Int).SetBytes(getHash(sig, sessionId)))
 
 	sort.Strings(accepted)
 	result := make(map[string]struct{})
 
 	for i := 0; i <= t; i++ {
-		index := int(hash[i]) % len(accepted)
+		index := getIndex(rnd.next(), len(accepted))
 		result[accepted[index]] = struct{}{}
 
 		// in case of it was last element we need to exclude it from set just by deleting last slice element
@@ -97,7 +97,34 @@ func GetContents(client *grpc.ClientConn, operations ...*rarimo.Operation) ([]me
 				contents = append(contents, content)
 			}
 		case rarimo.OpType_CHANGE_PARTIES:
-			// Currently not supported here
+			return nil, ErrUnsupportedContent
+		case rarimo.OpType_FEE_TOKEN_MANAGEMENT:
+			content, err := GetFeeManagementContent(client, op)
+			if err != nil {
+				return nil, err
+			}
+
+			if content != nil {
+				contents = append(contents, content)
+			}
+		case rarimo.OpType_CONTRACT_UPGRADE:
+			content, err := GetContractUpgradeContent(client, op)
+			if err != nil {
+				return nil, err
+			}
+
+			if content != nil {
+				contents = append(contents, content)
+			}
+		case rarimo.OpType_IDENTITY_DEFAULT_TRANSFER:
+			content, err := GetIdentityDefaultTransferContent(op)
+			if err != nil {
+				return nil, err
+			}
+
+			if content != nil {
+				contents = append(contents, content)
+			}
 		default:
 			return nil, ErrUnsupportedContent
 		}
@@ -137,7 +164,57 @@ func GetTransferContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.C
 		return nil, errors.Wrap(err, "error getting network param entry")
 	}
 
-	content, err := pkg.GetTransferContent(collectionResp.Collection, collectionDataResp.Data, itemResp.Item, networkResp.Params, transfer)
+	bridgeparams := networkResp.Params.GetBridgeParams()
+	if err != nil {
+		return nil, errors.New("bridge params not found")
+	}
+
+	content, err := pkg.GetTransferContent(collectionResp.Collection, collectionDataResp.Data, itemResp.Item, bridgeparams, transfer)
+	return content, errors.Wrap(err, "error creating content")
+}
+
+func GetFeeManagementContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.Content, error) {
+	manage, err := pkg.GetFeeTokenManagement(*op)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing operation details")
+	}
+
+	networkResp, err := token.NewQueryClient(client).NetworkParams(context.TODO(), &token.QueryNetworkParamsRequest{Name: manage.Chain})
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting network param entry")
+	}
+
+	feeparams := networkResp.Params.GetFeeParams()
+	if err != nil {
+		return nil, errors.New("bridge params not found")
+	}
+
+	content, err := pkg.GetFeeTokenManagementContent(feeparams, manage)
+	return content, errors.Wrap(err, "error creating content")
+}
+
+func GetContractUpgradeContent(client *grpc.ClientConn, op *rarimo.Operation) (merkle.Content, error) {
+	upgrade, err := pkg.GetContractUpgrade(*op)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing operation details")
+	}
+
+	networkResp, err := token.NewQueryClient(client).NetworkParams(context.TODO(), &token.QueryNetworkParamsRequest{Name: upgrade.Chain})
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting network param entry")
+	}
+
+	content, err := pkg.GetContractUpgradeContent(networkResp.Params, upgrade)
+	return content, errors.Wrap(err, "error creating content")
+}
+
+func GetIdentityDefaultTransferContent(op *rarimo.Operation) (merkle.Content, error) {
+	transfer, err := pkg.GetIdentityDefaultTransfer(*op)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing operation details")
+	}
+
+	content, err := pkg.GetIdentityDefaultTransferContent(transfer)
 	return content, errors.Wrap(err, "error creating content")
 }
 

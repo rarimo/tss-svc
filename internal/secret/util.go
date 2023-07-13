@@ -30,6 +30,7 @@ func loadParams() *keygen.LocalPreParams {
 	return params
 }
 
+// DEPRECATED: use Vault configuration
 func openParams() *keygen.LocalPreParams {
 	path := os.Getenv(PreParamsENV)
 	if path == "" {
@@ -49,6 +50,7 @@ func openParams() *keygen.LocalPreParams {
 	return res
 }
 
+// DEPRECATED: use Vault configuration
 func loadData() (*keygen.LocalPartySaveData, error) {
 	path := os.Getenv(PartyTSSDataENV)
 	if path == "" {
@@ -64,6 +66,7 @@ func loadData() (*keygen.LocalPartySaveData, error) {
 	return res, json.Unmarshal(data, res)
 }
 
+// DEPRECATED: use Vault configuration
 func saveData(data *keygen.LocalPartySaveData) error {
 	path := os.Getenv(PartyTSSDataENV)
 	if path == "" {

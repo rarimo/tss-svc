@@ -51,7 +51,7 @@ func (s *SubmitConnector) Submit(ctx context.Context, party *rarimo.Party, reque
 		clientsBuffer.mu.Lock()
 		defer clientsBuffer.mu.Unlock()
 
-		client, err = s.getTLSClient(party.Address)
+		client, err = s.getClient(party.Address)
 	}()
 
 	if err != nil {
@@ -67,32 +67,20 @@ func (s *SubmitConnector) getClient(addr string) (*con, error) {
 		return client, nil
 	}
 
-	client, err := grpc.Dial(addr, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
+	var client *grpc.ClientConn
+	var err error
+
+	connectSecurityOptions := grpc.WithInsecure()
+
+	if s.secret.TLS() {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+
+		connectSecurityOptions = grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))
 	}
 
-	con := &con{
-		client:   client,
-		lastUsed: time.Now().UTC(),
-	}
-
-	clientsBuffer.clients[addr] = con
-
-	return con, nil
-}
-
-func (s *SubmitConnector) getTLSClient(addr string) (*con, error) {
-	if client, ok := clientsBuffer.clients[addr]; ok && client != nil {
-		client.lastUsed = time.Now().UTC()
-		return client, nil
-	}
-
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	client, err := grpc.Dial(addr, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	client, err = grpc.Dial(addr, connectSecurityOptions)
 	if err != nil {
 		return nil, err
 	}

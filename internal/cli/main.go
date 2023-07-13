@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
-	"runtime"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -30,64 +29,89 @@ import (
 )
 
 func Run(args []string) bool {
-	go profiling()
-
-	log := logan.New()
-
 	defer func() {
 		if rvr := recover(); rvr != nil {
-			log.WithRecover(rvr).Error("app panicked")
+			logan.New().WithRecover(rvr).Error("app panicked")
 		}
 	}()
 
-	cfg := config.New(kv.MustFromEnv())
-
-	log = cfg.Log()
-
 	app := kingpin.New("tss-svc", "")
-
 	runCmd := app.Command("run", "run command")
+
+	// Running full service
 	serviceCmd := runCmd.Command("service", "run service")
+
+	// Running service in keygen mode
 	keygenCmd := runCmd.Command("keygen", "run keygen")
+
+	// Running pramas generation
 	paramgenCmd := runCmd.Command("paramgen", "run paramgen")
+
+	// Running ECDSA key-pair generation
 	prvgenCmd := runCmd.Command("prvgen", "run prvgen")
 
+	// Running migrations
 	migrateCmd := app.Command("migrate", "migrate command")
 	migrateUpCmd := migrateCmd.Command("up", "migrate db up")
 	migrateDownCmd := migrateCmd.Command("down", "migrate db down")
 
 	cmd, err := app.Parse(args[1:])
 	if err != nil {
-		log.WithError(err).Error("failed to parse arguments")
+		logan.New().WithError(err).Error("failed to parse arguments")
 		return false
 	}
 
-	log.Infof("GOMAXPROCS = %d", runtime.GOMAXPROCS(0))
-
 	switch cmd {
 	case serviceCmd.FullCommand():
-		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
-		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
-		go pool.NewOperationCatchupper(cfg).Run()
+		go profiling()
+
+		cfg := config.New(kv.MustFromEnv())
+		core.Initialize(cfg)
+
+		ctx := core.DefaultGlobalContext()
+
+		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewContractUpgradeOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewIdentityTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run()
 
 		manager := core.NewSessionManager()
-		manager.AddSession(types.SessionType_ReshareSession, empty.NewEmptySession(cfg, types.SessionType_ReshareSession, reshare.NewSession))
-		manager.AddSession(types.SessionType_DefaultSession, empty.NewEmptySession(cfg, types.SessionType_DefaultSession, sign.NewSession))
+		manager.AddSession(types.SessionType_ReshareSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_ReshareSession, reshare.NewSession))
+		manager.AddSession(types.SessionType_DefaultSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_DefaultSession, sign.NewSession))
 
-		timer.GetTimer().SubscribeToBlocks("session-manager", manager.NewBlock)
+		ctx.Timer().SubscribeToBlocks("session-manager", manager.NewBlock)
 
-		err = grpc.NewServer(manager, cfg).Run()
+		server := grpc.NewServer(ctx, manager)
+		go func() {
+			if err := server.RunGateway(); err != nil {
+				panic(err)
+			}
+		}()
+
+		err = server.RunGRPC()
 	case keygenCmd.FullCommand():
-		go timer.NewBlockSubscriber(cfg).Run()            // Timer initialized
-		go pool.NewTransferOperationSubscriber(cfg).Run() // Pool initialized
-		go pool.NewOperationCatchupper(cfg).Run()
+		cfg := config.New(kv.MustFromEnv())
+		core.Initialize(cfg)
+
+		ctx := core.DefaultGlobalContext()
+
+		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
 
 		manager := core.NewSessionManager()
-		manager.AddSession(types.SessionType_KeygenSession, empty.NewEmptySession(cfg, types.SessionType_KeygenSession, keygen.NewSession))
+		manager.AddSession(types.SessionType_KeygenSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_KeygenSession, keygen.NewSession))
 
-		timer.GetTimer().SubscribeToBlocks("session-manager", manager.NewBlock)
+		ctx.Timer().SubscribeToBlocks("session-manager", manager.NewBlock)
 
-		err = grpc.NewServer(manager, cfg).Run()
+		server := grpc.NewServer(ctx, manager)
+		go func() {
+			if err := server.RunGateway(); err != nil {
+				panic(err)
+			}
+		}()
+
+		err = server.RunGRPC()
 	case paramgenCmd.FullCommand():
 		params, err := tsskg.GeneratePreParams(10 * time.Minute)
 		if err != nil {
@@ -105,16 +129,18 @@ func Run(args []string) bool {
 		fmt.Println("Pub: " + hexutil.Encode(elliptic.Marshal(secp256k1.S256(), keypair.X, keypair.Y)))
 		fmt.Println("Prv: " + hexutil.Encode(keypair.D.Bytes()))
 	case migrateUpCmd.FullCommand():
+		cfg := config.New(kv.MustFromEnv())
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():
+		cfg := config.New(kv.MustFromEnv())
 		err = MigrateDown(cfg)
 	default:
-		log.Errorf("unknown command %s", cmd)
+		logan.New().Errorf("unknown command %s", cmd)
 		return false
 	}
 
 	if err != nil {
-		log.WithError(err).Error("failed to exec cmd")
+		logan.New().WithError(err).Error("failed to exec cmd")
 		return false
 	}
 	return true
@@ -129,7 +155,7 @@ func profiling() {
 	r.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	r.Handle("/metrics", promhttp.Handler())
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", r); err != nil {
 		panic(err)
 	}
 }

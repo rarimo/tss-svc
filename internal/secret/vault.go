@@ -22,11 +22,8 @@ const (
 	preKey     = "pre"
 	accountKey = "account"
 	trialKey   = "trial"
+	enableTLS  = "tls"
 )
-
-// VaultStorage implements singleton pattern
-var vaultStorage *VaultStorage
-var once sync.Once
 
 type VaultStorage struct {
 	once     sync.Once
@@ -38,15 +35,11 @@ type VaultStorage struct {
 }
 
 func NewVaultStorage(cfg config.Config) *VaultStorage {
-	once.Do(func() {
-		vaultStorage = &VaultStorage{
-			client: cfg.Vault(),
-			log:    cfg.Log(),
-			path:   os.Getenv(config.VaultSecretPath),
-		}
-	})
-
-	return vaultStorage
+	return &VaultStorage{
+		client: cfg.Vault(),
+		log:    cfg.Log(),
+		path:   os.Getenv(config.VaultSecretPath),
+	}
 }
 
 // Implements Storage interface
@@ -113,5 +106,11 @@ func (v *VaultStorage) loadSecret() (*TssSecret, error) {
 		prv, _ = crypto.ToECDSA(prvBytes)
 	}
 
-	return NewTssSecret(prv, account, data, pre), nil
+	tls := false
+
+	if enableI, ok := v.kvSecret.Data[enableTLS]; ok {
+		tls = enableI.(bool)
+	}
+
+	return NewTssSecret(prv, account, data, pre, tls), nil
 }

@@ -18,10 +18,6 @@ var (
 	ErrOpShouldBeApproved = errors.New("operation should be approved")
 )
 
-// Pool implements singleton pattern
-var pool *Pool
-var once sync.Once
-
 // Pool represents the pool of operation to be signed by tss protocol.
 // It should take care about collecting validated state with unsigned operations only.
 type Pool struct {
@@ -34,24 +30,13 @@ type Pool struct {
 	index    map[string]struct{}
 }
 
-// NewPool returns new Pool but only once because Pool implements the singleton pattern for simple usage as
-// the same instance in all injections.
 func NewPool(cfg config.Config) *Pool {
-	once.Do(func() {
-		pool = &Pool{
-			rarimo:   cfg.Cosmos(),
-			log:      cfg.Log(),
-			rawOrder: make(chan string, poolSz),
-			index:    make(map[string]struct{}),
-		}
-	})
-
-	return pool
-}
-
-// GetPool returns existing instance of pool. Be aware to initialize it before using that function.
-func GetPool() *Pool {
-	return pool
+	return &Pool{
+		rarimo:   cfg.Cosmos(),
+		log:      cfg.Log(),
+		rawOrder: make(chan string, poolSz),
+		index:    make(map[string]struct{}),
+	}
 }
 
 // Add will add operation index to the pool with signed flag check.

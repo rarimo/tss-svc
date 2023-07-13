@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	goerr "errors"
 	"sync"
 
@@ -17,7 +18,7 @@ var (
 type ISession interface {
 	ID() uint64
 	End() uint64
-	Receive(request *types.MsgSubmitRequest) error
+	Receive(ctx context.Context, request *types.MsgSubmitRequest) error
 	// NewBlock is a receiver for timer.Timer
 	NewBlock(height uint64)
 	NextSession() ISession
@@ -41,13 +42,13 @@ func (s *SessionManager) AddSession(sessionType types.SessionType, session ISess
 	s.sessions[sessionType] = session
 }
 
-func (s *SessionManager) Receive(request *types.MsgSubmitRequest) error {
+func (s *SessionManager) Receive(ctx context.Context, request *types.MsgSubmitRequest) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if session, ok := s.sessions[request.SessionType]; ok && session != nil {
 		if session.ID() == request.Id {
-			return session.Receive(request)
+			return session.Receive(ctx, request)
 		}
 
 		return ErrInvalidSessionID
