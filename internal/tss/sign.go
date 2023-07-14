@@ -93,7 +93,6 @@ func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []by
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
 		_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 		if err != nil {
-			p.log.WithError(err).Debug("Error updating party")
 			return err
 		}
 		logPartyStatus(p.log, p.party, p.secret.AccountAddress())

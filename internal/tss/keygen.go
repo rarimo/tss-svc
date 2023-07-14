@@ -61,7 +61,6 @@ func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
 		_, err := k.party.UpdateFromBytes(details, k.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 		if err != nil {
-			k.log.WithError(err).Debug("Error updating party")
 			return err
 		}
 		logPartyStatus(k.log, k.party, k.secret.AccountAddress())

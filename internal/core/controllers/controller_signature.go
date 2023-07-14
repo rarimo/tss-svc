@@ -60,12 +60,12 @@ func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmi
 		return nil
 	}
 
-	go func() {
-		if err := s.party.Receive(sender, request.IsBroadcast, sign.Details.Value); err != nil {
-			// can be done without lock: no remove or change operation exist, only add
-			s.data.Offenders[sender.Account] = struct{}{}
-		}
-	}()
+	if err := s.party.Receive(sender, request.IsBroadcast, sign.Details.Value); err != nil {
+		ctx := core.WrapCtx(c)
+		ctx.Log().WithError(err).Error("failed to receive request on party")
+		// can be done without lock: no remove or change operation exist, only add
+		s.data.Offenders[sender.Account] = struct{}{}
+	}
 
 	return nil
 }
