@@ -89,13 +89,14 @@ func (p *SignParty) Data() string {
 
 func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
 	if p.party != nil {
-		p.log.Debugf("Received signing request from %s id: %d", sender.Account, p.id)
+		p.log.Debugf("Processing signing request from %s", sender.Account)
 		_, data, _ := bech32.DecodeAndConvert(sender.Account)
 		_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
 		if err != nil {
 			return err
 		}
 		logPartyStatus(p.log, p.party, p.secret.AccountAddress())
+		p.log.Debugf("Finished processing signing request from %s", sender.Account)
 	}
 
 	return nil
@@ -168,8 +169,13 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				party, _ := p.parties[receiver.Id]
 
 				if party.Account == p.secret.AccountAddress() {
-					p.log.Debug("Sending to self")
-					go p.Receive(party, msg.IsBroadcast(), request.Details.Value)
+					p.log.Debugf("Sending to self (%s)", party.Account)
+					go func() {
+						if err := p.Receive(party, msg.IsBroadcast(), request.Details.Value); err != nil {
+							p.log.WithError(err).Error("error submitting request to self")
+						}
+					}()
+
 					continue
 				}
 

@@ -36,10 +36,14 @@ var _ IController = &SignatureController{}
 // Receive accepts the signature requests  from other parties and delivers it to the `tss.SignParty.
 // If sender is not present in current signers set request will not be accepted.
 func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmitRequest) error {
+	ctx := core.WrapCtx(c)
+
 	sender, err := s.auth.Auth(request)
 	if err != nil {
 		return err
 	}
+
+	ctx.Log().Infof("Received sign request from %s", sender.Account)
 
 	if _, ok := s.data.Signers[sender.Account]; !ok {
 		s.data.Offenders[sender.Account] = struct{}{}
@@ -56,12 +60,12 @@ func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmi
 	}
 
 	if sign.Data != s.party.Data() {
+		ctx.Log().Debugf("Received sign data  from %s does not corresponds required one", sender.Account)
 		s.data.Offenders[sender.Account] = struct{}{}
 		return nil
 	}
 
 	if err := s.party.Receive(sender, request.IsBroadcast, sign.Details.Value); err != nil {
-		ctx := core.WrapCtx(c)
 		ctx.Log().WithError(err).Error("failed to receive request on party")
 		// can be done without lock: no remove or change operation exist, only add
 		s.data.Offenders[sender.Account] = struct{}{}
