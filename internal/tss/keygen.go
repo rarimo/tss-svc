@@ -155,12 +155,9 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 
 				if party.Account == k.secret.AccountAddress() {
 					k.log.Debugf("Sending to self (%s)", party.Account)
-					go func() {
-						if err := k.Receive(party, msg.IsBroadcast(), details.Value); err != nil {
-							k.log.WithError(err).Error("error submitting request to self")
-						}
-					}()
-
+					if err := k.Receive(party, msg.IsBroadcast(), details.Value); err != nil {
+						k.log.WithError(err).Error("error submitting request to self")
+					}
 					continue
 				}
 
