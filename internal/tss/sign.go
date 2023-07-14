@@ -182,11 +182,9 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				receivers = append(receivers, party)
 			}
 
-			go func() {
-				if failed := p.con.SubmitToWithReport(ctx, p.core, request, receivers...); len(failed) != 0 {
-					p.con.SubmitToWithReport(ctx, p.core, request, failed...)
-				}
-			}()
+			if failed := p.con.SubmitToWithReport(ctx, p.core, request, receivers...); len(failed) != 0 {
+				p.con.SubmitToWithReport(ctx, p.core, request, failed...)
+			}
 		}
 	}
 }

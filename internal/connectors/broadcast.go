@@ -56,33 +56,33 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 
 	for _, party := range parties {
 		if party.Account != b.sc.AccountAddress() {
-			go func(to rarimo.Party) {
-				b.log.Debugf("Sending message to: %s, addr: %s", to.Account, to.Address)
-				if _, err := b.Submit(ctx, &to, request); err != nil {
-					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", to.Account, to.Address)
+			b.log.Debugf("Sending message to: %s, addr: %s", party.Account, party.Address)
+			if _, err := b.Submit(ctx, party, request); err != nil {
+				b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", party.Account, party.Address)
 
-					// check that party returned an error
-					if st, ok := status.FromError(err); ok && st.Code() == codes.InvalidArgument {
-						func() {
-							failed.mu.Lock()
-							defer failed.mu.Unlock()
-							failed.arr = append(failed.arr, &to)
-						}()
-						return
-					}
-
-					if err := coreCon.SubmitReport(
-						request.Id,
-						rarimo.ViolationType_Offline,
-						to.Account,
-						fmt.Sprintf("Party was offline when tried to submit %s request", request.Type),
-					); err != nil {
-						b.log.WithError(err).Errorf("Error submitting violation report for party: %s", party.Account)
-					}
+				// check that party returned an error
+				if st, ok := status.FromError(err); ok && st.Code() == codes.InvalidArgument {
+					func() {
+						failed.mu.Lock()
+						defer failed.mu.Unlock()
+						failed.arr = append(failed.arr, party)
+					}()
+					continue
 				}
 
-				b.log.Debugf("Successfully sent message to: %s, addr: %s", to.Account, to.Address)
-			}(*party)
+				if err := coreCon.SubmitReport(
+					request.Id,
+					rarimo.ViolationType_Offline,
+					party.Account,
+					fmt.Sprintf("Party was offline when tried to submit %s request", request.Type),
+				); err != nil {
+					b.log.WithError(err).Errorf("Error submitting violation report for party: %s", party.Account)
+				}
+
+				continue
+			}
+
+			b.log.Debugf("Successfully sent message to: %s, addr: %s", party.Account, party.Address)
 		}
 	}
 

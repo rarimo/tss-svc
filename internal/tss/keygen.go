@@ -167,11 +167,9 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 				receivers = append(receivers, party)
 			}
 
-			go func() {
-				if failed := k.con.SubmitToWithReport(ctx, k.core, request, receivers...); len(failed) != 0 {
-					k.con.SubmitToWithReport(ctx, k.core, request, failed...)
-				}
-			}()
+			if failed := k.con.SubmitToWithReport(ctx, k.core, request, receivers...); len(failed) != 0 {
+				k.con.SubmitToWithReport(ctx, k.core, request, failed...)
+			}
 		}
 	}
 }

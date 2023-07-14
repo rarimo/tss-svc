@@ -33,7 +33,7 @@ type SignatureController struct {
 // Implements IController interface
 var _ IController = &SignatureController{}
 
-// Receive accepts the signature requests  from other parties and delivers it to the `tss.SignParty.
+// Receive accepts the signature requests from other parties and delivers it to the `tss.SignParty.
 // If sender is not present in current signers set request will not be accepted.
 func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmitRequest) error {
 	ctx := core.WrapCtx(c)
@@ -60,7 +60,7 @@ func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmi
 	}
 
 	if sign.Data != s.party.Data() {
-		ctx.Log().Debugf("Received sign data  from %s does not corresponds required one", sender.Account)
+		ctx.Log().Debugf("Received sign data from %s does not corresponds required one", sender.Account)
 		s.data.Offenders[sender.Account] = struct{}{}
 		return nil
 	}
