@@ -6,6 +6,12 @@ import (
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 )
 
+type waitingMessage struct {
+	sender      *rarimo.Party
+	isBroadcast bool
+	details     []byte
+}
+
 func partiesByAccountMapping(parties []*rarimo.Party) map[string]*rarimo.Party {
 	pmap := make(map[string]*rarimo.Party)
 	for _, p := range parties {

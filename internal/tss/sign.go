@@ -20,14 +20,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-type waitingMessage struct {
-	sender      *rarimo.Party
-	isBroadcast bool
-	details     []byte
-}
-
-const waitingCap = 100
-
 type SignParty struct {
 	wg *sync.WaitGroup
 
@@ -59,7 +51,7 @@ func NewSignParty(data string, id uint64, sessionType types.SessionType, parties
 		core:     coreCon,
 		data:     data,
 		id:       id,
-		waiting:  make(chan waitingMessage, waitingCap),
+		waiting:  make(chan waitingMessage, WaitingCap),
 	}
 }
 
