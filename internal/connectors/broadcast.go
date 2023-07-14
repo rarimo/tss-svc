@@ -47,6 +47,8 @@ func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSu
 func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *CoreConnector, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
 	request.SessionType = b.sessionType
 
+	b.log.Debugf("Broadcasting message %s to %v", request.String(), parties)
+
 	failed := struct {
 		mu  sync.Mutex
 		arr []*rarimo.Party

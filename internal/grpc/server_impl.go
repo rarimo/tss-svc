@@ -72,6 +72,8 @@ func (s *ServerImpl) RunGateway() error {
 var _ types.ServiceServer = &ServerImpl{}
 
 func (s *ServerImpl) Submit(ctx context.Context, request *types.MsgSubmitRequest) (*types.MsgSubmitResponse, error) {
+	s.log.Debugf("Got new request %s", request.String())
+
 	if err := s.manager.Receive(ctx, request); err != nil {
 		s.log.WithError(err).Error("failed to receive message")
 		return nil, status.Errorf(codes.InvalidArgument, err.Error())
