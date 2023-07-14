@@ -56,8 +56,8 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 
 	for _, party := range parties {
 		if party.Account != b.sc.AccountAddress() {
-			go func(to *rarimo.Party) {
-				if _, err := b.Submit(ctx, to, request); err != nil {
+			go func(to rarimo.Party) {
+				if _, err := b.Submit(ctx, &to, request); err != nil {
 					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", to.Account, to.Address)
 
 					// check that party returned an error
@@ -65,7 +65,7 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 						func() {
 							failed.mu.Lock()
 							defer failed.mu.Unlock()
-							failed.arr = append(failed.arr, to)
+							failed.arr = append(failed.arr, &to)
 						}()
 						return
 					}
@@ -79,7 +79,7 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 						b.log.WithError(err).Errorf("Error submitting violation report for party: %s", party.Account)
 					}
 				}
-			}(party)
+			}(*party)
 		}
 	}
 
@@ -99,16 +99,16 @@ func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSub
 
 	for _, party := range parties {
 		if party.Account != b.sc.AccountAddress() {
-			go func(to *rarimo.Party) {
-				if _, err := b.Submit(ctx, to, request); err != nil {
+			go func(to rarimo.Party) {
+				if _, err := b.Submit(ctx, &to, request); err != nil {
 					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", to.Account, to.Address)
 					func() {
 						failed.mu.Lock()
 						defer failed.mu.Unlock()
-						failed.arr = append(failed.arr, to)
+						failed.arr = append(failed.arr, &to)
 					}()
 				}
-			}(party)
+			}(*party)
 		}
 	}
 
