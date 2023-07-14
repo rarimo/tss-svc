@@ -171,7 +171,7 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				if party.Account == p.secret.AccountAddress() {
 					p.log.Debugf("Sending to self (%s)", party.Account)
 					go func() {
-						if err := p.Receive(party, msg.IsBroadcast(), request.Details.Value); err != nil {
+						if err := p.Receive(party, msg.IsBroadcast(), details.Value); err != nil {
 							p.log.WithError(err).Error("error submitting request to self")
 						}
 					}()
