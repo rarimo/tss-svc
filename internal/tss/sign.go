@@ -20,6 +20,14 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+type waitingMessage struct {
+	sender      *rarimo.Party
+	isBroadcast bool
+	details     []byte
+}
+
+const waitingCap = 100
+
 type SignParty struct {
 	wg *sync.WaitGroup
 
@@ -36,6 +44,8 @@ type SignParty struct {
 	data   string
 	id     uint64
 	result *common.SignatureData
+
+	waiting chan waitingMessage
 }
 
 func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, coreCon *connectors.CoreConnector, log *logan.Entry) *SignParty {
@@ -49,6 +59,7 @@ func NewSignParty(data string, id uint64, sessionType types.SessionType, parties
 		core:     coreCon,
 		data:     data,
 		id:       id,
+		waiting:  make(chan waitingMessage, waitingCap),
 	}
 }
 
@@ -89,17 +100,53 @@ func (p *SignParty) Data() string {
 
 func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
 	if p.party != nil {
-		p.log.Debugf("Processing signing request from %s", sender.Account)
-		_, data, _ := bech32.DecodeAndConvert(sender.Account)
-		_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
-		if err != nil {
-			return err
-		}
-		logPartyStatus(p.log, p.party, p.secret.AccountAddress())
-		p.log.Debugf("Finished processing signing request from %s", sender.Account)
+		p.receiveWaiting()
+		return p.receive(sender, isBroadcast, details)
 	}
 
+	p.pushToWaiting(sender, isBroadcast, details)
 	return nil
+}
+
+func (p *SignParty) receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
+	p.log.Debugf("Processing signing request from %s", sender.Account)
+	_, data, _ := bech32.DecodeAndConvert(sender.Account)
+	_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
+	if err != nil {
+		return err
+	}
+	logPartyStatus(p.log, p.party, p.secret.AccountAddress())
+	p.log.Debugf("Finished processing signing request from %s", sender.Account)
+
+	return nil
+}
+
+func (p *SignParty) receiveWaiting() {
+	if len(p.waiting) == 0 {
+		return
+	}
+
+	p.log.Debug("Processing waiting messages")
+
+	for {
+		select {
+		case msg := <-p.waiting:
+			if err := p.receive(msg.sender, msg.isBroadcast, msg.details); err != nil {
+				p.log.WithError(err).Error("failed to receive waiting message")
+			}
+		default:
+			return
+		}
+	}
+}
+
+func (p *SignParty) pushToWaiting(sender *rarimo.Party, isBroadcast bool, details []byte) {
+	p.log.Debug("Message will be pushed to the waiting queue")
+	p.waiting <- waitingMessage{
+		sender:      sender,
+		isBroadcast: isBroadcast,
+		details:     details,
+	}
 }
 
 func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
