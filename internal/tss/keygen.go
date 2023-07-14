@@ -149,9 +149,10 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 				to = k.partyIds
 			}
 
-			for _, to := range to {
-				k.log.Debugf("Sending message to %s", to.Id)
-				party, _ := k.parties[to.Id]
+			receivers := make([]*rarimo.Party, 0, len(to))
+
+			for _, receiver := range to {
+				party, _ := k.parties[receiver.Id]
 
 				if party.Account == k.secret.AccountAddress() {
 					k.log.Debug("Sending to self")
@@ -159,12 +160,14 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 					continue
 				}
 
-				go func() {
-					if failed := k.con.SubmitToWithReport(ctx, k.core, request, party); len(failed) != 0 {
-						k.con.SubmitToWithReport(ctx, k.core, request, party)
-					}
-				}()
+				receivers = append(receivers, party)
 			}
+
+			go func() {
+				if failed := k.con.SubmitToWithReport(ctx, k.core, request, receivers...); len(failed) != 0 {
+					k.con.SubmitToWithReport(ctx, k.core, request, failed...)
+				}
+			}()
 		}
 	}
 }

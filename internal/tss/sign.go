@@ -163,22 +163,25 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				to = p.partyIds
 			}
 
-			for _, to := range to {
-				p.log.Debugf("Sending message to %s", to.Id)
-				party, _ := p.parties[to.Id]
+			receivers := make([]*rarimo.Party, 0, len(to))
+
+			for _, receiver := range to {
+				party, _ := p.parties[receiver.Id]
 
 				if party.Account == p.secret.AccountAddress() {
 					p.log.Debug("Sending to self")
-					go p.Receive(party, msg.IsBroadcast(), details.Value)
+					go p.Receive(party, msg.IsBroadcast(), request.Details.Value)
 					continue
 				}
 
-				go func() {
-					if failed := p.con.SubmitToWithReport(ctx, p.core, request, party); len(failed) != 0 {
-						p.con.SubmitToWithReport(ctx, p.core, request, party)
-					}
-				}()
+				receivers = append(receivers, party)
 			}
+
+			go func() {
+				if failed := p.con.SubmitToWithReport(ctx, p.core, request, receivers...); len(failed) != 0 {
+					p.con.SubmitToWithReport(ctx, p.core, request, failed...)
+				}
+			}()
 		}
 	}
 }

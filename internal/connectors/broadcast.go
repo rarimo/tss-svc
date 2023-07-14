@@ -57,6 +57,7 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 	for _, party := range parties {
 		if party.Account != b.sc.AccountAddress() {
 			go func(to rarimo.Party) {
+				b.log.Debugf("Sending message to: %s, addr: %s", to.Account, to.Address)
 				if _, err := b.Submit(ctx, &to, request); err != nil {
 					b.log.WithError(err).Errorf("Error submitting request to party: %s addr: %s", to.Account, to.Address)
 
@@ -79,6 +80,8 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 						b.log.WithError(err).Errorf("Error submitting violation report for party: %s", party.Account)
 					}
 				}
+
+				b.log.Debugf("Successfully sent message to: %s, addr: %s", to.Account, to.Address)
 			}(*party)
 		}
 	}
