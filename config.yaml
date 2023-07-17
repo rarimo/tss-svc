@@ -21,3 +21,7 @@ session:
 swagger:
   addr: :1313
   enabled: true
+
+chain:
+  chain_id: ""
+  coin_name: ""

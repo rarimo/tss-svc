@@ -21,6 +21,7 @@ type Config interface {
 	Session() *SessionInfo
 	Vault() *vault.KVv2
 	Swagger() *SwaggerInfo
+	ChainParams() *ChainParams
 }
 
 type config struct {
@@ -35,6 +36,7 @@ type config struct {
 	private    comfig.Once
 	vault      comfig.Once
 	swagger    comfig.Once
+	chain      comfig.Once
 
 	getter kv.Getter
 }

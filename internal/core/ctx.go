@@ -91,7 +91,7 @@ func Initialize(cfg config.Config) {
 	SetInRegistry(ReshareSessionContextKey, ClientKey, cfg.Cosmos())
 	SetInRegistry(KeygenSessionContextKey, ClientKey, cfg.Cosmos())
 
-	core := connectors.NewCoreConnector(cfg.Cosmos(), secret.GetTssSecret(), cfg.Log())
+	core := connectors.NewCoreConnector(cfg.Cosmos(), secret.GetTssSecret(), cfg.Log(), cfg.ChainParams())
 	SetInRegistry(GlobalContextKey, CoreKey, core)
 	SetInRegistry(DefaultSessionContextKey, CoreKey, core)
 	SetInRegistry(ReshareSessionContextKey, CoreKey, core)

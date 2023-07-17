@@ -18,13 +18,12 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	ethermint "gitlab.com/rarimo/rarimo-core/ethermint/types"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"google.golang.org/grpc"
 )
 
 const (
-	chainId       = "rarimo_42-1"
-	coinName      = "stake"
 	successTxCode = 0
 	minGasPrice   = 1
 	gasLimit      = 1_000_000
@@ -36,15 +35,19 @@ type CoreConnector struct {
 	auth     authtypes.QueryClient
 	txConfig sdkclient.TxConfig
 	secret   *secret.TssSecret
+	chainId  string
+	coin     string
 	log      *logan.Entry
 }
 
-func NewCoreConnector(cli *grpc.ClientConn, secret *secret.TssSecret, log *logan.Entry) *CoreConnector {
+func NewCoreConnector(cli *grpc.ClientConn, secret *secret.TssSecret, log *logan.Entry, params *config.ChainParams) *CoreConnector {
 	return &CoreConnector{
 		txclient: client.NewServiceClient(cli),
 		auth:     authtypes.NewQueryClient(cli),
 		txConfig: tx.NewTxConfig(codec.NewProtoCodec(codectypes.NewInterfaceRegistry()), []signing.SignMode{signing.SignMode_SIGN_MODE_DIRECT}),
 		secret:   secret,
+		chainId:  params.ChainId,
+		coin:     params.CoinName,
 		log:      log,
 	}
 }
@@ -94,7 +97,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	}
 
 	builder.SetGasLimit(gasLimit)
-	builder.SetFeeAmount(types.Coins{types.NewInt64Coin(coinName, int64(gasLimit*minGasPrice))})
+	builder.SetFeeAmount(types.Coins{types.NewInt64Coin(c.coin, int64(gasLimit*minGasPrice))})
 
 	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.secret.AccountAddress()})
 	if err != nil {
@@ -120,7 +123,7 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	}
 
 	signerData := xauthsigning.SignerData{
-		ChainID:       chainId,
+		ChainID:       c.chainId,
 		AccountNumber: account.AccountNumber,
 		Sequence:      account.Sequence,
 	}
