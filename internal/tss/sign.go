@@ -36,6 +36,8 @@ type SignParty struct {
 	data   string
 	id     uint64
 	result *common.SignatureData
+
+	waiting chan waitingMessage
 }
 
 func NewSignParty(data string, id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, coreCon *connectors.CoreConnector, log *logan.Entry) *SignParty {
@@ -49,6 +51,7 @@ func NewSignParty(data string, id uint64, sessionType types.SessionType, parties
 		core:     coreCon,
 		data:     data,
 		id:       id,
+		waiting:  make(chan waitingMessage, WaitingCap),
 	}
 }
 
@@ -89,17 +92,53 @@ func (p *SignParty) Data() string {
 
 func (p *SignParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
 	if p.party != nil {
-		p.log.Debugf("Received signing request from %s id: %d", sender.Account, p.id)
-		_, data, _ := bech32.DecodeAndConvert(sender.Account)
-		_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
-		if err != nil {
-			p.log.WithError(err).Debug("Error updating party")
-			return err
-		}
-		logPartyStatus(p.log, p.party, p.secret.AccountAddress())
+		p.receiveWaiting()
+		return p.receive(sender, isBroadcast, details)
 	}
 
+	p.pushToWaiting(sender, isBroadcast, details)
 	return nil
+}
+
+func (p *SignParty) receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
+	p.log.Debugf("Processing signing request from %s", sender.Account)
+	_, data, _ := bech32.DecodeAndConvert(sender.Account)
+	_, err := p.party.UpdateFromBytes(details, p.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
+	if err != nil {
+		return err
+	}
+	logPartyStatus(p.log, p.party, p.secret.AccountAddress())
+	p.log.Debugf("Finished processing signing request from %s", sender.Account)
+
+	return nil
+}
+
+func (p *SignParty) receiveWaiting() {
+	if len(p.waiting) == 0 {
+		return
+	}
+
+	p.log.Debug("Processing waiting messages")
+
+	for {
+		select {
+		case msg := <-p.waiting:
+			if err := p.receive(msg.sender, msg.isBroadcast, msg.details); err != nil {
+				p.log.WithError(err).Error("failed to receive waiting message")
+			}
+		default:
+			return
+		}
+	}
+}
+
+func (p *SignParty) pushToWaiting(sender *rarimo.Party, isBroadcast bool, details []byte) {
+	p.log.Debug("Message will be pushed to the waiting queue")
+	p.waiting <- waitingMessage{
+		sender:      sender,
+		isBroadcast: isBroadcast,
+		details:     details,
+	}
 }
 
 func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
@@ -163,21 +202,25 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 				to = p.partyIds
 			}
 
-			for _, to := range to {
-				p.log.Debugf("Sending message to %s", to.Id)
-				party, _ := p.parties[to.Id]
+			receivers := make([]*rarimo.Party, 0, len(to))
+
+			for _, receiver := range to {
+				party, _ := p.parties[receiver.Id]
 
 				if party.Account == p.secret.AccountAddress() {
-					p.log.Debug("Sending to self")
-					go p.Receive(party, msg.IsBroadcast(), details.Value)
+					p.log.Debugf("Sending to self (%s)", party.Account)
+					if err := p.Receive(party, msg.IsBroadcast(), details.Value); err != nil {
+						p.log.WithError(err).Error("error submitting request to self")
+					}
+
 					continue
 				}
 
-				go func() {
-					if failed := p.con.SubmitToWithReport(ctx, p.core, request, party); len(failed) != 0 {
-						p.con.SubmitToWithReport(ctx, p.core, request, party)
-					}
-				}()
+				receivers = append(receivers, party)
+			}
+
+			if failed := p.con.SubmitToWithReport(ctx, p.core, request, receivers...); len(failed) != 0 {
+				p.con.SubmitToWithReport(ctx, p.core, request, failed...)
 			}
 		}
 	}

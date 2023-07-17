@@ -46,12 +46,12 @@ func (k *KeygenController) Receive(c context.Context, request *types.MsgSubmitRe
 		return ErrInvalidRequestType
 	}
 
-	go func() {
-		if err := k.party.Receive(sender, request.IsBroadcast, request.Details.Value); err != nil {
-			// can be done without lock: no remove or change operation exist, only add
-			k.data.Offenders[sender.Account] = struct{}{}
-		}
-	}()
+	if err := k.party.Receive(sender, request.IsBroadcast, request.Details.Value); err != nil {
+		ctx := core.WrapCtx(c)
+		ctx.Log().WithError(err).Error("failed to receive request on party")
+		// can be done without lock: no remove or change operation exist, only add
+		k.data.Offenders[sender.Account] = struct{}{}
+	}
 
 	return nil
 }

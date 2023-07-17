@@ -36,6 +36,8 @@ type KeygenParty struct {
 
 	id     uint64
 	result *keygen.LocalPartySaveData
+
+	waiting chan waitingMessage
 }
 
 func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.Party, secret *secret.TssSecret, coreCon *connectors.CoreConnector, log *logan.Entry) *KeygenParty {
@@ -48,6 +50,7 @@ func NewKeygenParty(id uint64, sessionType types.SessionType, parties []*rarimo.
 		secret:   secret,
 		con:      connectors.NewBroadcastConnector(sessionType, parties, secret, log),
 		core:     coreCon,
+		waiting:  make(chan waitingMessage, WaitingCap),
 	}
 }
 
@@ -57,15 +60,24 @@ func (k *KeygenParty) Result() *keygen.LocalPartySaveData {
 
 func (k *KeygenParty) Receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
 	if k.party != nil {
-		k.log.Debugf("Received keygen request from %s", sender.Account)
-		_, data, _ := bech32.DecodeAndConvert(sender.Account)
-		_, err := k.party.UpdateFromBytes(details, k.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
-		if err != nil {
-			k.log.WithError(err).Debug("Error updating party")
-			return err
-		}
-		logPartyStatus(k.log, k.party, k.secret.AccountAddress())
+		k.receiveWaiting()
+		return k.receive(sender, isBroadcast, details)
 	}
+
+	k.pushToWaiting(sender, isBroadcast, details)
+
+	return nil
+}
+
+func (k *KeygenParty) receive(sender *rarimo.Party, isBroadcast bool, details []byte) error {
+	k.log.Debugf("Received keygen request from %s", sender.Account)
+	_, data, _ := bech32.DecodeAndConvert(sender.Account)
+	_, err := k.party.UpdateFromBytes(details, k.partyIds.FindByKey(new(big.Int).SetBytes(data)), isBroadcast)
+	if err != nil {
+		return err
+	}
+	logPartyStatus(k.log, k.party, k.secret.AccountAddress())
+	k.log.Debugf("Finished processing keygen request from %s", sender.Account)
 
 	return nil
 }
@@ -96,6 +108,34 @@ func (k *KeygenParty) WaitFor() {
 	k.log.Debug("Waiting for finishing keygen party group")
 	k.wg.Wait()
 	k.log.Debug("Keygen party group finished")
+}
+
+func (k *KeygenParty) receiveWaiting() {
+	if len(k.waiting) == 0 {
+		return
+	}
+
+	k.log.Debug("Processing waiting messages")
+
+	for {
+		select {
+		case msg := <-k.waiting:
+			if err := k.receive(msg.sender, msg.isBroadcast, msg.details); err != nil {
+				k.log.WithError(err).Error("failed to receive waiting message")
+			}
+		default:
+			return
+		}
+	}
+}
+
+func (k *KeygenParty) pushToWaiting(sender *rarimo.Party, isBroadcast bool, details []byte) {
+	k.log.Debug("Message will be pushed to the waiting queue")
+	k.waiting <- waitingMessage{
+		sender:      sender,
+		isBroadcast: isBroadcast,
+		details:     details,
+	}
 }
 
 func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveData) {
@@ -149,21 +189,24 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 				to = k.partyIds
 			}
 
-			for _, to := range to {
-				k.log.Debugf("Sending message to %s", to.Id)
-				party, _ := k.parties[to.Id]
+			receivers := make([]*rarimo.Party, 0, len(to))
+
+			for _, receiver := range to {
+				party, _ := k.parties[receiver.Id]
 
 				if party.Account == k.secret.AccountAddress() {
-					k.log.Debug("Sending to self")
-					go k.Receive(party, msg.IsBroadcast(), request.Details.Value)
+					k.log.Debugf("Sending to self (%s)", party.Account)
+					if err := k.Receive(party, msg.IsBroadcast(), details.Value); err != nil {
+						k.log.WithError(err).Error("error submitting request to self")
+					}
 					continue
 				}
 
-				go func() {
-					if failed := k.con.SubmitToWithReport(ctx, k.core, request, party); len(failed) != 0 {
-						k.con.SubmitToWithReport(ctx, k.core, request, party)
-					}
-				}()
+				receivers = append(receivers, party)
+			}
+
+			if failed := k.con.SubmitToWithReport(ctx, k.core, request, receivers...); len(failed) != 0 {
+				k.con.SubmitToWithReport(ctx, k.core, request, failed...)
 			}
 		}
 	}
