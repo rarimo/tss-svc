@@ -97,8 +97,8 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 		return err
 	}
 
-	gasLimit := approximate(gasUsed)
-	feeAmount := getFeeAmount(gasLimit)
+	gasLimit := ApproximateGasLimit(gasUsed)
+	feeAmount := GetFeeAmount(gasLimit)
 
 	tx, err = c.build(gasLimit, feeAmount, msgs...)
 	if err != nil {
@@ -137,6 +137,10 @@ func (c *CoreConnector) simulate(tx []byte) (gasUsed uint64, gasWanted uint64, e
 			TxBytes: tx,
 		},
 	)
+
+	if err != nil {
+		return 0, 0, err
+	}
 
 	return simResp.GasInfo.GasUsed, simResp.GasInfo.GasWanted, err
 }
@@ -191,13 +195,4 @@ func (c *CoreConnector) build(gasLimit, feeAmount uint64, msgs ...sdk.Msg) ([]by
 	}
 
 	return c.txConfig.TxEncoder()(builder.GetTx())
-}
-
-func approximate(gasUsed uint64) uint64 {
-	return uint64(float64(gasUsed) * 1.5)
-}
-
-// TODO move to the configs in future
-func getFeeAmount(gasLimit uint64) uint64 {
-	return uint64(float64(gasLimit) / 2.0)
 }
