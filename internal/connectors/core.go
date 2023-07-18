@@ -7,7 +7,6 @@ import (
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	client "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
@@ -25,8 +24,6 @@ import (
 
 const (
 	successTxCode = 0
-	minGasPrice   = 1
-	gasLimit      = 1_000_000
 )
 
 // CoreConnector submits signed confirmations to the rarimo core
@@ -90,59 +87,28 @@ func (c *CoreConnector) SubmitReport(sessionId uint64, typ rarimo.ViolationType,
 }
 
 func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
-	builder := c.txConfig.NewTxBuilder()
-	err := builder.SetMsgs(msgs...)
+	tx, err := c.build(0, 0, msgs...)
 	if err != nil {
 		return err
 	}
 
-	builder.SetGasLimit(gasLimit)
-	builder.SetFeeAmount(types.Coins{types.NewInt64Coin(c.coin, int64(gasLimit*minGasPrice))})
-
-	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.secret.AccountAddress()})
-	if err != nil {
-		panic(err)
-	}
-
-	account := ethermint.EthAccount{}
-	err = account.Unmarshal(accountResp.Account.Value)
-	if err != nil {
-		panic(err)
-	}
-
-	err = builder.SetSignatures(signing.SignatureV2{
-		PubKey: c.secret.AccountPubKey(),
-		Data: &signing.SingleSignatureData{
-			SignMode:  c.txConfig.SignModeHandler().DefaultMode(),
-			Signature: nil,
-		},
-		Sequence: account.Sequence,
-	})
+	gasUsed, _, err := c.simulate(tx)
 	if err != nil {
 		return err
 	}
 
-	signerData := xauthsigning.SignerData{
-		ChainID:       c.chainId,
-		AccountNumber: account.AccountNumber,
-		Sequence:      account.Sequence,
-	}
+	gasLimit := approximate(gasUsed)
+	feeAmount := getFeeAmount(gasLimit)
 
-	sigV2, err := c.secret.SignTransaction(c.txConfig, signerData, builder, account.BaseAccount)
+	tx, err = c.build(gasLimit, feeAmount, msgs...)
 	if err != nil {
 		return err
 	}
 
-	err = builder.SetSignatures(sigV2)
-	if err != nil {
-		return err
-	}
+	return c.submit(tx)
+}
 
-	tx, err := c.txConfig.TxEncoder()(builder.GetTx())
-	if err != nil {
-		return err
-	}
-
+func (c *CoreConnector) submit(tx []byte) error {
 	grpcRes, err := c.txclient.BroadcastTx(
 		context.TODO(),
 		&client.BroadcastTxRequest{
@@ -162,4 +128,76 @@ func (c *CoreConnector) Submit(msgs ...sdk.Msg) error {
 	}
 
 	return nil
+}
+
+func (c *CoreConnector) simulate(tx []byte) (gasUsed uint64, gasWanted uint64, err error) {
+	simResp, err := c.txclient.Simulate(context.TODO(),
+		&client.SimulateRequest{
+			Tx:      nil,
+			TxBytes: tx,
+		},
+	)
+
+	return simResp.GasInfo.GasUsed, simResp.GasInfo.GasWanted, err
+}
+
+func (c *CoreConnector) build(gasLimit, feeAmount uint64, msgs ...sdk.Msg) ([]byte, error) {
+	builder := c.txConfig.NewTxBuilder()
+	err := builder.SetMsgs(msgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	accountResp, err := c.auth.Account(context.TODO(), &authtypes.QueryAccountRequest{Address: c.secret.AccountAddress()})
+	if err != nil {
+		panic(err)
+	}
+
+	account := ethermint.EthAccount{}
+	err = account.Unmarshal(accountResp.Account.Value)
+	if err != nil {
+		panic(err)
+	}
+
+	builder.SetGasLimit(gasLimit)
+	builder.SetFeeAmount(sdk.Coins{sdk.NewInt64Coin(c.coin, int64(feeAmount))})
+
+	err = builder.SetSignatures(signing.SignatureV2{
+		PubKey: c.secret.AccountPubKey(),
+		Data: &signing.SingleSignatureData{
+			SignMode:  c.txConfig.SignModeHandler().DefaultMode(),
+			Signature: nil,
+		},
+		Sequence: account.Sequence,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	signerData := xauthsigning.SignerData{
+		ChainID:       c.chainId,
+		AccountNumber: account.AccountNumber,
+		Sequence:      account.Sequence,
+	}
+
+	sigV2, err := c.secret.SignTransaction(c.txConfig, signerData, builder, account.BaseAccount)
+	if err != nil {
+		return nil, err
+	}
+
+	err = builder.SetSignatures(sigV2)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.txConfig.TxEncoder()(builder.GetTx())
+}
+
+func approximate(gasUsed uint64) uint64 {
+	return uint64(float64(gasUsed) * 1.5)
+}
+
+// TODO move to the configs in future
+func getFeeAmount(gasLimit uint64) uint64 {
+	return uint64(float64(gasLimit) / 2.0)
 }
