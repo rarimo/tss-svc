@@ -15,7 +15,7 @@ const (
 	OpQueryFeeManagement              = "tm.event='NewBlock' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
 	OpQueryContractUpgrade            = "tm.event='NewBlock' AND operation_approved.operation_type='CONTRACT_UPGRADE'"
 	OpQueryIdentityDefaultTransfer    = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_DEFAULT_TRANSFER'"
-	OpQueryIdentityAggregatedTransfer = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_AGGREGATED_TRANSFER'"
+	OpQueryIdentityAggregatedTransfer = "tm.event='NewBlock' AND operation_approved.operation_type='IDENTITY_AGGREGATED_TRANSFER'"
 	OpPoolSize                        = 1000
 )
 
