@@ -18,11 +18,11 @@ require (
 	gitlab.com/distributed_lab/kit v1.11.1
 	gitlab.com/distributed_lab/logan v3.8.1+incompatible
 	gitlab.com/rarimo/go-merkle v0.0.0-20230724075915-b549d3430709
-	gitlab.com/rarimo/rarimo-core v0.0.0-20230724080954-a0c502f35889
-	golang.org/x/net v0.10.0
-	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc
-	google.golang.org/grpc v1.55.0
-	google.golang.org/protobuf v1.30.0
+	gitlab.com/rarimo/rarimo-core v0.0.0-20230808154150-da0cd307021c
+	golang.org/x/net v0.12.0
+	google.golang.org/genproto/googleapis/api v0.0.0-20230726155614-23370e0ffb3e
+	google.golang.org/grpc v1.57.0
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
@@ -153,14 +153,14 @@ require (
 	gitlab.com/distributed_lab/running v0.0.0-20200706131153-4af0e83eb96c // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/time v0.1.0 // indirect
-	google.golang.org/genproto v0.0.0-20230526203410-71b5a4ffd15e // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
+	google.golang.org/genproto v0.0.0-20230706204954-ccb25ca9f130 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230726155614-23370e0ffb3e // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
