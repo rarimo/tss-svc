@@ -18,7 +18,7 @@ require (
 	gitlab.com/distributed_lab/kit v1.11.1
 	gitlab.com/distributed_lab/logan v3.8.1+incompatible
 	gitlab.com/rarimo/go-merkle v0.0.0-20230724075915-b549d3430709
-	gitlab.com/rarimo/rarimo-core v0.0.0-20230808154150-da0cd307021c
+	gitlab.com/rarimo/rarimo-core v0.0.0-20230810122829-1fec97131d11
 	golang.org/x/net v0.12.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20230726155614-23370e0ffb3e
 	google.golang.org/grpc v1.57.0
