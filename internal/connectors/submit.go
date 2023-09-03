@@ -74,7 +74,7 @@ func (s *SubmitConnector) getClient(addr string) (*con, error) {
 
 	if s.secret.TLS() {
 		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true,
+			MinVersion: tls.VersionTLS13,
 		}
 
 		connectSecurityOptions = grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))

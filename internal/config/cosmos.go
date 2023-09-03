@@ -32,7 +32,7 @@ func (c *config) Cosmos() *grpc.ClientConn {
 
 		if config.TLS {
 			tlsConfig := &tls.Config{
-				InsecureSkipVerify: true,
+				MinVersion: tls.VersionTLS13,
 			}
 
 			connectSecurityOptions = grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))
