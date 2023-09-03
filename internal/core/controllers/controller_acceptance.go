@@ -253,13 +253,13 @@ func (a *reshareAcceptanceController) finish(ctx core.Context) {
 
 	defer func() {
 		ctx.Log().Infof("Session signers: %v", acceptancesToArr(a.data.Signers))
+		_, a.data.IsSigner = a.data.Signers[ctx.SecretStorage().GetTssSecret().AccountAddress()]
 	}()
 
 	signAcceptances := filterAcceptances(a.data.Acceptances, a.data.Set.VerifiedParties)
 
 	if len(signAcceptances) == a.data.Set.T+1 {
 		a.data.Signers = signAcceptances
-		_, a.data.IsSigner = a.data.Signers[ctx.SecretStorage().GetTssSecret().AccountAddress()]
 		return
 	}
 
