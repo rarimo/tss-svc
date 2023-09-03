@@ -51,18 +51,18 @@ func (a *AcceptanceController) Receive(c context.Context, request *types.MsgSubm
 		return err
 	}
 
-	if request.Type != types.RequestType_Acceptance {
+	if request.Data.Type != types.RequestType_Acceptance {
 		return ErrInvalidRequestType
 	}
 
-	if !a.validate(ctx, request.Details, request.SessionType) {
+	if !a.validate(ctx, request.Data.Details, request.Data.SessionType) {
 		a.data.Offenders[sender.Account] = struct{}{}
 		return nil
 	}
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	ctx.Log().Infof("Received acceptance request from %s for session type=%s", sender.Account, request.SessionType.String())
+	ctx.Log().Infof("Received acceptance request from %s for session type=%s", sender.Account, request.Data.SessionType.String())
 	a.data.Acceptances[sender.Account] = struct{}{}
 	return nil
 }
@@ -145,10 +145,13 @@ func (a *defaultAcceptanceController) shareAcceptance(ctx core.Context) {
 	}
 
 	go a.broadcast.SubmitAllWithReport(ctx.Context(), ctx.Core(), &types.MsgSubmitRequest{
-		Id:          a.data.SessionId,
-		Type:        types.RequestType_Acceptance,
-		IsBroadcast: true,
-		Details:     details,
+		Data: &types.RequestData{
+			SessionType: types.SessionType_DefaultSession,
+			Type:        types.RequestType_Acceptance,
+			Id:          a.data.SessionId,
+			IsBroadcast: true,
+			Details:     details,
+		},
 	})
 }
 
@@ -232,10 +235,13 @@ func (a *reshareAcceptanceController) shareAcceptance(ctx core.Context) {
 	}
 
 	go a.broadcast.SubmitAllWithReport(ctx.Context(), ctx.Core(), &types.MsgSubmitRequest{
-		Id:          a.data.SessionId,
-		Type:        types.RequestType_Acceptance,
-		IsBroadcast: true,
-		Details:     details,
+		Data: &types.RequestData{
+			SessionType: types.SessionType_ReshareSession,
+			Type:        types.RequestType_Acceptance,
+			Id:          a.data.SessionId,
+			IsBroadcast: true,
+			Details:     details,
+		},
 	})
 }
 

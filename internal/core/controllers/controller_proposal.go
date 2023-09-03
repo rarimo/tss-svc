@@ -51,12 +51,12 @@ func (p *ProposalController) Receive(c context.Context, request *types.MsgSubmit
 		return ErrSenderIsNotProposer
 	}
 
-	if request.Type != types.RequestType_Proposal {
+	if request.Data.Type != types.RequestType_Proposal {
 		return ErrInvalidRequestType
 	}
 
-	ctx.Log().Infof("Received proposal request from %s for session type=%s", sender.Account, request.SessionType.String())
-	if accepted := p.accept(ctx, request.Details, request.SessionType); !accepted {
+	ctx.Log().Infof("Received proposal request from %s for session type=%s", sender.Account, request.Data.SessionType.String())
+	if accepted := p.accept(ctx, request.Data.Details, request.Data.SessionType); !accepted {
 		p.data.Offenders[sender.Account] = struct{}{}
 	}
 
@@ -190,10 +190,13 @@ func (d *defaultProposalController) shareProposal(ctx core.Context) {
 	}
 
 	go d.broadcast.SubmitAllWithReport(ctx.Context(), ctx.Core(), &types.MsgSubmitRequest{
-		Id:          d.data.SessionId,
-		Type:        types.RequestType_Proposal,
-		IsBroadcast: true,
-		Details:     details,
+		Data: &types.RequestData{
+			SessionType: types.SessionType_DefaultSession,
+			Type:        types.RequestType_Proposal,
+			Id:          d.data.SessionId,
+			IsBroadcast: true,
+			Details:     details,
+		},
 	})
 
 	d.mu.Lock()
@@ -312,10 +315,13 @@ func (r *reshareProposalController) shareProposal(ctx core.Context) {
 	}
 
 	go r.broadcast.SubmitAllWithReport(ctx.Context(), ctx.Core(), &types.MsgSubmitRequest{
-		Id:          r.data.SessionId,
-		Type:        types.RequestType_Proposal,
-		IsBroadcast: true,
-		Details:     details,
+		Data: &types.RequestData{
+			SessionType: types.SessionType_ReshareSession,
+			Type:        types.RequestType_Proposal,
+			Id:          r.data.SessionId,
+			IsBroadcast: true,
+			Details:     details,
+		},
 	})
 
 	r.mu.Lock()

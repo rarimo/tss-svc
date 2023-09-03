@@ -178,10 +178,12 @@ func (k *KeygenParty) listenOutput(ctx context.Context, out <-chan tss.Message) 
 			}
 
 			request := &types.MsgSubmitRequest{
-				Id:          k.id,
-				Type:        types.RequestType_Keygen,
-				IsBroadcast: msg.IsBroadcast(),
-				Details:     details,
+				Data: &types.RequestData{
+					Type:        types.RequestType_Keygen,
+					Id:          k.id,
+					IsBroadcast: msg.IsBroadcast(),
+					Details:     details,
+				},
 			}
 
 			to := msg.GetTo()

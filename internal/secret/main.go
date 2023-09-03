@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -72,7 +73,13 @@ func (t *TssSecret) NewWithData(data *tsskeygen.LocalPartySaveData) *TssSecret {
 }
 
 func (t *TssSecret) Sign(request *types.MsgSubmitRequest) error {
-	hash := eth.Keccak256(request.Details.Value)
+	details, err := anypb.New(request.Data)
+	if err != nil {
+		return err
+	}
+
+	hash := eth.Keccak256(details.Value)
+
 	signature, err := eth.Sign(hash, t.tssPrv)
 	if err != nil {
 		return err
