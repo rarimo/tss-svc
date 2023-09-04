@@ -49,6 +49,11 @@ func (r *RequestAuthorizer) Auth(request *types.MsgSubmitRequest) (*rarimo.Party
 		return nil, ErrInvalidSignature
 	}
 
+	if !crypto.VerifySignature(pub, hash, signature) {
+		r.log.WithError(err).Debug("Failed to verify signature for recovered public ket")
+		return nil, ErrInvalidSignature
+	}
+
 	// TODO optimize: make log(n)
 	key := hexutil.Encode(pub)
 	for _, p := range r.parties {
