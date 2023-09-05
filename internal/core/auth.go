@@ -45,12 +45,13 @@ func (r *RequestAuthorizer) Auth(request *types.MsgSubmitRequest) (*rarimo.Party
 
 	pub, err := crypto.Ecrecover(hash, signature)
 	if err != nil {
-		r.log.WithError(err).Debug("Failed to recover signature pub key")
+		r.log.WithError(err).Debug("Failed to recover signature public key")
 		return nil, ErrInvalidSignature
 	}
 
-	if !crypto.VerifySignature(pub, hash, signature) {
-		r.log.WithError(err).Debug("Failed to verify signature for recovered public ket")
+	// Signature is in 65 bytes format [R|S|V]. VerifySignature accepts [R|S]
+	if !crypto.VerifySignature(pub, hash, signature[:64]) {
+		r.log.Debug("Failed to verify signature for recovered public key")
 		return nil, ErrInvalidSignature
 	}
 
