@@ -8,6 +8,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -29,7 +30,12 @@ func NewRequestAuthorizer(parties []*rarimo.Party, log *logan.Entry) *RequestAut
 }
 
 func (r *RequestAuthorizer) Auth(request *types.MsgSubmitRequest) (*rarimo.Party, error) {
-	hash := crypto.Keccak256(request.Details.Value)
+	details, err := anypb.New(request.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := crypto.Keccak256(details.Value)
 
 	signature, err := hexutil.Decode(request.Signature)
 	if err != nil {
@@ -39,7 +45,13 @@ func (r *RequestAuthorizer) Auth(request *types.MsgSubmitRequest) (*rarimo.Party
 
 	pub, err := crypto.Ecrecover(hash, signature)
 	if err != nil {
-		r.log.WithError(err).Debug("Failed to recover signature pub key")
+		r.log.WithError(err).Debug("Failed to recover signature public key")
+		return nil, ErrInvalidSignature
+	}
+
+	// Signature is in 65 bytes format [R|S|V]. VerifySignature accepts [R|S]
+	if !crypto.VerifySignature(pub, hash, signature[:64]) {
+		r.log.Debug("Failed to verify signature for recovered public key")
 		return nil, ErrInvalidSignature
 	}
 

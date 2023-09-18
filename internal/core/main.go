@@ -46,8 +46,8 @@ func (s *SessionManager) Receive(ctx context.Context, request *types.MsgSubmitRe
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if session, ok := s.sessions[request.SessionType]; ok && session != nil {
-		if session.ID() == request.Id {
+	if session, ok := s.sessions[request.Data.SessionType]; ok && session != nil {
+		if session.ID() == request.Data.Id {
 			return session.Receive(ctx, request)
 		}
 

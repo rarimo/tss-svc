@@ -113,6 +113,27 @@
     "MsgSubmitResponse": {
       "type": "object"
     },
+    "RequestData": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "isBroadcast": {
+          "type": "boolean"
+        },
+        "sessionType": {
+          "$ref": "#/definitions/SessionType"
+        },
+        "type": {
+          "$ref": "#/definitions/RequestType"
+        },
+        "details": {
+          "$ref": "#/definitions/protobufAny"
+        }
+      }
+    },
     "RequestType": {
       "type": "string",
       "enum": [
@@ -192,6 +213,7 @@
         "details": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
         }

@@ -191,10 +191,12 @@ func (p *SignParty) listenOutput(ctx context.Context, out <-chan tss.Message) {
 			}
 
 			request := &types.MsgSubmitRequest{
-				Id:          p.id,
-				Type:        types.RequestType_Sign,
-				IsBroadcast: msg.IsBroadcast(),
-				Details:     sign,
+				Data: &types.RequestData{
+					Type:        types.RequestType_Sign,
+					Id:          p.id,
+					IsBroadcast: msg.IsBroadcast(),
+					Details:     sign,
+				},
 			}
 
 			to := msg.GetTo()

@@ -50,12 +50,12 @@ func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmi
 		return ErrSenderIsNotSigner
 	}
 
-	if request.Type != types.RequestType_Sign {
+	if request.Data.Type != types.RequestType_Sign {
 		return ErrInvalidRequestType
 	}
 
 	sign := new(types.SignRequest)
-	if err := request.Details.UnmarshalTo(sign); err != nil {
+	if err := request.Data.Details.UnmarshalTo(sign); err != nil {
 		return errors.Wrap(err, "error unmarshalling request")
 	}
 
@@ -65,7 +65,7 @@ func (s *SignatureController) Receive(c context.Context, request *types.MsgSubmi
 		return nil
 	}
 
-	if err := s.party.Receive(sender, request.IsBroadcast, sign.Details.Value); err != nil {
+	if err := s.party.Receive(sender, request.Data.IsBroadcast, sign.Details.Value); err != nil {
 		ctx.Log().WithError(err).Error("failed to receive request on party")
 		// can be done without lock: no remove or change operation exist, only add
 		s.data.Offenders[sender.Account] = struct{}{}

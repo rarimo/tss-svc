@@ -42,11 +42,11 @@ func (k *KeygenController) Receive(c context.Context, request *types.MsgSubmitRe
 		return err
 	}
 
-	if request.Type != types.RequestType_Keygen {
+	if request.Data.Type != types.RequestType_Keygen {
 		return ErrInvalidRequestType
 	}
 
-	if err := k.party.Receive(sender, request.IsBroadcast, request.Details.Value); err != nil {
+	if err := k.party.Receive(sender, request.Data.IsBroadcast, request.Data.Details.Value); err != nil {
 		ctx := core.WrapCtx(c)
 		ctx.Log().WithError(err).Error("failed to receive request on party")
 		// can be done without lock: no remove or change operation exist, only add

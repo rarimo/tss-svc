@@ -45,7 +45,7 @@ func (b *BroadcastConnector) SubmitAll(ctx context.Context, request *types.MsgSu
 }
 
 func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *CoreConnector, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
-	request.SessionType = b.sessionType
+	request.Data.SessionType = b.sessionType
 
 	failed := struct {
 		mu  sync.Mutex
@@ -71,10 +71,10 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 				}
 
 				if err := coreCon.SubmitReport(
-					request.Id,
+					request.Data.Id,
 					rarimo.ViolationType_Offline,
 					party.Account,
-					fmt.Sprintf("Party was offline when tried to submit %s request", request.Type),
+					fmt.Sprintf("Party was offline when tried to submit %s request", request.Data.Type),
 				); err != nil {
 					b.log.WithError(err).Errorf("Error submitting violation report for party: %s", party.Account)
 				}
@@ -91,7 +91,7 @@ func (b *BroadcastConnector) SubmitToWithReport(ctx context.Context, coreCon *Co
 
 // Deprecated: SubmitTo is deprecated. Use SubmitToWithReport instead
 func (b *BroadcastConnector) SubmitTo(ctx context.Context, request *types.MsgSubmitRequest, parties ...*rarimo.Party) []*rarimo.Party {
-	request.SessionType = b.sessionType
+	request.Data.SessionType = b.sessionType
 
 	failed := struct {
 		mu  sync.Mutex

@@ -155,7 +155,9 @@ func (d *defaultFinishController) finish(ctx core.Context) {
 func (d *defaultFinishController) returnToPool(ctx core.Context) {
 	// try to return indexes back to the pool
 	for _, index := range d.data.Indexes {
-		ctx.Pool().Add(index)
+		if err := ctx.Pool().Add(index); err != nil {
+			ctx.Log().WithError(err).Errorf("failed to return index %s to the pool", index)
+		}
 	}
 }
 

@@ -1,6 +1,6 @@
 module gitlab.com/rarimo/tss/tss-svc
 
-go 1.18
+go 1.21
 
 require (
 	github.com/alecthomas/kingpin v2.2.6+incompatible
