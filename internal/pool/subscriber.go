@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 )
 
 const (

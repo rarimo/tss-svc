@@ -12,9 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/rarimo/tss-svc/internal/config"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 const (

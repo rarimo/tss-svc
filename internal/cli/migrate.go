@@ -1,10 +1,10 @@
 package cli
 
 import (
+	"github.com/rarimo/tss-svc/internal/assets"
+	"github.com/rarimo/tss-svc/internal/config"
 	migrate "github.com/rubenv/sql-migrate"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/rarimo/tss/tss-svc/internal/assets"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 )
 
 var migrations = &migrate.EmbedFileSystemMigrationSource{

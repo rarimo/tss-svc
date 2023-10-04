@@ -6,9 +6,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 

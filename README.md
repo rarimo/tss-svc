@@ -121,7 +121,7 @@ Set up host environment:
 Example of docker-compose file:
   ```yaml
   tss-1:
-    image: registry.gitlab.com/rarimo/tss/tss-svc:v1.0.3
+    image: registry.github.com/rarimo/tss-svc:v1.0.3
     restart: on-failure
     depends_on:
       - tss-1-db

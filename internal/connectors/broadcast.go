@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
+	"github.com/rarimo/tss-svc/internal/secret"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

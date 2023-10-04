@@ -1,8 +1,8 @@
 package config
 
 import (
+	"github.com/rarimo/tss-svc/internal/data/pg"
 	"gitlab.com/distributed_lab/kit/pgdb"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 )
 
 func (c *config) Storage() *pg.Storage {

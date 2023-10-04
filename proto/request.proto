@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "gitlab.com/rarimo/tss/tss-svc/pkg/types";
+option go_package = "github.com/rarimo/tss-svc/pkg/types";
 
 import "google/protobuf/any.proto";
 import "session.proto";

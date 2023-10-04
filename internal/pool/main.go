@@ -5,9 +5,9 @@ import (
 	"errors"
 	"sync"
 
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
+	"github.com/rarimo/tss-svc/internal/config"
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
 	"google.golang.org/grpc"
 )
 

@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"strconv"
 
-	"gitlab.com/rarimo/tss/tss-svc/internal/cli"
+	"github.com/rarimo/tss-svc/internal/cli"
 )
 
 const GomaxprocsEnv = "TSS_GOMAXPROCS"

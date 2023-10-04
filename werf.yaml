@@ -4,10 +4,10 @@ project: "backend"
 image: builder
 from: golang:1.21-alpine
 docker:
-  WORKDIR: /go/src/gitlab.com/rarimo/tss/tss-svc
+  WORKDIR: /go/src/github.com/rarimo/tss-svc
 git:
   - add: /
-    to: /go/src/gitlab.com/rarimo/tss/tss-svc
+    to: /go/src/github.com/rarimo/tss-svc
     stageDependencies:
       setup:
         - "**/*"
@@ -18,7 +18,7 @@ shell:
     - go env -w GOPRIVATE=gitlab.com/*
     - go env -w GONOSUMDB=gitlab.com/*
     - go env -w GONOPROXY=gitlab.com/*
-    - cd /go/src/gitlab.com/rarimo/tss/tss-svc
+    - cd /go/src/github.com/rarimo/tss-svc
     - go mod tidy
     - go mod vendor
   setup:
@@ -28,8 +28,8 @@ shell:
     - export CGO_ENABLED=1
     - export GO111MODULE=off
     - export GOOS=linux
-    - cd /go/src/gitlab.com/rarimo/tss/tss-svc
-    - go build  -o /usr/local/bin/tss-svc /go/src/gitlab.com/rarimo/tss/tss-svc
+    - cd /go/src/github.com/rarimo/tss-svc
+    - go build  -o /usr/local/bin/tss-svc /go/src/github.com/rarimo/tss-svc
 
 ---
 image: service

@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
 	"google.golang.org/grpc"
 )
 

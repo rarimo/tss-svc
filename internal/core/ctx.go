@@ -3,15 +3,15 @@ package core
 import (
 	"net"
 
+	"github.com/rarimo/tss-svc/internal/config"
+	"github.com/rarimo/tss-svc/internal/connectors"
+	"github.com/rarimo/tss-svc/internal/data/pg"
+	"github.com/rarimo/tss-svc/internal/pool"
+	"github.com/rarimo/tss-svc/internal/secret"
+	"github.com/rarimo/tss-svc/internal/timer"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
-	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
-	"gitlab.com/rarimo/tss/tss-svc/internal/pool"
-	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
-	"gitlab.com/rarimo/tss/tss-svc/internal/timer"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )

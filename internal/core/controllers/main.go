@@ -4,7 +4,7 @@ import (
 	"context"
 	goerr "errors"
 
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"github.com/rarimo/tss-svc/pkg/types"
 )
 
 var (

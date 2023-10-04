@@ -3,7 +3,7 @@ package core
 import (
 	"sync"
 
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"github.com/rarimo/tss-svc/pkg/types"
 )
 
 // Default: 0-2 proposal 3-5 acceptance 6-12 sign 13-15 finish

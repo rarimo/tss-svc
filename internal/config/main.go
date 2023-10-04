@@ -2,11 +2,11 @@ package config
 
 import (
 	vault "github.com/hashicorp/vault/api"
+	"github.com/rarimo/tss-svc/internal/data/pg"
 	"github.com/tendermint/tendermint/rpc/client/http"
 	"gitlab.com/distributed_lab/kit/comfig"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/kit/pgdb"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data/pg"
 	"google.golang.org/grpc"
 )
 

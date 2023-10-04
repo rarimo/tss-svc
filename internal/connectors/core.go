@@ -13,12 +13,12 @@ import (
 	xauthsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	ethermint "github.com/rarimo/rarimo-core/ethermint/types"
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
+	"github.com/rarimo/tss-svc/internal/config"
+	"github.com/rarimo/tss-svc/internal/secret"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	ethermint "gitlab.com/rarimo/rarimo-core/ethermint/types"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
-	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
 	"google.golang.org/grpc"
 )
 

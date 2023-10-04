@@ -19,7 +19,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 

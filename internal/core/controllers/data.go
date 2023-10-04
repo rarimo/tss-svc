@@ -5,12 +5,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
-	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
+	"github.com/rarimo/tss-svc/internal/connectors"
+	"github.com/rarimo/tss-svc/internal/core"
+	"github.com/rarimo/tss-svc/internal/secret"
+	"github.com/rarimo/tss-svc/internal/tss"
+	"github.com/rarimo/tss-svc/pkg/types"
 )
 
 // LocalSessionData represents all necessary data from current session to be shared between controllers.

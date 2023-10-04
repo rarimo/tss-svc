@@ -3,10 +3,10 @@ package empty
 import (
 	"context"
 
+	"github.com/rarimo/tss-svc/internal/config"
+	"github.com/rarimo/tss-svc/internal/core"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarimo/tss/tss-svc/internal/config"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 type Session struct {

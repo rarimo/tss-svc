@@ -1,8 +1,8 @@
 package empty
 
 import (
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"github.com/rarimo/tss-svc/internal/core"
+	"github.com/rarimo/tss-svc/pkg/types"
 )
 
 // GetSessionId returns current session id based on: startId - session id to start from, startBlock - block

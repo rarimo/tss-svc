@@ -4,11 +4,11 @@ import (
 	"context"
 	"sync"
 
+	"github.com/rarimo/tss-svc/internal/core"
+	"github.com/rarimo/tss-svc/internal/core/controllers"
+	"github.com/rarimo/tss-svc/internal/data"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core/controllers"
-	"gitlab.com/rarimo/tss/tss-svc/internal/data"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 // Session represents default and reshare sessions that is a normal flow

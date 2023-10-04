@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
+	"github.com/rarimo/tss-svc/internal/core"
+	"github.com/rarimo/tss-svc/pkg/types"
 )
 
 // iFinishController defines custom logic for every finish controller.

@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/secret"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
+	"github.com/rarimo/tss-svc/internal/secret"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

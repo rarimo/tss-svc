@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
+	"github.com/rarimo/tss-svc/internal/connectors"
+	"github.com/rarimo/tss-svc/internal/core"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 

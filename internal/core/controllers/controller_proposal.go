@@ -7,11 +7,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
+	merkle "github.com/rarimo/go-merkle"
+	"github.com/rarimo/tss-svc/internal/connectors"
+	"github.com/rarimo/tss-svc/internal/core"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	merkle "gitlab.com/rarimo/go-merkle"
-	"gitlab.com/rarimo/tss/tss-svc/internal/connectors"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 

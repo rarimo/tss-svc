@@ -1,4 +1,4 @@
-module gitlab.com/rarimo/tss/tss-svc
+module github.com/rarimo/tss-svc
 
 go 1.21
 
@@ -12,16 +12,16 @@ require (
 	github.com/hashicorp/vault/api v1.8.2
 	github.com/ignite/cli v0.26.1
 	github.com/prometheus/client_golang v1.14.0
+	github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66
+	github.com/rarimo/rarimo-core v0.0.0-20231004132456-b86575c7f20a
 	github.com/rubenv/sql-migrate v1.2.0
 	github.com/tendermint/tendermint v0.34.28
 	gitlab.com/distributed_lab/figure v2.1.0+incompatible
 	gitlab.com/distributed_lab/kit v1.11.1
 	gitlab.com/distributed_lab/logan v3.8.1+incompatible
-	gitlab.com/rarimo/go-merkle v0.0.0-20230724075915-b549d3430709
-	gitlab.com/rarimo/rarimo-core v1.0.6-0.20230925112036-8495b43128fa
-	golang.org/x/net v0.14.0
+	golang.org/x/net v0.15.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.58.0
 	google.golang.org/protobuf v1.31.0
 )
 
@@ -172,10 +172,10 @@ require (
 
 replace (
 	github.com/agl/ed25519 => github.com/bnb-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
-	github.com/bnb-chain/tss-lib/v2 => gitlab.com/rarimo/tss-lib/v2 v2.0.1
+	github.com/bnb-chain/tss-lib/v2 => github.com/rarimo/tss-lib/v2 v2.0.1
 	github.com/btcsuite/btcd => github.com/btcsuite/btcd v0.22.0-beta
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
-	github.com/cosmos/cosmos-sdk => gitlab.com/rarimo/cosmos-sdk v0.46.7-rc.9
+	github.com/cosmos/cosmos-sdk => github.com/rarimo/cosmos-sdk v0.46.7
 	github.com/cosmos/iavl => github.com/cosmos/iavl v0.19.4
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.34.24

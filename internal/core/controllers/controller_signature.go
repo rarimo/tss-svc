@@ -6,12 +6,12 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/rarimo/rarimo-core/x/rarimocore/crypto/pkg"
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
+	"github.com/rarimo/tss-svc/internal/core"
+	"github.com/rarimo/tss-svc/internal/tss"
+	"github.com/rarimo/tss-svc/pkg/types"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/rarimo/rarimo-core/x/rarimocore/crypto/pkg"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/rarimo/tss/tss-svc/internal/core"
-	"gitlab.com/rarimo/tss/tss-svc/internal/tss"
-	"gitlab.com/rarimo/tss/tss-svc/pkg/types"
 )
 
 // iSignatureController defines custom logic for every signature controller.

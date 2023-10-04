@@ -2,8 +2,8 @@ package tss
 
 import (
 	"github.com/bnb-chain/tss-lib/v2/tss"
+	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
 	"gitlab.com/distributed_lab/logan/v3"
-	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 )
 
 type waitingMessage struct {
