@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	goerr "errors"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -56,9 +57,8 @@ func (r *RequestAuthorizer) Auth(request *types.MsgSubmitRequest) (*rarimo.Party
 	}
 
 	// TODO optimize: make log(n)
-	key := hexutil.Encode(pub)
 	for _, p := range r.parties {
-		if p.PubKey == key {
+		if bytes.Equal(hexutil.MustDecode(p.PubKey), pub[1:]) {
 			return p, nil
 		}
 	}

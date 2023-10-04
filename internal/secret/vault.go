@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
+	"github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -86,6 +86,7 @@ func (v *VaultStorage) loadSecret() (*TssSecret, error) {
 	}
 
 	data := new(keygen.LocalPartySaveData)
+
 	// Data can be empty
 	if err = json.Unmarshal([]byte(v.kvSecret.Data[dataKey].(string)), data); err != nil {
 		v.log.Info("[Vault] TSS Save Data is empty")
@@ -95,6 +96,10 @@ func (v *VaultStorage) loadSecret() (*TssSecret, error) {
 	if err := json.Unmarshal([]byte(v.kvSecret.Data[preKey].(string)), pre); err != nil {
 		v.log.Info("[Vault] Generating tss pre-params")
 		pre = loadParams()
+	}
+
+	if !pre.ValidateWithProof() {
+		return nil, errors.New("pre-params in LocalPreParams validation failed. Please, re-generate pre-params.")
 	}
 
 	account := &secp256k1.PrivKey{Key: hexutil.MustDecode(v.kvSecret.Data[accountKey].(string))}

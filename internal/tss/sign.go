@@ -5,9 +5,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/bnb-chain/tss-lib/common"
-	"github.com/bnb-chain/tss-lib/tss"
-	s256k1 "github.com/btcsuite/btcd/btcec"
+	"github.com/bnb-chain/tss-lib/v2/common"
+	"github.com/bnb-chain/tss-lib/v2/tss"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -59,9 +58,9 @@ func (p *SignParty) Run(ctx context.Context) {
 	p.log.Infof("Running TSS signing on set: %v", p.parties)
 	self := p.partyIds.FindByKey(core.GetTssPartyKey(p.secret.AccountAddress()))
 	out := make(chan tss.Message, OutChannelSize)
-	end := make(chan common.SignatureData, EndChannelSize)
+	end := make(chan *common.SignatureData, EndChannelSize)
 	peerCtx := tss.NewPeerContext(p.partyIds)
-	params := tss.NewParameters(s256k1.S256(), peerCtx, self, p.partyIds.Len(), crypto.GetThreshold(p.partyIds.Len()))
+	params := tss.NewParameters(tss.S256(), peerCtx, self, p.partyIds.Len(), crypto.GetThreshold(p.partyIds.Len()))
 	p.party = p.secret.GetSignParty(new(big.Int).SetBytes(hexutil.MustDecode(p.data)), params, out, end)
 	go func() {
 		err := p.party.Start()
@@ -141,7 +140,7 @@ func (p *SignParty) pushToWaiting(sender *rarimo.Party, isBroadcast bool, detail
 	}
 }
 
-func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
+func (p *SignParty) run(ctx context.Context, end <-chan *common.SignatureData) {
 	defer func() {
 		p.log.Debug("Listening to sign party result finished")
 		p.wg.Done()
@@ -156,7 +155,7 @@ func (p *SignParty) run(ctx context.Context, end <-chan common.SignatureData) {
 			return
 		}
 
-		p.result = &result
+		p.result = result
 		p.log.Infof("Signed data %s signature %s", p.data, hexutil.Encode(append(p.result.Signature, p.result.SignatureRecovery...)))
 	default:
 		p.log.Error("Signature process has not been finished yet or has some errors")

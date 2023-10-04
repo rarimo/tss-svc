@@ -6,10 +6,10 @@ import (
 	goerr "errors"
 	"math/big"
 
-	"github.com/bnb-chain/tss-lib/common"
-	tsskeygen "github.com/bnb-chain/tss-lib/ecdsa/keygen"
-	tsssign "github.com/bnb-chain/tss-lib/ecdsa/signing"
-	"github.com/bnb-chain/tss-lib/tss"
+	"github.com/bnb-chain/tss-lib/v2/common"
+	tsskeygen "github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
+	tsssign "github.com/bnb-chain/tss-lib/v2/ecdsa/signing"
+	"github.com/bnb-chain/tss-lib/v2/tss"
 	"github.com/cosmos/cosmos-sdk/client"
 	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
@@ -96,7 +96,9 @@ func (t *TssSecret) SignTransaction(txConfig client.TxConfig, data xauthsigning.
 }
 
 func (t *TssSecret) TssPubKey() string {
-	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.tssPrv.X, t.tssPrv.Y))
+	// Marshalled point contains constant 0x04 first byte, we have to remove it
+	marshalled := elliptic.Marshal(eth.S256(), t.tssPrv.X, t.tssPrv.Y)
+	return hexutil.Encode(marshalled[1:])
 }
 
 func (t *TssSecret) AccountAddress() string {
@@ -113,14 +115,16 @@ func (t *TssSecret) GlobalPubKey() string {
 		return ""
 	}
 
-	return hexutil.Encode(elliptic.Marshal(eth.S256(), t.data.ECDSAPub.X(), t.data.ECDSAPub.Y()))
+	// Marshalled point contains constant 0x04 first byte, we have to remove it
+	marshalled := elliptic.Marshal(eth.S256(), t.data.ECDSAPub.X(), t.data.ECDSAPub.Y())
+	return hexutil.Encode(marshalled[1:])
 }
 
-func (t *TssSecret) GetKeygenParty(params *tss.Parameters, out chan<- tss.Message, end chan<- tsskeygen.LocalPartySaveData) tss.Party {
+func (t *TssSecret) GetKeygenParty(params *tss.Parameters, out chan<- tss.Message, end chan<- *tsskeygen.LocalPartySaveData) tss.Party {
 	return tsskeygen.NewLocalParty(params, out, end, *t.params)
 }
 
-func (t *TssSecret) GetSignParty(msg *big.Int, params *tss.Parameters, out chan<- tss.Message, end chan<- common.SignatureData) tss.Party {
+func (t *TssSecret) GetSignParty(msg *big.Int, params *tss.Parameters, out chan<- tss.Message, end chan<- *common.SignatureData) tss.Party {
 	return tsssign.NewLocalParty(msg, params, *t.data, out, end)
 }
 

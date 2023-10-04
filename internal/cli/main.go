@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kingpin"
-	tsskg "github.com/bnb-chain/tss-lib/ecdsa/keygen"
+	tsskg "github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
@@ -117,6 +117,10 @@ func Run(args []string) bool {
 		params, err := tsskg.GeneratePreParams(10 * time.Minute)
 		if err != nil {
 			panic(err)
+		}
+
+		if !params.ValidateWithProof() {
+			panic("validation failed")
 		}
 
 		data, err := json.Marshal(params)

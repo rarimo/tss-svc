@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
-	"github.com/bnb-chain/tss-lib/tss"
-	s256k1 "github.com/btcsuite/btcd/btcec"
+	"github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
+	"github.com/bnb-chain/tss-lib/v2/tss"
+	s256k1 "github.com/btcsuite/btcd/btcec/v2"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -86,10 +86,11 @@ func (k *KeygenParty) Run(ctx context.Context) {
 	k.log.Infof("Running TSS key generation on set: %v", k.parties)
 	self := k.partyIds.FindByKey(core.GetTssPartyKey(k.secret.AccountAddress()))
 	out := make(chan tss.Message, OutChannelSize)
-	end := make(chan keygen.LocalPartySaveData, EndChannelSize)
+	end := make(chan *keygen.LocalPartySaveData, EndChannelSize)
 	peerCtx := tss.NewPeerContext(k.partyIds)
-	params := tss.NewParameters(s256k1.S256(), peerCtx, self, k.partyIds.Len(), crypto.GetThreshold(k.partyIds.Len()))
+	params := tss.NewParameters(tss.S256(), peerCtx, self, k.partyIds.Len(), crypto.GetThreshold(k.partyIds.Len()))
 
+	tss.S256()
 	k.party = k.secret.GetKeygenParty(params, out, end)
 	go func() {
 		err := k.party.Start()
@@ -138,7 +139,7 @@ func (k *KeygenParty) pushToWaiting(sender *rarimo.Party, isBroadcast bool, deta
 	}
 }
 
-func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveData) {
+func (k *KeygenParty) run(ctx context.Context, end <-chan *keygen.LocalPartySaveData) {
 	defer func() {
 		k.log.Debug("Listening to keygen party result finished")
 		k.wg.Done()
@@ -154,7 +155,7 @@ func (k *KeygenParty) run(ctx context.Context, end <-chan keygen.LocalPartySaveD
 		}
 
 		k.log.Infof("New generated public key: %s", hexutil.Encode(elliptic.Marshal(s256k1.S256(), result.ECDSAPub.X(), result.ECDSAPub.Y())))
-		k.result = &result
+		k.result = result
 	default:
 		k.log.Error("Keygen process has not been finished yet or has some errors")
 	}
