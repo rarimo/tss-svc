@@ -3,7 +3,7 @@ package core
 import (
 	"math/big"
 
-	"github.com/bnb-chain/tss-lib/tss"
+	"github.com/bnb-chain/tss-lib/v2/tss"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
 )

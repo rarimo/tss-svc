@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"sync"
 
-	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
+	"github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	rarimo "gitlab.com/rarimo/rarimo-core/x/rarimocore/types"
@@ -198,8 +198,11 @@ func (r *reshareKeygenController) finish(ctx core.Context, result *keygen.LocalP
 		partyId := partyIDs.FindByKey(result.Ks[i])
 		for j, party := range r.data.Set.Parties {
 			if party.Account == partyId.Id {
+				// Marshalled point contains constant 0x04 first byte, we have to remove it
+				marshalled := elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y())
+
 				r.data.NewParties[j] = &rarimo.Party{
-					PubKey:  hexutil.Encode(elliptic.Marshal(eth.S256(), result.BigXj[i].X(), result.BigXj[i].Y())),
+					PubKey:  hexutil.Encode(marshalled[1:]),
 					Address: party.Address,
 					Account: party.Account,
 					Status:  rarimo.PartyStatus_Active,
