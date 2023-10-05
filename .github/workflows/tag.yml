@@ -1,4 +1,4 @@
-name: Build Rarimo Core docker image tag
+name: Build Rarimo TSS service docker image tag
 on:
   push:
     tags:

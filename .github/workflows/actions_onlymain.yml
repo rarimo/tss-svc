@@ -1,4 +1,4 @@
-name: Build Rarimo Core docker image
+name: Build Rarimo TSS service docker image
 on:
   push:
     branches:
