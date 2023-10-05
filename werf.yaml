@@ -14,17 +14,16 @@ git:
 shell:
   install:
     - apk add git build-base
-    - git config --global url."https://gitlab-ci-token:{{ env "CI_JOB_TOKEN" }}@gitlab.com/".insteadOf https://gitlab.com/
-    - go env -w GOPRIVATE=gitlab.com/*
-    - go env -w GONOSUMDB=gitlab.com/*
-    - go env -w GONOPROXY=gitlab.com/*
+    - go env -w GOPRIVATE=github.com/*
+    - go env -w GONOSUMDB=github.com/*
+    - go env -w GONOPROXY=github.com/*
     - cd /go/src/github.com/rarimo/tss-svc
     - go mod tidy
     - go mod vendor
   setup:
-    - export GOPRIVATE=gitlab.com/*
-    - export GONOSUMDB=gitlab.com/*
-    - export GONOPROXY=gitlab.com/*
+    - go env -w GOPRIVATE=github.com/*
+    - go env -w GONOSUMDB=github.com/*
+    - go env -w GONOPROXY=github.com/*
     - export CGO_ENABLED=1
     - export GO111MODULE=off
     - export GOOS=linux
