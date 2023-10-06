@@ -8,33 +8,48 @@ It works as a decentralized solution connected to the core for block timestamp b
 The TSS network requires a several parties launched by different validators that uses stored in the `rarimocore` 
 Cosmos module party addresses and public keys to connect with each other and produce signature.
 
-Fore more information check [overview](./OVERVIEW.md).
+Fore more information check the [`overview`](./OVERVIEW.md).
+
+## V1.0.6 Upgrade information
+
+With `v1.0.6` the binance [`tss-lib`](https://github.com/rarimo/tss-lib) was upgraded to the `v2.0.1`. 
+The v2 version comes with the new pre-params structure. It does not affect the signing process, but 
+it will cause an error during the next keygen session if you are using old params.
+
+To avoid the errors in case you are already running the party, 
+you have to generate new pre-params and manually update the `pre` field in Vault. After setting new field data, 
+please restart the tss party service.
+
+For more information, check: [`changes-of-preparams-of-ecdsa-in-v20`](https://github.com/rarimo/tss-lib#changes-of-preparams-of-ecdsa-in-v20).
 
 ## Launch
 
-To become an active TSS you need to follow that steps:
-
-1. Generate TSS account (it is recommended to generate the new one and do not use it in other services):
+### Generate TSS account:
   ```shell
   rarimo-core keys add <key-name> --keyring-backend test --home=$TSS_HOME
   ```
+(it is recommended to generate the new one and do not use it in other services).
 
 Also, you need to parse mnemonic to get corresponding private key:
   ```shell
   rarimo-core tx rarimocore parse-mnemonic 'mnemonic phrase'
   ```
 
-2. Pre-setup secret parameters, execute and save response JSON:
+### Pre-setup secret parameters:
   ```shell
   tss-svc run paramgen
   ```
+execute and save the response JSON.
 
-3. Generate trial ECDSA private key, execute and store results:
+### Generate trial ECDSA private key:
   ```shell
   tss-svc run prvgen
   ```
+execute and store results.
 
-4. Setup the Vault service and create secret for your tss (type KV version 2). Secret should contain the following credentials:
+### Setup the Hashicorp Vault and create secret for your tss (type KV version 2):
+
+Secret should contain the following credentials:
 
 * "data": "Leave empty"
 
@@ -55,7 +70,7 @@ JSON example:
   }
   ```
 
-5. Create a configuration file (config.yaml) with the following structure:
+### Create a configuration file (config.yaml) with the following structure:
 
   ```yaml
   log:
@@ -99,7 +114,7 @@ JSON example:
     coin_name: "urmo"
   ```
 
-Set up host environment:
+### Set up host environment:
   ```yaml
     - name: KV_VIPER_FILE
     value: /config/config.yaml # is the path to your config file
@@ -113,7 +128,7 @@ Set up host environment:
     value: tss1 # name of the secret path vault (type KV version 2)
   ```
 
-6. To launch the service use the following command
+### Running service:
   ```shell
   tss-svc migrate up && tss-svc run service
   ```
@@ -150,7 +165,7 @@ Example of docker-compose file:
       - tss-1-data:/pgdata
   ```
 
-7. Stake tokens to become an active party. Execute
+### Stake tokens to become an active party:
   ```shell
   rarimo-core tx rarimocore stake [tss-account-addr] [tss url] [trial ECDSA pub key] --from $ADDRESS --chain-id rarimo-201411-2 --home=$RARIMO_HOME --keyring-backend=test --fees 0urmo --node=$RARIMO_NODE
   ```
@@ -160,7 +175,7 @@ Currently, to become an active party you will need exactly 100000000000urmo toke
 
 After some period your TSS will generate new keys with other active parties and become an active party.
 
-To unstake token execute the following command (from tss account or delegator account):
+### Unstake tokens (from tss account or delegator account):
 ```shell
 rarimo-cored tx rarimocore unstake [tss-account-addr] --from $ADDRESS --chain-id rarimo-201411-2 --home=$RARIMO_HOME --keyring-backend=test --fees 0urmo --node=$RARIMO_NODE
 ```
