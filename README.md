@@ -22,6 +22,18 @@ please restart the tss party service.
 
 For more information, check: [`changes-of-preparams-of-ecdsa-in-v20`](https://github.com/rarimo/tss-lib#changes-of-preparams-of-ecdsa-in-v20).
 
+## Build
+
+Required environment:
+```shell
+export CGO_ENABLED=1
+```
+
+Build command (in repository root):
+```shell
+go build .
+```
+
 ## Launch
 
 ### Generate TSS account:
