@@ -5,7 +5,9 @@ title: TSS overview
 
 # TSS overview
 
-All operations should be signed with ECDSA secp256k1 threshold (t-n) signature.
+For information about launch and information check the [`README file`](./README.md).
+
+To perform cross-chain transfers, all operations should be signed with ECDSA secp256k1 threshold (t-n) signature.
 This signature is produced by core multi-sig services depending on the core validated state.
 All public signature parameters (including public key) should be defined and stored on the core system.
 

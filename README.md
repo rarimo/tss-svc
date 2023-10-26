@@ -13,7 +13,7 @@ It works as a decentralized solution connected to the core for block timestamp b
 The TSS network requires a several parties launched by different validators that uses stored in the `rarimocore` 
 Cosmos module party addresses and public keys to connect with each other and produce signature.
 
-Fore more information check the [`overview`](./OVERVIEW.md).
+Fore more information check the [`TSS Overview`](./index.md).
 
 ## V1.0.6 Upgrade information
 
