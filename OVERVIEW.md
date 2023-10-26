@@ -1,3 +1,8 @@
+---
+layout: default
+title: TSS overview
+---
+
 # TSS overview
 
 All operations should be signed with ECDSA secp256k1 threshold (t-n) signature.
