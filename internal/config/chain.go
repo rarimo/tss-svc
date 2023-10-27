@@ -6,8 +6,9 @@ import (
 )
 
 type ChainParams struct {
-	ChainId  string `fig:"chain_id"`
-	CoinName string `fig:"coin_name"`
+	ChainId        string `fig:"chain_id"`
+	CoinName       string `fig:"coin_name"`
+	DisableReports bool   `fig:"disable_reports"`
 }
 
 func (c *config) ChainParams() *ChainParams {

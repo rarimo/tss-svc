@@ -28,24 +28,26 @@ const (
 
 // CoreConnector submits signed confirmations to the rarimo core
 type CoreConnector struct {
-	txclient client.ServiceClient
-	auth     authtypes.QueryClient
-	txConfig sdkclient.TxConfig
-	secret   *secret.TssSecret
-	chainId  string
-	coin     string
-	log      *logan.Entry
+	txclient        client.ServiceClient
+	auth            authtypes.QueryClient
+	txConfig        sdkclient.TxConfig
+	secret          *secret.TssSecret
+	chainId         string
+	coin            string
+	reportsDisabled bool
+	log             *logan.Entry
 }
 
 func NewCoreConnector(cli *grpc.ClientConn, secret *secret.TssSecret, log *logan.Entry, params *config.ChainParams) *CoreConnector {
 	return &CoreConnector{
-		txclient: client.NewServiceClient(cli),
-		auth:     authtypes.NewQueryClient(cli),
-		txConfig: tx.NewTxConfig(codec.NewProtoCodec(codectypes.NewInterfaceRegistry()), []signing.SignMode{signing.SignMode_SIGN_MODE_DIRECT}),
-		secret:   secret,
-		chainId:  params.ChainId,
-		coin:     params.CoinName,
-		log:      log,
+		txclient:        client.NewServiceClient(cli),
+		auth:            authtypes.NewQueryClient(cli),
+		txConfig:        tx.NewTxConfig(codec.NewProtoCodec(codectypes.NewInterfaceRegistry()), []signing.SignMode{signing.SignMode_SIGN_MODE_DIRECT}),
+		secret:          secret,
+		chainId:         params.ChainId,
+		coin:            params.CoinName,
+		reportsDisabled: params.DisableReports,
+		log:             log,
 	}
 }
 
@@ -75,6 +77,11 @@ func (c *CoreConnector) SubmitReport(sessionId uint64, typ rarimo.ViolationType,
 		"violation_type": typ,
 		"offender":       offender,
 	})
+
+	if c.reportsDisabled {
+		c.log.Info("Reports disabled - skipping.")
+		return nil
+	}
 
 	msg := &rarimo.MsgCreateViolationReport{
 		Creator:       c.secret.AccountAddress(),
