@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	merkle "github.com/rarimo/go-merkle"
+	"github.com/rarimo/rarimo-core/x/rarimocore/crypto/pkg/content"
 	"github.com/rarimo/tss-svc/internal/connectors"
 	"github.com/rarimo/tss-svc/internal/core"
 	"github.com/rarimo/tss-svc/pkg/types"
@@ -143,7 +144,7 @@ func (d *defaultProposalController) accept(ctx core.Context, details *anypb.Any,
 		return false
 	}
 
-	contents, err := GetContents(ctx.Client(), ops...)
+	contents, err := content.GetContents(ctx.Client(), ops...)
 	if err != nil {
 		return false
 	}
@@ -253,7 +254,7 @@ func (d *defaultProposalController) getNewPool(ctx core.Context) ([]string, stri
 		return nil, "", err
 	}
 
-	contents, err := GetContents(ctx.Client(), ops...)
+	contents, err := content.GetContents(ctx.Client(), ops...)
 	if err != nil {
 		return nil, "", err
 	}

@@ -8,12 +8,12 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/cosmos/cosmos-sdk v0.46.12
 	github.com/ethereum/go-ethereum v1.10.26
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.17.1
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0
 	github.com/hashicorp/vault/api v1.8.2
 	github.com/ignite/cli v0.26.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66
-	github.com/rarimo/rarimo-core v0.0.0-20231004132456-b86575c7f20a
+	github.com/rarimo/rarimo-core v1.0.8-0.20231102163115-d7ee7a881d18
 	github.com/rubenv/sql-migrate v1.2.0
 	github.com/tendermint/tendermint v0.34.28
 	gitlab.com/distributed_lab/figure v2.1.0+incompatible
