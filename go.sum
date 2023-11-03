@@ -1275,10 +1275,8 @@ github.com/rarimo/cosmos-sdk v0.46.7 h1:jU2PiWzc+19SF02cXM0O0puKPeH1C6Q6t2lzJ9s1
 github.com/rarimo/cosmos-sdk v0.46.7/go.mod h1:fqKqz39U5IlEFb4nbQ72951myztsDzFKKDtffYJ63nk=
 github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66 h1:1KAU4rfWWJwAJ/kencagL3k5BXN3HhP004QNkEUgvDE=
 github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66/go.mod h1:5Pt9Lk8w7fWhyRO/NMb5x8DRhF2lESRVPT5uOlezInQ=
-github.com/rarimo/rarimo-core v1.0.8-0.20231102154311-163eea463a04 h1:lv8obCVso7pWE9eeJi95qMztJ3MiTneXVGApJwJQYhU=
-github.com/rarimo/rarimo-core v1.0.8-0.20231102154311-163eea463a04/go.mod h1:fd5oR8+HQsMwiO5sW6NKGFLCzzXQXfmsh1sYRYIxD9g=
-github.com/rarimo/rarimo-core v1.0.8-0.20231102163115-d7ee7a881d18 h1:61z2ES4eFOvlcsQ9EFuXX548t3FebvBec/X6U+6bO64=
-github.com/rarimo/rarimo-core v1.0.8-0.20231102163115-d7ee7a881d18/go.mod h1:fd5oR8+HQsMwiO5sW6NKGFLCzzXQXfmsh1sYRYIxD9g=
+github.com/rarimo/rarimo-core v1.0.8-0.20231103151322-d10b209bfbf6 h1:f9aHtCrH19KuOEaAHLiL7d8PiLJsbldi47OC85IWaro=
+github.com/rarimo/rarimo-core v1.0.8-0.20231103151322-d10b209bfbf6/go.mod h1:Onkd0EJP94hw4dT/2KH7QXRwDG4eIGeaMffSjA1i6/s=
 github.com/rarimo/tss-lib/v2 v2.0.1 h1:q2ar8txLLal41lXy7Xv8AXVQ7TWeXX0fzWfbUIF81qU=
 github.com/rarimo/tss-lib/v2 v2.0.1/go.mod h1:s4LRfEqj89DhfNb+oraW0dURt5LtOHWXb9Gtkghn0L8=
 github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 h1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=
