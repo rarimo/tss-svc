@@ -15,6 +15,8 @@ const (
 	OpQueryFeeManagement              = "tm.event='NewBlock' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
 	OpQueryContractUpgrade            = "tm.event='NewBlock' AND operation_approved.operation_type='CONTRACT_UPGRADE'"
 	OpQueryIdentityDefaultTransfer    = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_DEFAULT_TRANSFER'"
+	OpQueryIdentityGISTTransfer       = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_GIST_TRANSFER'"
+	OpQueryIdentityStateTransfer      = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_STATE_TRANSFER'"
 	OpQueryIdentityAggregatedTransfer = "tm.event='NewBlock' AND operation_approved.operation_type='IDENTITY_AGGREGATED_TRANSFER'"
 	OpPoolSize                        = 1000
 )
@@ -34,6 +36,26 @@ func NewIdentityAggregatedTransferOperationSubscriber(pool *Pool, tendermint *ht
 		log:    log,
 		client: tendermint,
 		query:  OpQueryIdentityAggregatedTransfer,
+	}
+}
+
+// NewIdentityGISTTransferOperationSubscriber creates the subscriber instance for listening new identity GIST transfer operations
+func NewIdentityGISTTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryIdentityGISTTransfer,
+	}
+}
+
+// NewIdentityStateTransferOperationSubscriber creates the subscriber instance for listening new identity state transfer operations
+func NewIdentityStateTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryIdentityStateTransfer,
 	}
 }
 
