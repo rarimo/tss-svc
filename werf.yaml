@@ -19,13 +19,11 @@ shell:
     - go env -w GONOPROXY=github.com/*
     - cd /go/src/github.com/rarimo/tss-svc
     - go mod tidy
-    - go mod vendor
   setup:
     - go env -w GOPRIVATE=github.com/*
     - go env -w GONOSUMDB=github.com/*
     - go env -w GONOPROXY=github.com/*
     - export CGO_ENABLED=1
-    - export GO111MODULE=on
     - export GOOS=linux
     - cd /go/src/github.com/rarimo/tss-svc
     - go build  -o /usr/local/bin/tss-svc /go/src/github.com/rarimo/tss-svc
