@@ -938,8 +938,8 @@ github.com/grpc-ecosystem/grpc-gateway v1.16.0 h1:gmcG1KaJ57LophUzW0Hy8NmPhnMZb4
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0/go.mod h1:hgWBS7lorOAVIJEQMi4ZsPv9hVvWI6+ch50m39Pf2Ks=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3/go.mod h1:o//XUCC/F+yRGJoPO/VU0GSB0f8Nhgmxx0VIRUvaC0w=
-github.com/grpc-ecosystem/grpc-gateway/v2 v2.17.1 h1:LSsiG61v9IzzxMkqEr6nrix4miJI62xlRjwT7BYD2SM=
-github.com/grpc-ecosystem/grpc-gateway/v2 v2.17.1/go.mod h1:Hbb13e3/WtqQ8U5hLGkek9gJvBLasHuPFI0UEGfnQ10=
+github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0 h1:RtRsiaGvWxcwd8y3BiRZxsylPT8hLWZ5SPcfI+3IDNk=
+github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0/go.mod h1:TzP6duP4Py2pHLVPPQp42aoYI92+PCrVotyR5e8Vqlk=
 github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c h1:6rhixN/i8ZofjG1Y75iExal34USq5p+wiN1tpie8IrU=
 github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c/go.mod h1:NMPJylDgVpX0MLRlPy15sqSwOFv/U1GZ2m21JhFfek0=
 github.com/gtank/merlin v0.1.1-0.20191105220539-8318aed1a79f/go.mod h1:T86dnYJhcGOh5BjZFCJWTDeTK7XW8uE+E21Cy/bIQ+s=
@@ -1275,8 +1275,10 @@ github.com/rarimo/cosmos-sdk v0.46.7 h1:jU2PiWzc+19SF02cXM0O0puKPeH1C6Q6t2lzJ9s1
 github.com/rarimo/cosmos-sdk v0.46.7/go.mod h1:fqKqz39U5IlEFb4nbQ72951myztsDzFKKDtffYJ63nk=
 github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66 h1:1KAU4rfWWJwAJ/kencagL3k5BXN3HhP004QNkEUgvDE=
 github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66/go.mod h1:5Pt9Lk8w7fWhyRO/NMb5x8DRhF2lESRVPT5uOlezInQ=
-github.com/rarimo/rarimo-core v0.0.0-20231004132456-b86575c7f20a h1:kOdsLR/RZAh/nG1OuKOTqJI46kr/jc8nWcVSiYjtIF4=
-github.com/rarimo/rarimo-core v0.0.0-20231004132456-b86575c7f20a/go.mod h1:Onkd0EJP94hw4dT/2KH7QXRwDG4eIGeaMffSjA1i6/s=
+github.com/rarimo/rarimo-core v1.0.8-0.20231103151322-d10b209bfbf6 h1:f9aHtCrH19KuOEaAHLiL7d8PiLJsbldi47OC85IWaro=
+github.com/rarimo/rarimo-core v1.0.8-0.20231103151322-d10b209bfbf6/go.mod h1:Onkd0EJP94hw4dT/2KH7QXRwDG4eIGeaMffSjA1i6/s=
+github.com/rarimo/rarimo-core v1.0.8-0.20231106115134-c18298469fe6 h1:9BBshxEkw+OJmIFFdYFbQD1EaOtawJuejGZhaZR/utc=
+github.com/rarimo/rarimo-core v1.0.8-0.20231106115134-c18298469fe6/go.mod h1:fd5oR8+HQsMwiO5sW6NKGFLCzzXQXfmsh1sYRYIxD9g=
 github.com/rarimo/tss-lib/v2 v2.0.1 h1:q2ar8txLLal41lXy7Xv8AXVQ7TWeXX0fzWfbUIF81qU=
 github.com/rarimo/tss-lib/v2 v2.0.1/go.mod h1:s4LRfEqj89DhfNb+oraW0dURt5LtOHWXb9Gtkghn0L8=
 github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 h1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=
