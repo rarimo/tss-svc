@@ -78,6 +78,7 @@ func Run(args []string) bool {
 		go pool.NewIdentityGISTTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
 		go pool.NewIdentityStateTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
 		go pool.NewIdentityAggregatedTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
+		go pool.NewWorldCoinIdentityTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
 		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run()
 
 		manager := core.NewSessionManager()
