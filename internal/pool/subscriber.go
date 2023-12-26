@@ -17,6 +17,7 @@ const (
 	OpQueryIdentityDefaultTransfer    = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_DEFAULT_TRANSFER'"
 	OpQueryIdentityGISTTransfer       = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_GIST_TRANSFER'"
 	OpQueryIdentityStateTransfer      = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_STATE_TRANSFER'"
+	OpQueryWorldCoinIdentityTransfer  = "tm.event='Tx' AND operation_approved.operation_type='WORLDCOIN_IDENTITY_TRANSFER'"
 	OpQueryIdentityAggregatedTransfer = "tm.event='NewBlock' AND operation_approved.operation_type='IDENTITY_AGGREGATED_TRANSFER'"
 	OpPoolSize                        = 1000
 )
@@ -27,6 +28,16 @@ type OperationSubscriber struct {
 	client *http.HTTP
 	query  string
 	log    *logan.Entry
+}
+
+// NewWorldCoinIdentityTransferOperationSubscriber creates the subscriber instance for listening new wordlcoin identity transfer operations
+func NewWorldCoinIdentityTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryWorldCoinIdentityTransfer,
+	}
 }
 
 // NewIdentityAggregatedTransferOperationSubscriber creates the subscriber instance for listening new identity aggregated transfer operations
