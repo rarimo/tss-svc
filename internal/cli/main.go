@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -64,7 +63,8 @@ func Run(args []string) {
 		logan.New().WithError(err).Fatal("failed to parse arguments")
 	}
 
-	c, cancel := context.WithCancel(context.Background())
+	c, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
 
 	switch cmd {
 	case serviceCmd.FullCommand():
@@ -154,17 +154,6 @@ func Run(args []string) {
 
 	if err != nil {
 		logan.New().WithError(err).Error("failed to exec cmd")
-	}
-
-	var gracefulStop = make(chan os.Signal, 1)
-	signal.Notify(gracefulStop, syscall.SIGTERM)
-	signal.Notify(gracefulStop, syscall.SIGINT)
-
-	select {
-	// listening for OS signals
-	case <-gracefulStop:
-		logan.New().Info("received signal to stop")
-		cancel()
 	}
 }
 
