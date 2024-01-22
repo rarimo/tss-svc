@@ -1,11 +1,15 @@
 package cli
 
 import (
+	"context"
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -28,7 +32,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
-func Run(args []string) bool {
+func Run(args []string) {
 	defer func() {
 		if rvr := recover(); rvr != nil {
 			logan.New().WithRecover(rvr).Error("app panicked")
@@ -57,29 +61,29 @@ func Run(args []string) bool {
 
 	cmd, err := app.Parse(args[1:])
 	if err != nil {
-		logan.New().WithError(err).Error("failed to parse arguments")
-		return false
+		logan.New().WithError(err).Fatal("failed to parse arguments")
 	}
+
+	c, cancel := context.WithCancel(context.Background())
 
 	switch cmd {
 	case serviceCmd.FullCommand():
-		go profiling()
+		go profiling(c)
 
 		cfg := config.New(kv.MustFromEnv())
 		core.Initialize(cfg)
 
-		ctx := core.DefaultGlobalContext()
-
-		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewContractUpgradeOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewIdentityTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewIdentityGISTTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewIdentityStateTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewIdentityAggregatedTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewWorldCoinIdentityTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run()
-		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run()
+		ctx := core.DefaultGlobalContext(c)
+		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewContractUpgradeOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewIdentityTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewIdentityGISTTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewIdentityStateTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewIdentityAggregatedTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewWorldCoinIdentityTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run(ctx.Context())
 
 		manager := core.NewSessionManager()
 		manager.AddSession(types.SessionType_ReshareSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_ReshareSession, reshare.NewSession))
@@ -87,35 +91,37 @@ func Run(args []string) bool {
 
 		ctx.Timer().SubscribeToBlocks("session-manager", manager.NewBlock)
 
-		server := grpc.NewServer(ctx, manager)
+		server := grpc.NewServer(ctx.Log(), ctx.Listener(), ctx.PG(), ctx.SecretStorage(), ctx.Pool(), ctx.Swagger(), manager)
 		go func() {
-			if err := server.RunGateway(); err != nil {
-				panic(err)
+			if err := server.RunGateway(ctx.Context()); err != nil {
+				ctx.Log().WithError(err).Fatal("rest gateway server error")
 			}
 		}()
 
-		err = server.RunGRPC()
+		err = server.RunGRPC(ctx.Context())
 	case keygenCmd.FullCommand():
+		go profiling(c)
+
 		cfg := config.New(kv.MustFromEnv())
 		core.Initialize(cfg)
 
-		ctx := core.DefaultGlobalContext()
+		ctx := core.DefaultGlobalContext(c)
 
-		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run()
+		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 
 		manager := core.NewSessionManager()
 		manager.AddSession(types.SessionType_KeygenSession, empty.NewEmptySession(ctx, cfg.Session(), types.SessionType_KeygenSession, keygen.NewSession))
 
 		ctx.Timer().SubscribeToBlocks("session-manager", manager.NewBlock)
 
-		server := grpc.NewServer(ctx, manager)
+		server := grpc.NewServer(ctx.Log(), ctx.Listener(), ctx.PG(), ctx.SecretStorage(), ctx.Pool(), ctx.Swagger(), manager)
 		go func() {
-			if err := server.RunGateway(); err != nil {
-				panic(err)
+			if err := server.RunGateway(ctx.Context()); err != nil {
+				ctx.Log().WithError(err).Fatal("rest gateway server error")
 			}
 		}()
 
-		err = server.RunGRPC()
+		err = server.RunGRPC(ctx.Context())
 	case paramgenCmd.FullCommand():
 		params, err := tsskg.GeneratePreParams(10 * time.Minute)
 		if err != nil {
@@ -143,18 +149,26 @@ func Run(args []string) bool {
 		cfg := config.New(kv.MustFromEnv())
 		err = MigrateDown(cfg)
 	default:
-		logan.New().Errorf("unknown command %s", cmd)
-		return false
+		logan.New().Fatalf("unknown command %s", cmd)
 	}
 
 	if err != nil {
 		logan.New().WithError(err).Error("failed to exec cmd")
-		return false
 	}
-	return true
+
+	var gracefulStop = make(chan os.Signal, 1)
+	signal.Notify(gracefulStop, syscall.SIGTERM)
+	signal.Notify(gracefulStop, syscall.SIGINT)
+
+	select {
+	// listening for OS signals
+	case <-gracefulStop:
+		logan.New().Info("received signal to stop")
+		cancel()
+	}
 }
 
-func profiling() {
+func profiling(ctx context.Context) {
 	r := http.NewServeMux()
 	r.HandleFunc("/debug/pprof/", pprof.Index)
 	r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -163,7 +177,12 @@ func profiling() {
 	r.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	r.Handle("/metrics", promhttp.Handler())
 
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		panic(err)
+	srv := &http.Server{Addr: ":8080", Handler: r}
+	if err := srv.ListenAndServe(); err != nil {
+		logan.New().WithError(err).Error("profiler server error")
+	}
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logan.New().WithError(err).Error("profiler server shutdown error")
 	}
 }

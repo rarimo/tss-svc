@@ -30,17 +30,23 @@ func NewBlockSubscriber(timer *Timer, tendermint *http.HTTP, log *logan.Entry) *
 	}
 }
 
-func (b *BlockSubscriber) Run() {
+func (b *BlockSubscriber) Run(ctx context.Context) {
 	go func() {
 		for {
-			b.runner()
-			b.log.Info("[Block] Resubscribing to the blocks...")
+			select {
+			case <-ctx.Done():
+				b.log.Info("Context finished")
+				return
+			default:
+				b.runner(ctx)
+				b.log.Info("[Block] Resubscribing to the blocks...")
+			}
 		}
 	}()
 }
 
-func (b *BlockSubscriber) runner() {
-	out, err := b.client.Subscribe(context.Background(), BlockServiceName, BlockQuery)
+func (b *BlockSubscriber) runner(ctx context.Context) {
+	out, err := b.client.Subscribe(ctx, BlockServiceName, BlockQuery)
 	if err != nil {
 		panic(err)
 	}
@@ -48,7 +54,7 @@ func (b *BlockSubscriber) runner() {
 	for {
 		c, ok := <-out
 		if !ok {
-			if err := b.client.Unsubscribe(context.Background(), BlockServiceName, BlockQuery); err != nil {
+			if err := b.client.Unsubscribe(ctx, BlockServiceName, BlockQuery); err != nil {
 				b.log.WithError(err).Error("[Block] failed to unsubscribe from new blocks")
 			}
 			break

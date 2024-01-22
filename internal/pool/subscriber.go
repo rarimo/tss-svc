@@ -110,17 +110,23 @@ func NewTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *loga
 	}
 }
 
-func (o *OperationSubscriber) Run() {
+func (o *OperationSubscriber) Run(ctx context.Context) {
 	go func() {
 		for {
-			o.log.Infof("[Pool] Subscribing to the pool. Query: %s", o.query)
-			o.runner()
+			select {
+			case <-ctx.Done():
+				o.log.Info("Context finished")
+				return
+			default:
+				o.log.Infof("[Pool] Subscribing to the pool. Query: %s", o.query)
+				o.runner(ctx)
+			}
 		}
 	}()
 }
 
-func (o *OperationSubscriber) runner() {
-	out, err := o.client.Subscribe(context.Background(), OpServiceName, o.query, OpPoolSize)
+func (o *OperationSubscriber) runner(ctx context.Context) {
+	out, err := o.client.Subscribe(ctx, OpServiceName, o.query, OpPoolSize)
 	if err != nil {
 		panic(err)
 	}
@@ -129,7 +135,7 @@ func (o *OperationSubscriber) runner() {
 		c, ok := <-out
 		if !ok {
 			o.log.Info("[Pool] WS unsubscribed. Resubscribing...")
-			if err := o.client.Unsubscribe(context.Background(), OpServiceName, o.query); err != nil {
+			if err := o.client.Unsubscribe(ctx, OpServiceName, o.query); err != nil {
 				o.log.WithError(err).Error("[Pool] Failed to unsubscribe from new operations")
 			}
 			break

@@ -34,35 +34,41 @@ func NewOperationCatchupper(pool *Pool, core *grpc.ClientConn, log *logan.Entry)
 	}
 }
 
-func (o *OperationCatchupper) Run() {
+func (o *OperationCatchupper) Run(ctx context.Context) {
 	var nextKey []byte
 
 	for {
-		operations, err := rarimo.NewQueryClient(o.rarimo).OperationAll(context.TODO(), &rarimo.QueryAllOperationRequest{Pagination: &query.PageRequest{Key: nextKey}})
-		if err != nil {
-			panic(err)
-		}
-
-		for _, op := range operations.Operation {
-			if _, ok := acceptableOperationTypes[op.OperationType]; !ok {
-				o.log.Debugf("[Pool] Operation %s has unsupported type for catchup", op.Index)
-			}
-
-			if op.Status != rarimo.OpStatus_APPROVED {
-				o.log.Debugf("[Pool] Operation %s is not APPROVED", op.Index)
-				continue
-			}
-
-			o.log.Infof("[Pool] New operation found index=%s", op.Index)
-			err := o.pool.Add(op.Index)
+		select {
+		case <-ctx.Done():
+			o.log.Info("Context finished")
+			return
+		default:
+			operations, err := rarimo.NewQueryClient(o.rarimo).OperationAll(ctx, &rarimo.QueryAllOperationRequest{Pagination: &query.PageRequest{Key: nextKey}})
 			if err != nil {
 				panic(err)
 			}
-		}
 
-		nextKey = operations.Pagination.NextKey
-		if nextKey == nil {
-			return
+			for _, op := range operations.Operation {
+				if _, ok := acceptableOperationTypes[op.OperationType]; !ok {
+					o.log.Debugf("[Pool] Operation %s has unsupported type for catchup", op.Index)
+				}
+
+				if op.Status != rarimo.OpStatus_APPROVED {
+					o.log.Debugf("[Pool] Operation %s is not APPROVED", op.Index)
+					continue
+				}
+
+				o.log.Infof("[Pool] New operation found index=%s", op.Index)
+				err := o.pool.Add(op.Index)
+				if err != nil {
+					panic(err)
+				}
+			}
+
+			nextKey = operations.Pagination.NextKey
+			if nextKey == nil {
+				return
+			}
 		}
 	}
 }

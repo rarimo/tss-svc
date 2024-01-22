@@ -32,25 +32,33 @@ type ServerImpl struct {
 	swagger  *config.SwaggerInfo
 }
 
-func NewServer(ctx core.Context, manager *core.SessionManager) *ServerImpl {
+func NewServer(
+	log *logan.Entry,
+	listener net.Listener,
+	pg *pg.Storage,
+	storage secret.Storage,
+	pool *pool.Pool,
+	swagger *config.SwaggerInfo,
+	manager *core.SessionManager,
+) *ServerImpl {
 	return &ServerImpl{
 		manager:  manager,
-		log:      ctx.Log(),
-		listener: ctx.Listener(),
-		pg:       ctx.PG(),
-		storage:  ctx.SecretStorage(),
-		pool:     ctx.Pool(),
-		swagger:  ctx.Swagger(),
+		log:      log,
+		listener: listener,
+		pg:       pg,
+		storage:  storage,
+		pool:     pool,
+		swagger:  swagger,
 	}
 }
 
-func (s *ServerImpl) RunGRPC() error {
+func (s *ServerImpl) RunGRPC(_ context.Context) error {
 	grpcServer := grpc.NewServer()
 	types.RegisterServiceServer(grpcServer, s)
 	return grpcServer.Serve(s.listener)
 }
 
-func (s *ServerImpl) RunGateway() error {
+func (s *ServerImpl) RunGateway(ctx context.Context) error {
 	if !s.swagger.Enabled {
 		return nil
 	}
@@ -66,7 +74,15 @@ func (s *ServerImpl) RunGateway() error {
 	httpRouter.Handle("/static/service.swagger.json", http.FileServer(http.FS(docs.Docs)))
 	httpRouter.HandleFunc("/api", openapiconsole.Handler("TSS service", "/static/service.swagger.json"))
 	httpRouter.Handle("/", grpcGatewayRouter)
-	return http.ListenAndServe(s.swagger.Addr, httpRouter)
+
+	srv := &http.Server{Addr: s.swagger.Addr, Handler: httpRouter}
+	defer func() {
+		if err := srv.Shutdown(ctx); err != nil {
+			s.log.WithError(err).Error("profiler server shutdown error")
+		}
+	}()
+
+	return srv.ListenAndServe()
 }
 
 var _ types.ServiceServer = &ServerImpl{}

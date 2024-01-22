@@ -138,8 +138,8 @@ func DefaultSessionContext(sessionType types.SessionType) Context {
 	return WrapCtx(GetSessionCtx(context.TODO(), sessionType))
 }
 
-func DefaultGlobalContext() Context {
-	return WrapCtx(addCtxTypeKey(context.TODO(), GlobalContextKey))
+func DefaultGlobalContext(ctx context.Context) Context {
+	return WrapCtx(addCtxTypeKey(ctx, GlobalContextKey))
 }
 
 func (c *Context) Context() context.Context {
