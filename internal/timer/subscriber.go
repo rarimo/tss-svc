@@ -11,6 +11,7 @@ import (
 const (
 	BlockServiceName = "block-subscriber"
 	BlockQuery       = "tm.event = 'NewBlock'"
+	ChanelCap        = 100
 )
 
 // BlockSubscriber subscribes to the NewBlock events on the tendermint core.
@@ -46,7 +47,7 @@ func (b *BlockSubscriber) Run(ctx context.Context) {
 }
 
 func (b *BlockSubscriber) runner(ctx context.Context) {
-	out, err := b.client.Subscribe(ctx, BlockServiceName, BlockQuery)
+	out, err := b.client.Subscribe(ctx, BlockServiceName, BlockQuery, ChanelCap)
 	if err != nil {
 		panic(err)
 	}
@@ -64,8 +65,8 @@ func (b *BlockSubscriber) runner(ctx context.Context) {
 		case types.EventDataNewBlock:
 			b.log.Infof("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
 			b.timer.newBlock(uint64(data.Block.Height))
-			break
-		}
+		default:
 
+		}
 	}
 }
