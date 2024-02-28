@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -64,7 +65,19 @@ func Run(args []string) {
 	}
 
 	c, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
-	defer cancel()
+	go func() {
+		sigint := make(chan os.Signal, 1)
+
+		// interrupt signal sent from terminal
+		signal.Notify(sigint, os.Interrupt)
+		// sigterm signal sent from kubernetes
+		signal.Notify(sigint, syscall.SIGTERM)
+
+		<-sigint
+
+		cancel()
+		os.Exit(0)
+	}()
 
 	switch cmd {
 	case serviceCmd.FullCommand():
