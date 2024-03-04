@@ -32,41 +32,33 @@ func NewBlockSubscriber(timer *Timer, tendermint *http.HTTP, log *logan.Entry) *
 }
 
 func (b *BlockSubscriber) Run(ctx context.Context) {
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				b.log.Info("Context finished")
-				return
-			default:
-				b.runner(ctx)
-				b.log.Info("[Block] Resubscribing to the blocks...")
-			}
-		}
-	}()
-}
-
-func (b *BlockSubscriber) runner(ctx context.Context) {
 	out, err := b.client.Subscribe(ctx, BlockServiceName, BlockQuery, ChanelCap)
 	if err != nil {
 		panic(err)
 	}
 
-	for {
-		c, ok := <-out
-		if !ok {
-			if err := b.client.Unsubscribe(ctx, BlockServiceName, BlockQuery); err != nil {
-				b.log.WithError(err).Error("[Block] failed to unsubscribe from new blocks")
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				if err := b.client.Unsubscribe(ctx, BlockServiceName, BlockQuery); err != nil {
+					b.log.WithError(err).Error("[Block] failed to unsubscribe from new blocks")
+				}
+
+				b.log.Info("Context finished")
+				return
+			case c, ok := <-out:
+				if !ok {
+					b.log.WithError(err).Fatal("[Block] chanel closed")
+				}
+
+				switch data := c.Data.(type) {
+				case types.EventDataNewBlock:
+					b.log.Infof("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
+					b.timer.newBlock(uint64(data.Block.Height))
+				}
 			}
-			break
 		}
+	}()
 
-		switch data := c.Data.(type) {
-		case types.EventDataNewBlock:
-			b.log.Infof("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
-			b.timer.newBlock(uint64(data.Block.Height))
-		default:
-
-		}
-	}
 }
