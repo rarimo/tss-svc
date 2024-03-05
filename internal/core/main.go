@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	goerr "errors"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"sync"
 
 	"github.com/rarimo/tss-svc/pkg/types"
@@ -51,7 +53,10 @@ func (s *SessionManager) Receive(ctx context.Context, request *types.MsgSubmitRe
 			return session.Receive(ctx, request)
 		}
 
-		return ErrInvalidSessionID
+		return errors.From(ErrInvalidSessionID, logan.F{
+			"current_id":  session.ID(),
+			"received_id": request.Data.Id,
+		})
 	}
 
 	return ErrInvalidSessionType
