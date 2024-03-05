@@ -2,9 +2,9 @@ package timer
 
 import (
 	"context"
+	"time"
 
 	"github.com/tendermint/tendermint/rpc/client/http"
-	"github.com/tendermint/tendermint/types"
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
@@ -32,33 +32,26 @@ func NewBlockSubscriber(timer *Timer, tendermint *http.HTTP, log *logan.Entry) *
 }
 
 func (b *BlockSubscriber) Run(ctx context.Context) {
-	out, err := b.client.Subscribe(ctx, BlockServiceName, BlockQuery, ChanelCap)
-	if err != nil {
-		panic(err)
-	}
-
 	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
-				if err := b.client.Unsubscribe(ctx, BlockServiceName, BlockQuery); err != nil {
-					b.log.WithError(err).Error("[Block] failed to unsubscribe from new blocks")
-				}
-
 				b.log.Info("Context finished")
 				return
-			case c, ok := <-out:
-				if !ok {
-					b.log.WithError(err).Fatal("[Block] chanel closed")
+			case <-ticker.C:
+				info, err := b.client.Status(ctx)
+				if err != nil {
+					b.log.WithError(err).Fatal("[Block] failed to receive status")
 				}
 
-				switch data := c.Data.(type) {
-				case types.EventDataNewBlock:
-					b.log.Infof("[Block] Received New Block %s height: %d", data.Block.Hash().String(), data.Block.Height)
-					b.timer.newBlock(uint64(data.Block.Height))
-				}
+				b.log.Infof("[Block] Received New Block %s height: %d", info.SyncInfo.LatestBlockHash, info.SyncInfo.LatestBlockHeight)
+				b.timer.newBlock(uint64(info.SyncInfo.LatestBlockHeight))
+
+				ticker.Reset(5 * time.Second)
 			}
 		}
 	}()
-
 }
