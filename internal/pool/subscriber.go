@@ -130,7 +130,7 @@ func (o *OperationSubscriber) Run(ctx context.Context) {
 				return
 			case c, ok := <-out:
 				if !ok {
-					o.log.WithError(err).Fatal("[Pool] chanel closed")
+					o.log.Fatal("[Pool] chanel closed")
 				}
 
 				for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeOperationApproved, rarimo.AttributeKeyOperationId)] {
