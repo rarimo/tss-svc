@@ -50,6 +50,9 @@ func (p *Pool) Add(id string) error {
 	defer p.mu.Unlock()
 
 	if _, ok := p.index[id]; !ok {
+		if len(p.rawOrder) == poolSz {
+			p.log.Error("[Pool] DEAD LOCK REACHED LIMIT OF THE CHANNEL IN THE MUTEX")
+		}
 		p.index[id] = struct{}{}
 		p.rawOrder <- id
 	}
