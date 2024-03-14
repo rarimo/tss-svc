@@ -110,36 +110,36 @@ func NewTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *loga
 	}
 }
 
-func (o *OperationSubscriber) Run() {
-	go func() {
-		for {
-			o.log.Infof("[Pool] Subscribing to the pool. Query: %s", o.query)
-			o.runner()
-		}
-	}()
-}
+func (o *OperationSubscriber) Run(ctx context.Context) {
+	o.log.Infof("[Pool] Subscribing to the pool. Query: %s", o.query)
 
-func (o *OperationSubscriber) runner() {
-	out, err := o.client.Subscribe(context.Background(), OpServiceName, o.query, OpPoolSize)
+	out, err := o.client.Subscribe(ctx, OpServiceName, o.query, OpPoolSize)
 	if err != nil {
 		panic(err)
 	}
 
-	for {
-		c, ok := <-out
-		if !ok {
-			o.log.Info("[Pool] WS unsubscribed. Resubscribing...")
-			if err := o.client.Unsubscribe(context.Background(), OpServiceName, o.query); err != nil {
-				o.log.WithError(err).Error("[Pool] Failed to unsubscribe from new operations")
-			}
-			break
-		}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				if err := o.client.Unsubscribe(ctx, OpServiceName, o.query); err != nil {
+					o.log.WithError(err).Error("[Pool] Failed to unsubscribe from new operations")
+				}
 
-		for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeOperationApproved, rarimo.AttributeKeyOperationId)] {
-			o.log.Infof("[Pool] New operation found index=%s", index)
-			if err := o.pool.Add(index); err != nil {
-				o.log.WithError(err).Error("error adding operation to the pool")
+				o.log.Info("Context finished")
+				return
+			case c, ok := <-out:
+				if !ok {
+					o.log.Fatal("[Pool] chanel closed")
+				}
+
+				for _, index := range c.Events[fmt.Sprintf("%s.%s", rarimo.EventTypeOperationApproved, rarimo.AttributeKeyOperationId)] {
+					o.log.Infof("[Pool] New operation found index=%s", index)
+					if err := o.pool.Add(index); err != nil {
+						o.log.WithError(err).Error("error adding operation to the pool")
+					}
+				}
 			}
 		}
-	}
+	}()
 }
