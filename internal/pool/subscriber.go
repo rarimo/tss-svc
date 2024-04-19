@@ -19,6 +19,7 @@ const (
 	OpQueryIdentityStateTransfer      = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_STATE_TRANSFER'"
 	OpQueryWorldCoinIdentityTransfer  = "tm.event='Tx' AND operation_approved.operation_type='WORLDCOIN_IDENTITY_TRANSFER'"
 	OpQueryIdentityAggregatedTransfer = "tm.event='NewBlock' AND operation_approved.operation_type='IDENTITY_AGGREGATED_TRANSFER'"
+	OpQueryCSCARootUpdate             = "tm.event='NewBlock' AND operation_approved.operation_type='CSCA_ROOT_UPDATE'"
 	OpPoolSize                        = 1000
 )
 
@@ -107,6 +108,16 @@ func NewTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *loga
 		log:    log,
 		client: tendermint,
 		query:  OpQueryTransfer,
+	}
+}
+
+// NewCSCARootUpdateOperationSubscriber creates the subscriber instance for listening new transfer operations
+func NewCSCARootUpdateOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryCSCARootUpdate,
 	}
 }
 
