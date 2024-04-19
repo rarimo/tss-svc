@@ -13,7 +13,7 @@ require (
 	github.com/ignite/cli v0.26.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66
-	github.com/rarimo/rarimo-core v1.0.7-0.20240418105353-44b23280c762
+	github.com/rarimo/rarimo-core v1.1.1-rc1
 	github.com/rubenv/sql-migrate v1.2.0
 	github.com/tendermint/tendermint v0.34.28
 	gitlab.com/distributed_lab/figure v2.1.0+incompatible
