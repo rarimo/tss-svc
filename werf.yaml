@@ -2,7 +2,7 @@ configVersion: 1
 project: "backend"
 ---
 image: builder
-from: golang:1.21-alpine
+from: golang:1.22-alpine
 docker:
   WORKDIR: /go/src/github.com/rarimo/tss-svc
 git:
