@@ -14,11 +14,7 @@ git:
 shell:
   install:
     - apk add git build-base
-    - go env -w GOPRIVATE=github.com/*
-    - go env -w GONOSUMDB=github.com/*
-    - go env -w GONOPROXY=github.com/*
     - cd /go/src/github.com/rarimo/tss-svc
-    - go mod tidy
   setup:
     - go env -w GOPRIVATE=github.com/*
     - go env -w GONOSUMDB=github.com/*
@@ -26,6 +22,7 @@ shell:
     - export CGO_ENABLED=1
     - export GOOS=linux
     - cd /go/src/github.com/rarimo/tss-svc
+    - go mod tidy
     - go build  -o /usr/local/bin/tss-svc /go/src/github.com/rarimo/tss-svc
 
 ---
