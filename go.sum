@@ -1300,6 +1300,8 @@ github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66 h1:1KAU4rfWWJwAJ/
 github.com/rarimo/go-merkle v0.0.0-20231004122345-36fa49031c66/go.mod h1:5Pt9Lk8w7fWhyRO/NMb5x8DRhF2lESRVPT5uOlezInQ=
 github.com/rarimo/rarimo-core v1.0.7-0.20240418105353-44b23280c762 h1:BaeJdHZrw8yb9aFKplIBN14R0PzmuSJQscuYKgBruS8=
 github.com/rarimo/rarimo-core v1.0.7-0.20240418105353-44b23280c762/go.mod h1:AsSuY7alcrFzQ+pS0z3WN0cesmQcgHRTzTP/F2z5/0U=
+github.com/rarimo/rarimo-core v1.0.7-0.20240506164729-b6d3b396c483 h1:9ETaIYCl6WF7qtM2DrrJ+4wk2bqj6DZ32XGiEbMPYH4=
+github.com/rarimo/rarimo-core v1.0.7-0.20240506164729-b6d3b396c483/go.mod h1:MlkjdHXyAi6xQWuJOuDQPWQyRyp/2yRzMOiqxHAZ4WI=
 github.com/rarimo/rarimo-core v1.1.1-rc1 h1:0/jdSHUu3YHPWUHFL02wCWq0SJxKT6E/3EWbzvdfw4Y=
 github.com/rarimo/rarimo-core v1.1.1-rc1/go.mod h1:AsSuY7alcrFzQ+pS0z3WN0cesmQcgHRTzTP/F2z5/0U=
 github.com/rarimo/tss-lib/v2 v2.0.1 h1:q2ar8txLLal41lXy7Xv8AXVQ7TWeXX0fzWfbUIF81qU=
