@@ -1304,6 +1304,8 @@ github.com/rarimo/rarimo-core v1.0.7-0.20240506164729-b6d3b396c483 h1:9ETaIYCl6W
 github.com/rarimo/rarimo-core v1.0.7-0.20240506164729-b6d3b396c483/go.mod h1:MlkjdHXyAi6xQWuJOuDQPWQyRyp/2yRzMOiqxHAZ4WI=
 github.com/rarimo/rarimo-core v1.1.1-rc1 h1:0/jdSHUu3YHPWUHFL02wCWq0SJxKT6E/3EWbzvdfw4Y=
 github.com/rarimo/rarimo-core v1.1.1-rc1/go.mod h1:AsSuY7alcrFzQ+pS0z3WN0cesmQcgHRTzTP/F2z5/0U=
+github.com/rarimo/rarimo-core v1.1.2 h1:Qfrc6wqCvjezZdpxAeHEKHrEtpBhozkClAy/I5JcbOw=
+github.com/rarimo/rarimo-core v1.1.2/go.mod h1:MlkjdHXyAi6xQWuJOuDQPWQyRyp/2yRzMOiqxHAZ4WI=
 github.com/rarimo/tss-lib/v2 v2.0.1 h1:q2ar8txLLal41lXy7Xv8AXVQ7TWeXX0fzWfbUIF81qU=
 github.com/rarimo/tss-lib/v2 v2.0.1/go.mod h1:s4LRfEqj89DhfNb+oraW0dURt5LtOHWXb9Gtkghn0L8=
 github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 h1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=
