@@ -17,6 +17,7 @@ var acceptableOperationTypes = map[rarimo.OpType]struct{}{
 	rarimo.OpType_IDENTITY_AGGREGATED_TRANSFER: {},
 	rarimo.OpType_WORLDCOIN_IDENTITY_TRANSFER:  {},
 	rarimo.OpType_CSCA_ROOT_UPDATE:             {},
+	rarimo.OpType_ARBITRARY:                    {},
 }
 
 // OperationCatchupper catches up old unsigned operations from core.

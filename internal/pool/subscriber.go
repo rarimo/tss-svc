@@ -20,6 +20,7 @@ const (
 	OpQueryWorldCoinIdentityTransfer  = "tm.event='Tx' AND operation_approved.operation_type='WORLDCOIN_IDENTITY_TRANSFER'"
 	OpQueryIdentityAggregatedTransfer = "tm.event='NewBlock' AND operation_approved.operation_type='IDENTITY_AGGREGATED_TRANSFER'"
 	OpQueryCSCARootUpdate             = "tm.event='NewBlock' AND operation_approved.operation_type='CSCA_ROOT_UPDATE'"
+	OpQueryArbitrary                  = "tm.event='NewBlock' AND operation_approved.operation_type='ARBITRARY'"
 	OpPoolSize                        = 1000
 )
 
@@ -111,13 +112,23 @@ func NewTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *loga
 	}
 }
 
-// NewCSCARootUpdateOperationSubscriber creates the subscriber instance for listening new transfer operations
+// NewCSCARootUpdateOperationSubscriber creates the subscriber instance for listening new CSCA root update operations
 func NewCSCARootUpdateOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
 	return &OperationSubscriber{
 		pool:   pool,
 		log:    log,
 		client: tendermint,
 		query:  OpQueryCSCARootUpdate,
+	}
+}
+
+// NewArbitraryOperationSubscriber creates the subscriber instance for listening new arbitrary operations
+func NewArbitraryOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+	return &OperationSubscriber{
+		pool:   pool,
+		log:    log,
+		client: tendermint,
+		query:  OpQueryArbitrary,
 	}
 }
 

@@ -97,6 +97,7 @@ func Run(args []string) {
 		go pool.NewIdentityAggregatedTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 		go pool.NewWorldCoinIdentityTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 		go pool.NewCSCARootUpdateOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
+		go pool.NewArbitraryOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 		go pool.NewOperationCatchupper(ctx.Pool(), ctx.Client(), ctx.Log()).Run(ctx.Context())
 
 		manager := core.NewSessionManager()
