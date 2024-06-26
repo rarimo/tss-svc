@@ -90,8 +90,6 @@ func Run(args []string) {
 		go timer.NewBlockSubscriber(ctx.Timer(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 		go pool.NewTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 		go pool.NewFeeManagementOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
-		go pool.NewContractUpgradeOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
-		go pool.NewIdentityTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 		go pool.NewIdentityGISTTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 		go pool.NewIdentityStateTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())
 		go pool.NewIdentityAggregatedTransferOperationSubscriber(ctx.Pool(), ctx.Tendermint(), ctx.Log()).Run(ctx.Context())

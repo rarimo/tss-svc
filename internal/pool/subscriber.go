@@ -13,8 +13,6 @@ const (
 	OpServiceName                     = "op-subscriber"
 	OpQueryTransfer                   = "tm.event='Tx' AND operation_approved.operation_type='TRANSFER'"
 	OpQueryFeeManagement              = "tm.event='NewBlock' AND operation_approved.operation_type='FEE_TOKEN_MANAGEMENT'"
-	OpQueryContractUpgrade            = "tm.event='NewBlock' AND operation_approved.operation_type='CONTRACT_UPGRADE'"
-	OpQueryIdentityDefaultTransfer    = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_DEFAULT_TRANSFER'"
 	OpQueryIdentityGISTTransfer       = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_GIST_TRANSFER'"
 	OpQueryIdentityStateTransfer      = "tm.event='Tx' AND operation_approved.operation_type='IDENTITY_STATE_TRANSFER'"
 	OpQueryWorldCoinIdentityTransfer  = "tm.event='Tx' AND operation_approved.operation_type='WORLDCOIN_IDENTITY_TRANSFER'"
@@ -69,26 +67,6 @@ func NewIdentityStateTransferOperationSubscriber(pool *Pool, tendermint *http.HT
 		log:    log,
 		client: tendermint,
 		query:  OpQueryIdentityStateTransfer,
-	}
-}
-
-// NewIdentityTransferOperationSubscriber creates the subscriber instance for listening new identity transfer operations
-func NewIdentityTransferOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
-	return &OperationSubscriber{
-		pool:   pool,
-		log:    log,
-		client: tendermint,
-		query:  OpQueryIdentityDefaultTransfer,
-	}
-}
-
-// NewContractUpgradeOperationSubscriber creates the subscriber instance for listening new contract upgrades operations
-func NewContractUpgradeOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
-	return &OperationSubscriber{
-		pool:   pool,
-		log:    log,
-		client: tendermint,
-		query:  OpQueryContractUpgrade,
 	}
 }
 

@@ -12,11 +12,11 @@ import (
 var acceptableOperationTypes = map[rarimo.OpType]struct{}{
 	rarimo.OpType_TRANSFER:                     {},
 	rarimo.OpType_FEE_TOKEN_MANAGEMENT:         {},
-	rarimo.OpType_CONTRACT_UPGRADE:             {},
-	rarimo.OpType_IDENTITY_DEFAULT_TRANSFER:    {},
 	rarimo.OpType_IDENTITY_AGGREGATED_TRANSFER: {},
 	rarimo.OpType_WORLDCOIN_IDENTITY_TRANSFER:  {},
 	rarimo.OpType_CSCA_ROOT_UPDATE:             {},
+	rarimo.OpType_IDENTITY_GIST_TRANSFER:       {},
+	rarimo.OpType_IDENTITY_STATE_TRANSFER:      {},
 	rarimo.OpType_ARBITRARY:                    {},
 }
 
