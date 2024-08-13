@@ -2,7 +2,6 @@ package pool
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/types/query"
 	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
@@ -52,7 +51,6 @@ func (o *OperationCatchupper) Run(ctx context.Context) {
 			}
 
 			for _, op := range operations.Operation {
-				fmt.Println("Op: ", op)
 				if _, ok := acceptableOperationTypes[op.OperationType]; !ok {
 					o.log.Debugf("[Pool] Operation %s has unsupported type for catchup", op.Index)
 				}
