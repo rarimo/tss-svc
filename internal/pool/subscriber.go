@@ -18,7 +18,7 @@ const (
 	OpQueryWorldCoinIdentityTransfer  = "tm.event='Tx' AND operation_approved.operation_type='WORLDCOIN_IDENTITY_TRANSFER'"
 	OpQueryIdentityAggregatedTransfer = "tm.event='NewBlock' AND operation_approved.operation_type='IDENTITY_AGGREGATED_TRANSFER'"
 	OpQueryCSCARootUpdate             = "tm.event='NewBlock' AND operation_approved.operation_type='CSCA_ROOT_UPDATE'"
-	OpQueryRootUpdate                 = "tm.event='NewBlock' AND operation_approved.operation_type='UPDATE_ROOT'"
+	OpQueryPassportRootUpdate         = "tm.event='NewBlock' AND operation_approved.operation_type='PASSPORT_ROOT_UPDATE'"
 	OpQueryArbitrary                  = "tm.event='NewBlock' AND operation_approved.operation_type='ARBITRARY'"
 	OpPoolSize                        = 1000
 )
@@ -102,12 +102,12 @@ func NewCSCARootUpdateOperationSubscriber(pool *Pool, tendermint *http.HTTP, log
 }
 
 // NewRootUpdateOperationSubscriber creates the subscriber instance for listening new root update operations
-func NewRootUpdateOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
+func NewPassportRootUpdateOperationSubscriber(pool *Pool, tendermint *http.HTTP, log *logan.Entry) *OperationSubscriber {
 	return &OperationSubscriber{
 		pool:   pool,
 		log:    log,
 		client: tendermint,
-		query:  OpQueryRootUpdate,
+		query:  OpQueryPassportRootUpdate,
 	}
 }
 
