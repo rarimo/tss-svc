@@ -2,10 +2,10 @@ package pool
 
 import (
 	"context"
+	"gitlab.com/distributed_lab/logan/v3"
 
 	"github.com/cosmos/cosmos-sdk/types/query"
 	rarimo "github.com/rarimo/rarimo-core/x/rarimocore/types"
-	"gitlab.com/distributed_lab/logan/v3"
 	"google.golang.org/grpc"
 )
 
@@ -17,6 +17,7 @@ var acceptableOperationTypes = map[rarimo.OpType]struct{}{
 	rarimo.OpType_CSCA_ROOT_UPDATE:             {},
 	rarimo.OpType_IDENTITY_GIST_TRANSFER:       {},
 	rarimo.OpType_IDENTITY_STATE_TRANSFER:      {},
+	rarimo.OpType_PASSPORT_ROOT_UPDATE:         {},
 	rarimo.OpType_ARBITRARY:                    {},
 }
 
